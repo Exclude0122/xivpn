@@ -40,6 +40,7 @@ android {
 
     buildFeatures {
         buildConfig true
+        aidl true
     }
 
     flavorDimensions += "version"
@@ -106,5 +107,6 @@ dependencies {
     implementation libs.preference
     implementation libs.commons.io
     implementation libs.recyclerview
+    implementation libs.work.multiprocess
 
 }

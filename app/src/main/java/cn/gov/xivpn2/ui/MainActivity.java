@@ -3,7 +3,6 @@ package cn.gov.xivpn2.ui;
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -11,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.CompoundButton;
@@ -30,34 +30,40 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.navigation.NavigationView;
 
-import org.apache.commons.io.FileUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
 import cn.gov.xivpn2.R;
+import cn.gov.xivpn2.aidl.IVPNListener;
+import cn.gov.xivpn2.aidl.IVPNService;
 import cn.gov.xivpn2.database.Rules;
+import cn.gov.xivpn2.service.VPNStatus;
 import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "MainActivity";
+
     private NavigationView navigationView;
     private DrawerLayout drawerLayout;
     private MaterialSwitch aSwitch;
     private TextView textView;
-    private XiVPNService.XiVPNBinder binder;
+    private IVPNService binder;
     private CompoundButton.OnCheckedChangeListener onCheckedChangeListener;
 
     private final ServiceConnection connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            binder = (XiVPNService.XiVPNBinder) service;
+            binder = IVPNService.Stub.asInterface(service);
 
-            updateSwitch(binder.getStatus());
-
-            binder.addListener(vpnStatusListener);
+            try {
+                updateSwitch(VPNStatus.valueOf(binder.getStatus()));
+                binder.addListener(vpnStatusListener);
+            } catch (RemoteException e) {
+                Log.e(TAG, "on service connected", e);
+            }
         }
 
         @Override
@@ -65,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
             binder = null;
         }
     };
-    private XiVPNService.VPNStatusListener vpnStatusListener;
+    private IVPNListener vpnStatusListener;
 
     @Override
     protected void onStart() {
@@ -77,7 +83,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if (binder != null) binder.removeListener(vpnStatusListener);
+        if (binder != null) {
+            try {
+                binder.removeListener(vpnStatusListener);
+            } catch (RemoteException e) {
+                Log.e(TAG, "on stop remove listener", e);
+            }
+        }
         unbindService(connection);
     }
 
@@ -198,15 +210,20 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // vpn service listener
-        vpnStatusListener = new XiVPNService.VPNStatusListener() {
+        vpnStatusListener = new IVPNListener.Stub() {
             @Override
-            public void onStatusChanged(XiVPNService.Status status) {
-                updateSwitch(status);
+            public void onStatusChanged(String status) {
+                runOnUiThread(() -> {
+                    updateSwitch(VPNStatus.valueOf(status));
+                });
+
             }
 
             @Override
             public void onMessage(String msg) {
-                textView.setText(msg);
+                runOnUiThread(() -> {
+                    textView.setText(msg);
+                });
             }
         };
     }
@@ -214,18 +231,18 @@ public class MainActivity extends AppCompatActivity {
     /**
      * update switch based on the status of vpn
      */
-    private void updateSwitch(XiVPNService.Status status) {
+    private void updateSwitch(VPNStatus status) {
         // set listener to null so setChecked will not trigger the listener
         aSwitch.setOnCheckedChangeListener(null);
 
-        if (status == XiVPNService.Status.CONNECTING) {
+        if (status == VPNStatus.CONNECTING) {
             aSwitch.setChecked(false);
             aSwitch.setEnabled(false);
             aSwitch.setOnCheckedChangeListener(onCheckedChangeListener);
             return;
         }
         aSwitch.setEnabled(true);
-        aSwitch.setChecked(status == XiVPNService.Status.CONNECTED);
+        aSwitch.setChecked(status == VPNStatus.CONNECTED);
         aSwitch.setOnCheckedChangeListener(onCheckedChangeListener);
     }
 

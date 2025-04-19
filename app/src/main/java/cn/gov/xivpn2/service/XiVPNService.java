@@ -7,9 +7,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.VpnService;
-import android.os.Binder;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
@@ -34,6 +34,8 @@ import java.util.Set;
 import cn.gov.xivpn2.LibXivpn;
 import cn.gov.xivpn2.NotificationID;
 import cn.gov.xivpn2.R;
+import cn.gov.xivpn2.aidl.IVPNListener;
+import cn.gov.xivpn2.aidl.IVPNService;
 import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
@@ -52,10 +54,10 @@ import cn.gov.xivpn2.xrayconfig.StreamSettings;
 public class XiVPNService extends VpnService implements SocketProtect {
 
     public static final int SOCKS_PORT = 18964;
-    private final IBinder binder = new XiVPNBinder();
+    private final IVPNService.Stub binder = new XiVPNBinder();
     private final String TAG = "XiVPNService";
-    private final Set<VPNStatusListener> listeners = new HashSet<>();
-    private Status status = Status.DISCONNECTED;
+    private final Set<IVPNListener> listeners = new HashSet<>();
+    private VPNStatus status = VPNStatus.DISCONNECTED;
     private ParcelFileDescriptor fileDescriptor;
 
     @Override
@@ -78,7 +80,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         // start vpn
         if (shouldStart) {
-            if (status != Status.DISCONNECTED) {
+            if (status != VPNStatus.DISCONNECTED) {
                 Log.d(TAG, "on start command already started");
                 return Service.START_NOT_STICKY;
             }
@@ -98,32 +100,44 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 startVPN(config);
             } catch (IllegalArgumentException e) {
                 Log.e(TAG, "start vpn", e);
-                for (VPNStatusListener listener : listeners) {
-                    listener.onMessage(e.getClass().getSimpleName() + ": " + e.getMessage());
+
+                try {
+                    for (IVPNListener listener : listeners) {
+                        listener.onMessage(e.getClass().getSimpleName() + ": " + e.getMessage());
+                    }
+                } catch (RemoteException ex) {
+                    Log.e(TAG, "start vpn on message remote exception", e);
                 }
+
+            } catch (RemoteException e) {
+                Log.e(TAG, "start vpn remote exception", e);
             }
         }
 
         // stop vpn
         if (intent != null && intent.getAction() != null && intent.getAction().equals("cn.gov.xivpn2.STOP")) {
-            if (status != Status.CONNECTED) {
+            if (status != VPNStatus.CONNECTED) {
                 Log.d(TAG, "on start command already stopped");
                 return Service.START_NOT_STICKY;
             }
 
             stopForeground(true);
-            stopVPN();
+            try {
+                stopVPN();
+            } catch (RemoteException e) {
+                Log.e(TAG, "stop vpn remote exception", e);
+            }
         }
 
         return Service.START_NOT_STICKY;
     }
 
-    public synchronized void startVPN(Config config) {
-        if (status != Status.DISCONNECTED) return;
+    public synchronized void startVPN(Config config) throws RemoteException {
+        if (status != VPNStatus.DISCONNECTED) return;
 
-        status = Status.CONNECTING;
-        for (VPNStatusListener listener : listeners) {
-            listener.onStatusChanged(status);
+        status = VPNStatus.CONNECTING;
+        for (IVPNListener listener : listeners) {
+            listener.onStatusChanged(status.name());
         }
 
         // establish vpn
@@ -169,9 +183,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
         Log.i(TAG, "xray config: " + xrayConfig);
         String ret = LibXivpn.xivpn_start(xrayConfig, 18964, fileDescriptor.getFd(), logFile, getFilesDir().getAbsolutePath(), this);
 
-        status = Status.CONNECTED;
-        for (VPNStatusListener listener : listeners) {
-            listener.onStatusChanged(status);
+        status = VPNStatus.CONNECTED;
+        for (IVPNListener listener : listeners) {
+            listener.onStatusChanged(status.name());
         }
 
         if (!ret.isEmpty()) { // error occurred
@@ -183,15 +197,15 @@ public class XiVPNService extends VpnService implements SocketProtect {
             } catch (IOException e) {
                 Log.e(TAG, "error stop vpn close", e);
             }
-            for (VPNStatusListener listener : listeners) {
+            for (IVPNListener listener : listeners) {
                 listener.onMessage("ERROR: " + ret);
             }
         }
 
     }
 
-    public synchronized void stopVPN() {
-        if (status != Status.CONNECTED) return;
+    public synchronized void stopVPN() throws RemoteException {
+        if (status != VPNStatus.CONNECTED) return;
 
         try {
             fileDescriptor.close();
@@ -200,9 +214,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
         LibXivpn.xivpn_stop();
 
-        status = Status.DISCONNECTED;
-        for (VPNStatusListener listener : listeners) {
-            listener.onStatusChanged(status);
+        status = VPNStatus.DISCONNECTED;
+        for (IVPNListener listener : listeners) {
+            listener.onStatusChanged(status.name());
         }
 
         stopSelf();
@@ -339,36 +353,27 @@ public class XiVPNService extends VpnService implements SocketProtect {
         this.protect(fd);
     }
 
-    public enum Status {
-        CONNECTED,
-        CONNECTING,
-        DISCONNECTED,
-    }
-
-    public interface VPNStatusListener {
-        void onStatusChanged(Status status);
-
-        void onMessage(String msg);
-    }
-
     @Override
     public void onDestroy() {
         Log.i(TAG, "on destroy");
         super.onDestroy();
     }
 
-    public class XiVPNBinder extends Binder {
+    public class XiVPNBinder extends IVPNService.Stub {
 
-        public Status getStatus() {
-            return XiVPNService.this.status;
+        public String getStatus() {
+            return XiVPNService.this.status.name();
         }
 
-        public void addListener(VPNStatusListener listener) {
+        @Override
+        public void addListener(IVPNListener listener) throws RemoteException {
             Log.d(TAG, "add listener " + listener.toString());
             XiVPNService.this.listeners.add(listener);
+
         }
 
-        public void removeListener(VPNStatusListener listener) {
+        @Override
+        public void removeListener(IVPNListener listener) throws RemoteException {
             Log.d(TAG, "remove listener " + listener.toString());
             XiVPNService.this.listeners.remove(listener);
         }
