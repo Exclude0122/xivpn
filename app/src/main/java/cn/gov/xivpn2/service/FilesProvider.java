@@ -3,7 +3,6 @@ package cn.gov.xivpn2.service;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.os.CancellationSignal;
-import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract.Document;
 import android.provider.DocumentsContract.Root;

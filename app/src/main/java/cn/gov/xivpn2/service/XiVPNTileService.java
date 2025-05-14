@@ -5,13 +5,11 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.Build;
 import android.os.IBinder;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 import android.util.Log;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.service.quicksettings.PendingIntentActivityWrapper;
 import androidx.core.service.quicksettings.TileServiceCompat;
 

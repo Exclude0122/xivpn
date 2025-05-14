@@ -13,13 +13,8 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SortedList;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import cn.gov.xivpn2.R;
 

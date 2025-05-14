@@ -4,21 +4,14 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.text.Html;
-import android.text.Spanned;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.widget.FrameLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-import androidx.core.text.method.LinkMovementMethodCompat;
 import androidx.preference.PreferenceFragmentCompat;
 
 import cn.gov.xivpn2.BuildConfig;
-import cn.gov.xivpn2.LibXivpn;
 import cn.gov.xivpn2.R;
 
 public class SettingsFragment extends PreferenceFragmentCompat {
@@ -46,7 +39,7 @@ public class SettingsFragment extends PreferenceFragmentCompat {
             return true;
         });
 
-        findPreference("xray_version").setSummary(LibXivpn.xivpn_version());
+        // findPreference("xray_version").setSummary(LibXivpn.xivpn_version());
 
         findPreference("black_background").setOnPreferenceChangeListener((preference, newValue) -> {
             Toast.makeText(getContext(), R.string.restart_to_apply, Toast.LENGTH_SHORT).show();

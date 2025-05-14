@@ -2,8 +2,6 @@ package cn.gov.xivpn2.ui;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -17,13 +15,10 @@ import androidx.appcompat.widget.AppCompatEditText;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
-
-import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.List;
 import java.util.Objects;

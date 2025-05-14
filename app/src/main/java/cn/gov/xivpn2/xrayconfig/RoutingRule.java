@@ -1,7 +1,5 @@
 package cn.gov.xivpn2.xrayconfig;
 
-import com.google.gson.annotations.Expose;
-
 import java.util.List;
 
 public class RoutingRule {

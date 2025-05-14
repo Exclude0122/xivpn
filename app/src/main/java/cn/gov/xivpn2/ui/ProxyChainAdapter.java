@@ -16,7 +16,6 @@ import java.util.ArrayList;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.xrayconfig.ProxyChain;
-import cn.gov.xivpn2.xrayconfig.RoutingRule;
 
 public class ProxyChainAdapter extends RecyclerView.Adapter<ProxyChainAdapter.ViewHolder> {
 
