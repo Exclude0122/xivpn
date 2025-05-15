@@ -186,7 +186,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         Process p = new ProcessBuilder()
                 .directory(getFilesDir())
-                .redirectError(new File(getFilesDir(), "xray.log"))
+                .redirectErrorStream(true)
                 .command(getApplicationInfo().nativeLibraryDir + "/libxivpn.so")
                 .start();
 
@@ -205,11 +205,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
         writer.write(new byte[1], 0, 1);
         writer.flush();
 
-        // TODO
         new Thread(() -> {
-            Scanner scanner = new Scanner(p.getErrorStream());
+            Scanner scanner = new Scanner(p.getInputStream());
             while (scanner.hasNextLine()) {
-                Log.i(TAG, scanner.nextLine());
+                Log.d("libxivpn", scanner.nextLine());
             }
             scanner.close();
         }).start();
