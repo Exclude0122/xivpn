@@ -215,8 +215,8 @@ public class MainActivity extends AppCompatActivity {
         // set listener to null so setChecked will not trigger the listener
         aSwitch.setOnCheckedChangeListener(null);
 
-        if (status == XiVPNService.Status.CONNECTING) {
-            aSwitch.setChecked(false);
+        if (status == XiVPNService.Status.CONNECTING || status == XiVPNService.Status.DISCONNECTING) {
+            aSwitch.setChecked(status == XiVPNService.Status.DISCONNECTING);
             aSwitch.setEnabled(false);
             aSwitch.setOnCheckedChangeListener(onCheckedChangeListener);
             return;

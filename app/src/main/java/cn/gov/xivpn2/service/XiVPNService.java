@@ -8,14 +8,15 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
+import android.net.LocalSocketAddress;
 import android.net.VpnService;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.ParcelFileDescriptor;
-import android.os.StrictMode;
-import android.system.ErrnoException;
-import android.system.Os;
 import android.util.Log;
+import android.util.PrintWriterPrinter;
 
 import androidx.core.app.NotificationCompat;
 import androidx.preference.PreferenceManager;
@@ -27,10 +28,15 @@ import com.google.gson.ToNumberPolicy;
 
 import java.io.File;
 import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -40,9 +46,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import cn.gov.xivpn2.NotificationID;
 import cn.gov.xivpn2.R;
@@ -62,13 +71,24 @@ import cn.gov.xivpn2.xrayconfig.Sockopt;
 import cn.gov.xivpn2.xrayconfig.StreamSettings;
 
 public class XiVPNService extends VpnService implements SocketProtect {
-
     public static final int SOCKS_PORT = 18964;
     private final IBinder binder = new XiVPNBinder();
     private final String TAG = "XiVPNService";
     private final Set<VPNStatusListener> listeners = new HashSet<>();
     private Status status = Status.DISCONNECTED;
+    private Process libxivpn_p = null;
+    private Thread protect_t = null;
     private ParcelFileDescriptor fileDescriptor;
+
+    private void setStatus(Status newStatus) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            for (VPNStatusListener listener : listeners) {
+                listener.onStatusChanged(status);
+            }
+        });
+
+        status = newStatus;
+    }
 
     @Override
     public void onCreate() {
@@ -106,7 +126,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
             try {
                 Config config = buildXrayConfig();
                 startVPN(config);
-            } catch (IllegalArgumentException | IOException | InterruptedException | ErrnoException e) {
+            } catch (Exception e) {
                 Log.e(TAG, "start vpn", e);
                 for (VPNStatusListener listener : listeners) {
                     listener.onMessage(e.getClass().getSimpleName() + ": " + e.getMessage());
@@ -128,13 +148,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
         return Service.START_NOT_STICKY;
     }
 
-    public synchronized void startVPN(Config config) throws IOException, InterruptedException, ErrnoException {
+    public synchronized void startVPN(Config config) throws IOException {
         if (status != Status.DISCONNECTED) return;
-
-        status = Status.CONNECTING;
-        for (VPNStatusListener listener : listeners) {
-            listener.onStatusChanged(status);
-        }
+        setStatus(Status.CONNECTING);
 
         // establish vpn
         Builder vpnBuilder = new Builder();
@@ -163,16 +179,6 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         fileDescriptor = vpnBuilder.establish();
 
-        // logging
-        String logFile = "";
-        if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("logs", false)) {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault());
-            String datetime = sdf.format(new Date());
-            logFile = getFilesDir().getAbsolutePath() + "/logs/" + datetime + ".txt";
-            new File(getFilesDir().getAbsolutePath(), "logs").mkdirs();
-        }
-        Log.i(TAG, "log file " + logFile);
-
         // start libxivpn
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String xrayConfig = gson.toJson(config);
@@ -182,89 +188,148 @@ public class XiVPNService extends VpnService implements SocketProtect {
         configStream.write(xrayConfig.getBytes(StandardCharsets.UTF_8));
         configStream.close();
 
-        LocalServerSocket socket = new LocalServerSocket("xivpn_ipc");
+        String ipcPath = new File(getCacheDir(), "ipcsock").getAbsolutePath();
 
-        Process p = new ProcessBuilder()
+        ProcessBuilder builder = new ProcessBuilder()
                 .directory(getFilesDir())
-                .redirectErrorStream(true)
-                .command(getApplicationInfo().nativeLibraryDir + "/libxivpn.so")
-                .start();
+                .command(getApplicationInfo().nativeLibraryDir + "/libxivpn.so");
+        Map<String, String> env = builder.environment();
+        env.put("IPC_PATH", ipcPath);
+        env.put("XRAY_LOCATION_ASSET", getFilesDir().getAbsolutePath());
 
-        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-        StrictMode.setThreadPolicy(policy);
-
-        LocalSocket localSocket = socket.accept();
-
-        Log.i(TAG, "accepted socket");
-
-        InputStream reader = localSocket.getInputStream();
-        OutputStream writer = localSocket.getOutputStream();
-
-        FileDescriptor[] fds = {fileDescriptor.getFileDescriptor()};
-        localSocket.setFileDescriptorsForSend(fds);
-        writer.write(new byte[1], 0, 1);
-        writer.flush();
-
-        new Thread(() -> {
-            Scanner scanner = new Scanner(p.getInputStream());
-            while (scanner.hasNextLine()) {
-                Log.d("libxivpn", scanner.nextLine());
-            }
-            scanner.close();
-        }).start();
-
-        new Thread(() -> {
+        protect_t = new Thread(() -> {
+            LocalSocket socket = new LocalSocket(LocalSocket.SOCKET_STREAM);
             try {
-                Field fdField = FileDescriptor.class.getDeclaredField("descriptor");
-                fdField.setAccessible(true);
-
-                byte[] buf = new byte[1];
-                while (reader.read(buf) != -1) {
-                    FileDescriptor[] fds_ = localSocket.getAncillaryFileDescriptors();
-                    if (fds_.length != 1) {
-                        Log.e(TAG, "expect 1 fds, found " + fds_.length);
-                        return;
-                    }
-
-                    protectFd(fdField.getInt(fds_[0]));
-                    Os.close(fds_[0]);
-                    writer.write(buf);
-                    writer.flush();
-                }
+                socket.bind(new LocalSocketAddress(ipcPath, LocalSocketAddress.Namespace.FILESYSTEM));
             } catch (IOException e) {
-                Log.e(TAG, "read from ipc socket", e);
-            } catch (NoSuchFieldException e) {
-                Log.e(TAG, "descriptor field not found", e);
-            } catch (IllegalAccessException e) {
-                Log.e(TAG, "access descriptor field", e);
-            } catch (ErrnoException e) {
-                Log.e(TAG, "close fd", e);
+                Log.e(TAG, "bind ipc sock", e);
+                setStatus(Status.DISCONNECTED);
+                return;
             }
-        }).start();
+            Log.i(TAG, "ipc sock binded");
 
-        status = Status.CONNECTED;
-        for (VPNStatusListener listener : listeners) {
-            listener.onStatusChanged(status);
+            LocalServerSocket serverSocket = null;
+            OutputStream writer = null;
+            try {
+                serverSocket = new LocalServerSocket(socket.getFileDescriptor());
+
+                libxivpn_p = builder.start();
+
+                socket = serverSocket.accept();
+                writer = socket.getOutputStream();
+            } catch (IOException e) {
+                Log.e(TAG, "listen ipc sock", e);
+                setStatus(Status.DISCONNECTED);
+                return;
+            }
+
+            FileDescriptor[] fds = {fileDescriptor.getFileDescriptor()};
+            socket.setFileDescriptorsForSend(fds);
+            try {
+                writer.write(new byte[1]);
+                writer.flush();
+            } catch (IOException e) {
+                Log.e(TAG, "write to ipc sock", e);
+                setStatus(Status.DISCONNECTED);
+                return;
+            }
+
+            // logging
+            String logFile = "";
+            if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("logs", false)) {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.getDefault());
+                String datetime = sdf.format(new Date());
+                logFile = getFilesDir().getAbsolutePath() + "/logs/" + datetime + ".txt";
+                new File(getFilesDir().getAbsolutePath(), "logs").mkdirs();
+            }
+            Log.i(TAG, "log file: " + logFile);
+
+            PrintStream log = null;
+            if (!logFile.isEmpty()) {
+                try {
+                    log = new PrintStream(logFile);
+                } catch (Exception e) {
+                    Log.e(TAG, "create libxivpn log", e);
+                    setStatus(Status.DISCONNECTED);
+                    return;
+                }
+            }
+
+            PrintStream log_ = log;
+            new Thread(() -> {
+                Scanner scanner = new Scanner(libxivpn_p.getErrorStream());
+                while (scanner.hasNextLine()) {
+                    String line = scanner.nextLine();
+                    Log.d("libxivpn", line);
+
+                    if (log_ != null) {
+                        log_.println(line);
+                    }
+                }
+                scanner.close();
+            }).start();
+
+            setStatus(Status.CONNECTED);
+            protectLoop(socket);
+            stopVPN();
+        });
+        protect_t.start();
+    }
+
+    private void protectLoop(LocalSocket socket) {
+        try {
+            InputStream reader = socket.getInputStream();
+            OutputStream writer = socket.getOutputStream();
+
+            Field fdField = FileDescriptor.class.getDeclaredField("descriptor");
+            fdField.setAccessible(true);
+
+            byte[] buf = new byte[1];
+            while (reader.read(buf) != -1) {
+                FileDescriptor[] fds_ = socket.getAncillaryFileDescriptors();
+                if (fds_ == null) {
+                    Log.e(TAG, "null array");
+                    break;
+                }
+                if (fds_.length != 1) {
+                    Log.e(TAG, "expect 1 fd, found " + fds_.length);
+                    break;
+                }
+
+                protectFd(fdField.getInt(fds_[0]));
+
+                writer.write(new byte[1]);
+                writer.flush();
+            }
+            Log.e(TAG, "protect loop exit");
+        } catch (Exception e) {
+            Log.e(TAG, "protect loop", e);
         }
     }
 
     public synchronized void stopVPN() {
         if (status != Status.CONNECTED) return;
+        setStatus(Status.DISCONNECTING);
 
-        try {
-            fileDescriptor.close();
-        } catch (IOException e) {
-            Log.e(TAG, "close fd", e);
-        }
+        new Thread(() -> {
+            try {
+                libxivpn_p.getOutputStream().close();
+                libxivpn_p.waitFor();
+                protect_t.join();
+            } catch (Exception e) {
+                Log.e(TAG, "close libxivpn", e);
+            }
 
-        // LibXivpn.xivpn_stop();
+            try {
+                fileDescriptor.close();
+            } catch (IOException e) {
+                Log.e(TAG, "close tun fd", e);
+            }
 
-        status = Status.DISCONNECTED;
-        for (VPNStatusListener listener : listeners) {
-            listener.onStatusChanged(status);
-        }
+            stopSelf();
 
-        stopSelf();
+            setStatus(Status.DISCONNECTED);
+        }).start();
     }
 
     private Config buildXrayConfig() {
@@ -395,12 +460,11 @@ public class XiVPNService extends VpnService implements SocketProtect {
     @Override
     public void protectFd(int fd) {
         Log.d(TAG, "protect " + fd);
-        this.protect(fd);
-
+        protect(fd);
     }
 
     public enum Status {
-        CONNECTED, CONNECTING, DISCONNECTED,
+        CONNECTED, CONNECTING, DISCONNECTED, DISCONNECTING,
     }
 
     public interface VPNStatusListener {
