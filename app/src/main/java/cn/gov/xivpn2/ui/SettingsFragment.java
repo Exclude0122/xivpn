@@ -18,7 +18,6 @@ import androidx.core.text.method.LinkMovementMethodCompat;
 import androidx.preference.PreferenceFragmentCompat;
 
 import cn.gov.xivpn2.BuildConfig;
-import cn.gov.xivpn2.LibXivpn;
 import cn.gov.xivpn2.R;
 
 public class SettingsFragment extends PreferenceFragmentCompat {
@@ -45,8 +44,6 @@ public class SettingsFragment extends PreferenceFragmentCompat {
             startActivity(new Intent(requireContext(), LicensesActivity.class));
             return true;
         });
-
-        findPreference("xray_version").setSummary(LibXivpn.xivpn_version());
 
         findPreference("black_background").setOnPreferenceChangeListener((preference, newValue) -> {
             Toast.makeText(getContext(), R.string.restart_to_apply, Toast.LENGTH_SHORT).show();

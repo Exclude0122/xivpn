@@ -21,7 +21,6 @@
 #-renamesourcefileattribute SourceFile
 
 -keep class cn.gov.xivpn2.xrayconfig.** { *; }
--keep class cn.gov.xivpn2.LibXivpn { *; }
 -keep class cn.gov.xivpn2.service.SocketProtect {
     public protectFd(int);
 }

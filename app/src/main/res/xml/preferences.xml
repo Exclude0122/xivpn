@@ -100,12 +100,6 @@
             app:title="@string/open_source_licenses" />
 
         <Preference
-            android:title="@string/xray_version"
-            app:iconSpaceReserved="false"
-            app:key="xray_version"
-            app:summary="" />
-
-        <Preference
             android:title="@string/app_version"
             app:iconSpaceReserved="false"
             app:key="app_version"

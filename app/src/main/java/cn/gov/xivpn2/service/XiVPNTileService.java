@@ -106,7 +106,7 @@ public class XiVPNTileService extends TileService implements XiVPNService.VPNSta
     @Override
     public void onStatusChanged(XiVPNService.Status status) {
         Log.d(TAG, "on status change " +  status.toString());
-        setState(status.equals(XiVPNService.Status.CONNECTED));
+        setState(status == XiVPNService.Status.CONNECTED);
     }
 
     @Override
