@@ -15,6 +15,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
@@ -27,6 +28,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.Utils;
@@ -82,6 +84,8 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new ProxyEditTextAdapter();
         recyclerView.setAdapter(adapter);
+
+        recyclerView.setItemAnimator(null);
 
         // initialize inputs
         adapter.addGroupTitle("GROUP_PROXY", "Proxy settings");
