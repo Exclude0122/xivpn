@@ -16,7 +16,6 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
-import android.util.PrintWriterPrinter;
 
 import androidx.core.app.NotificationCompat;
 import androidx.preference.PreferenceManager;
@@ -28,15 +27,11 @@ import com.google.gson.ToNumberPolicy;
 
 import java.io.File;
 import java.io.FileDescriptor;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -49,9 +44,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import cn.gov.xivpn2.NotificationID;
 import cn.gov.xivpn2.R;
@@ -75,9 +67,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
     private final IBinder binder = new XiVPNBinder();
     private final String TAG = "XiVPNService";
     private final Set<VPNStatusListener> listeners = new HashSet<>();
-    private Status status = Status.DISCONNECTED;
-    private Process libxivpn_p = null;
-    private Thread protect_t = null;
+    private volatile Status status = Status.DISCONNECTED;
+    private Process libxivpnProcess = null;
+    private Thread protectThread = null;
     private ParcelFileDescriptor fileDescriptor;
 
     private void setStatus(Status newStatus) {
@@ -197,7 +189,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         env.put("IPC_PATH", ipcPath);
         env.put("XRAY_LOCATION_ASSET", getFilesDir().getAbsolutePath());
 
-        protect_t = new Thread(() -> {
+        protectThread = new Thread(() -> {
             LocalSocket socket = new LocalSocket(LocalSocket.SOCKET_STREAM);
             try {
                 socket.bind(new LocalSocketAddress(ipcPath, LocalSocketAddress.Namespace.FILESYSTEM));
@@ -213,7 +205,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
             try {
                 serverSocket = new LocalServerSocket(socket.getFileDescriptor());
 
-                libxivpn_p = builder.start();
+                libxivpnProcess = builder.start();
 
                 socket = serverSocket.accept();
                 writer = socket.getOutputStream();
@@ -257,7 +249,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
             PrintStream log_ = log;
             new Thread(() -> {
-                Scanner scanner = new Scanner(libxivpn_p.getErrorStream());
+                Scanner scanner = new Scanner(libxivpnProcess.getErrorStream());
                 while (scanner.hasNextLine()) {
                     String line = scanner.nextLine();
                     Log.d("libxivpn", line);
@@ -273,7 +265,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
             protectLoop(socket);
             stopVPN();
         });
-        protect_t.start();
+        protectThread.start();
     }
 
     private void protectLoop(LocalSocket socket) {
@@ -313,9 +305,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         new Thread(() -> {
             try {
-                libxivpn_p.getOutputStream().close();
-                libxivpn_p.waitFor();
-                protect_t.join();
+                libxivpnProcess.getOutputStream().close();
+                libxivpnProcess.waitFor();
+                protectThread.join();
             } catch (Exception e) {
                 Log.e(TAG, "close libxivpn", e);
             }
