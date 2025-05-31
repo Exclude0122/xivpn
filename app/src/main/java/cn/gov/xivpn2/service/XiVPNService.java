@@ -77,7 +77,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
     private void setStatus(Status newStatus) {
         new Handler(Looper.getMainLooper()).post(() -> {
             for (VPNStatusListener listener : listeners) {
-                listener.onStatusChanged(status);
+                listener.onStatusChanged(newStatus);
             }
         });
 
@@ -188,12 +188,18 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         String ipcPath = new File(getCacheDir(), "ipcsock").getAbsolutePath();
 
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
         ProcessBuilder builder = new ProcessBuilder()
+                .redirectErrorStream(true)
                 .directory(getFilesDir())
                 .command(getApplicationInfo().nativeLibraryDir + "/libxivpn.so");
         Map<String, String> env = builder.environment();
         env.put("IPC_PATH", ipcPath);
         env.put("XRAY_LOCATION_ASSET", getFilesDir().getAbsolutePath());
+        env.put("LOG_LEVEL", config.log.loglevel);
+        env.put("XRAY_SNIFFING", Boolean.valueOf(preferences.getBoolean("sniffing", true)).toString());
+        env.put("XRAY_SNIFFING_ROUTE_ONLY", Boolean.valueOf(preferences.getBoolean("sniffing_route_only", true)).toString());
 
         protectThread = new Thread(() -> {
             LocalSocket socket = new LocalSocket(LocalSocket.SOCKET_STREAM);
@@ -255,7 +261,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
             PrintStream log_ = log;
             new Thread(() -> {
-                Scanner scanner = new Scanner(libxivpnProcess.getErrorStream());
+                Scanner scanner = new Scanner(libxivpnProcess.getInputStream());
                 while (scanner.hasNextLine()) {
                     String line = scanner.nextLine();
                     Log.d("libxivpn", line);
@@ -347,21 +353,6 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         // logs
         config.log.loglevel = preferences.getString("log_level", "warning");
-
-        // socks5 inbound
-        Inbound socks5Inbound = new Inbound();
-        socks5Inbound.protocol = "socks";
-        socks5Inbound.port = XiVPNService.SOCKS_PORT;
-        socks5Inbound.listen = "10.89.64.1";
-        socks5Inbound.settings = new HashMap<>();
-        socks5Inbound.settings.put("udp", true);
-
-        socks5Inbound.sniffing = new Sniffing();
-        socks5Inbound.sniffing.enabled = preferences.getBoolean("sniffing", true);
-        socks5Inbound.sniffing.destOverride = List.of("http", "tls");
-        socks5Inbound.sniffing.routeOnly = preferences.getBoolean("sniffing_route_only", true);
-
-        config.inbounds.add(socks5Inbound);
 
         try {
 
