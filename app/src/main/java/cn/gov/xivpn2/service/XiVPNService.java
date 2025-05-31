@@ -38,6 +38,7 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,10 +72,12 @@ public class XiVPNService extends VpnService implements SocketProtect {
     private final Set<VPNStatusListener> listeners = new HashSet<>();
     private volatile Status status = Status.DISCONNECTED;
     private Process libxivpnProcess = null;
-    private Thread protectThread = null;
+    private Thread ipcThread = null;
+    private OutputStream ipcWriter = null;
     private ParcelFileDescriptor fileDescriptor;
 
-    private void setStatus(Status newStatus) {
+    private synchronized void setStatus(Status newStatus) {
+        Log.w(TAG, "status " + newStatus.name());
         new Handler(Looper.getMainLooper()).post(() -> {
             for (VPNStatusListener listener : listeners) {
                 listener.onStatusChanged(newStatus);
@@ -182,6 +185,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         String xrayConfig = gson.toJson(config);
         Log.i(TAG, "xray config: " + xrayConfig);
 
+        // write xray config
         FileOutputStream configStream = new FileOutputStream(new File(getFilesDir(), "config.json"));
         configStream.write(xrayConfig.getBytes(StandardCharsets.UTF_8));
         configStream.close();
@@ -201,7 +205,8 @@ public class XiVPNService extends VpnService implements SocketProtect {
         env.put("XRAY_SNIFFING", Boolean.valueOf(preferences.getBoolean("sniffing", true)).toString());
         env.put("XRAY_SNIFFING_ROUTE_ONLY", Boolean.valueOf(preferences.getBoolean("sniffing_route_only", true)).toString());
 
-        protectThread = new Thread(() -> {
+        ipcThread = new Thread(() -> {
+            // ipc socket listen
             LocalSocket socket = new LocalSocket(LocalSocket.SOCKET_STREAM);
             try {
                 socket.bind(new LocalSocketAddress(ipcPath, LocalSocketAddress.Namespace.FILESYSTEM));
@@ -217,8 +222,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
             try {
                 serverSocket = new LocalServerSocket(socket.getFileDescriptor());
 
+                // start xray
                 libxivpnProcess = builder.start();
 
+                // wait for ipc connection
                 socket = serverSocket.accept();
                 writer = socket.getOutputStream();
             } catch (IOException e) {
@@ -227,10 +234,11 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 return;
             }
 
+            // send tun fd
             FileDescriptor[] fds = {fileDescriptor.getFileDescriptor()};
             socket.setFileDescriptorsForSend(fds);
             try {
-                writer.write(new byte[1]);
+                writer.write("ping\n".getBytes(StandardCharsets.US_ASCII));
                 writer.flush();
             } catch (IOException e) {
                 Log.e(TAG, "write to ipc sock", e);
@@ -270,44 +278,72 @@ public class XiVPNService extends VpnService implements SocketProtect {
                         log_.println(line);
                     }
                 }
+                if (log_ != null) {
+                    log_.close();
+                }
                 scanner.close();
             }).start();
 
             setStatus(Status.CONNECTED);
-            protectLoop(socket);
+
+            ipcLoop(socket);
+
             stopVPN();
         });
-        protectThread.start();
+        ipcThread.start();
     }
 
-    private void protectLoop(LocalSocket socket) {
+    private void ipcLoop(LocalSocket socket) {
         try {
             InputStream reader = socket.getInputStream();
             OutputStream writer = socket.getOutputStream();
+            ipcWriter = writer;
 
             Field fdField = FileDescriptor.class.getDeclaredField("descriptor");
             fdField.setAccessible(true);
 
-            byte[] buf = new byte[1];
-            while (reader.read(buf) != -1) {
-                FileDescriptor[] fds_ = socket.getAncillaryFileDescriptors();
-                if (fds_ == null) {
-                    Log.e(TAG, "null array");
-                    break;
-                }
-                if (fds_.length != 1) {
-                    Log.e(TAG, "expect 1 fd, found " + fds_.length);
-                    break;
-                }
+            Scanner scanner = new Scanner(reader);
 
-                protectFd(fdField.getInt(fds_[0]));
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                String[] splits = line.split(" ");
 
-                writer.write(new byte[1]);
-                writer.flush();
+                Log.i(TAG, "ipc packet: " + Arrays.toString(splits));
+
+                switch (splits[0]) {
+                    case "ping":
+                        break;
+                    case "pong":
+                        break;
+                    case "protect":
+                        FileDescriptor[] fds = socket.getAncillaryFileDescriptors();
+                        if (fds == null) {
+                            Log.e(TAG, "null array");
+                            break;
+                        }
+                        if (fds.length != 1) {
+                            Log.e(TAG, "expect 1 fd, found " + fds.length);
+                            break;
+                        }
+
+                        int fd = fdField.getInt(fds[0]);
+                        protectFd(fd);
+
+                        Log.i(TAG, "ipc protect " + fd);
+
+                        writer.write("protect_ack\n".getBytes(StandardCharsets.US_ASCII));
+                        writer.flush();
+                        break;
+                }
             }
-            Log.e(TAG, "protect loop exit");
+
+            scanner.close();
+
+            Log.i(TAG, "protect loop exit");
         } catch (Exception e) {
             Log.e(TAG, "protect loop", e);
+        } finally {
+             ipcWriter = null;
         }
     }
 
@@ -317,9 +353,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         new Thread(() -> {
             try {
-                libxivpnProcess.getOutputStream().close();
+                ipcWriter.write("stop\n".getBytes(StandardCharsets.US_ASCII));
+                ipcWriter.flush();
                 libxivpnProcess.waitFor();
-                protectThread.join();
+                ipcThread.join();
             } catch (Exception e) {
                 Log.e(TAG, "close libxivpn", e);
             }

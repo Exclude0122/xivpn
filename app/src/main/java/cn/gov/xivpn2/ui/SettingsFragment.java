@@ -4,17 +4,11 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.text.Html;
-import android.text.Spanned;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.widget.FrameLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-import androidx.core.text.method.LinkMovementMethodCompat;
 import androidx.preference.PreferenceFragmentCompat;
 
 import cn.gov.xivpn2.BuildConfig;

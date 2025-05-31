@@ -5,9 +5,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.res.AssetManager;
-import android.os.ParcelFileDescriptor;
-import android.system.ErrnoException;
-import android.system.Os;
 import android.util.Log;
 
 import androidx.room.Room;
@@ -16,14 +13,12 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.file.Files;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 

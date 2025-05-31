@@ -1,7 +1,5 @@
 package cn.gov.xivpn2.ui;
 
-import android.content.DialogInterface;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -15,9 +13,7 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.AppCompatAutoCompleteTextView;
 import androidx.core.graphics.Insets;
-import androidx.core.view.LayoutInflaterCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -31,7 +27,6 @@ import com.google.gson.GsonBuilder;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 import cn.gov.xivpn2.R;
@@ -41,8 +36,6 @@ import cn.gov.xivpn2.database.ProxyDao;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.ProxyChain;
 import cn.gov.xivpn2.xrayconfig.ProxyChainSettings;
-import cn.gov.xivpn2.xrayconfig.RoutingRule;
-import cn.gov.xivpn2.xrayconfig.ShadowsocksSettings;
 
 public class ProxyChainActivity extends AppCompatActivity {
 
