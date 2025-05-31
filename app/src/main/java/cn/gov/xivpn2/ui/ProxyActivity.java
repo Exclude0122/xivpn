@@ -34,6 +34,7 @@ import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.ProxyDao;
 import cn.gov.xivpn2.xrayconfig.HttpUpgradeSettings;
+import cn.gov.xivpn2.xrayconfig.MuxSettings;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.QuicSettings;
 import cn.gov.xivpn2.xrayconfig.RealitySettings;
@@ -94,6 +95,9 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             adapter.addGroupTitle("GROUP_SECURITY", "Security");
             adapter.addInput("SECURITY", "Security", Arrays.asList("none", "tls", "reality"));
         }
+        adapter.addGroupTitle("GROUP_MUX", "Multiplex");
+        adapter.addInput("MUX_ENABLED", "Multiplex", Arrays.asList("disabled", "enabled"));
+
         afterInitializeInputs(adapter);
 
         adapter.setOnInputChangedListener((k, v) -> {
@@ -205,6 +209,15 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 return !value.isEmpty();
             case "NETWORK_XHTTP_DOWNLOAD_PORT":
                 return Utils.isValidPort(value);
+            case "MUX_XUDP_CONCURRENCY":
+            case "MUX_CONCURRENCY":
+                try {
+                    Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+
+                return true;
         }
 
 
@@ -296,6 +309,14 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             }
         }
 
+        if (this.adapter.getValue("MUX_ENABLED").equals("enabled")) {
+            outbound.mux = new MuxSettings();
+            outbound.mux.enabled = true;
+            outbound.mux.concurrency = Integer.parseInt(adapter.getValue("MUX_CONCURRENCY"));
+            outbound.mux.xudpConcurrency = Integer.parseInt(adapter.getValue("MUX_XUDP_CONCURRENCY"));
+            outbound.mux.xudpProxyUDP443 = adapter.getValue("MUX_XUDP_PROXY_UDP443");
+        }
+
         return outbound;
     }
 
@@ -368,6 +389,15 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             } else {
                 initials.put("SECURITY_REALITY_FINGERPRINT", outbound.streamSettings.realitySettings.fingerprint);
             }
+        }
+
+        if (outbound.mux == null) {
+
+        } else {
+            initials.put("MUX_ENABLED", "enabled");
+            initials.put("MUX_CONCURRENCY", String.valueOf(outbound.mux.concurrency));
+            initials.put("MUX_XUDP_CONCURRENCY", String.valueOf(outbound.mux.xudpConcurrency));
+            initials.put("MUX_XUDP_PROXY_UDP443", outbound.mux.xudpProxyUDP443);
         }
 
         return initials;
@@ -458,9 +488,20 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                         Intent intent = new Intent(this, XHttpStreamActivity.class);
                         intent.putExtra("LABEL", "Download stream settings");
                         intent.putExtra("INLINE", true);
-                        if (adapter.getValue("NETWORK_XHTTP_SEPARATE_DOWNLOAD").equals("True") && !xhttpDownload.isEmpty()) intent.putExtra("CONFIG", xhttpDownload);
+                        if (adapter.getValue("NETWORK_XHTTP_SEPARATE_DOWNLOAD").equals("True") && !xhttpDownload.isEmpty())
+                            intent.putExtra("CONFIG", xhttpDownload);
                         startActivityForResult(intent, 2);
                     });
+                }
+                break;
+            case "MUX_ENABLED":
+                adapter.removeInput("MUX_CONCURRENCY");
+                adapter.removeInput("MUX_XUDP_CONCURRENCY");
+                adapter.removeInput("MUX_XUDP_PROXY_UDP443");
+                if (value.equals("enabled")) {
+                    adapter.addInputAfter("MUX_ENABLED", "MUX_XUDP_PROXY_UDP443", "XUDP Proxy UDP 443", List.of("reject", "skip"));
+                    adapter.addInputAfter("MUX_ENABLED", "MUX_XUDP_CONCURRENCY", "XUDP Concurrency", "16");
+                    adapter.addInputAfter("MUX_ENABLED", "MUX_CONCURRENCY", "Mux Concurrency", "4");
                 }
                 break;
         }
