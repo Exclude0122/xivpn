@@ -198,6 +198,7 @@ public class MainActivity extends AppCompatActivity {
         vpnStatusListener = new XiVPNService.VPNStatusListener() {
             @Override
             public void onStatusChanged(XiVPNService.Status status) {
+                Log.i("MainActivity", "onStatusChanged " + status.name());
                 updateSwitch(status);
             }
 
