@@ -85,4 +85,6 @@
     <string name="split_tunnel_summary">Blacklist: Everything except selected apps are proxied.\nWhitelist: Only selected apps are proxied.</string>
     <string name="split_tunnel_apps">Apps</string>
     <string name="search">Search</string>
+    <string name="vpn_process_crashed">VPN Process Crashed</string>
+    <string name="click_to_open_crash_log">Click here to open crash log</string>
 </resources>

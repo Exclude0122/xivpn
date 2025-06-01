@@ -107,5 +107,5 @@ dependencies {
     implementation libs.preference
     implementation libs.commons.io
     implementation libs.recyclerview
-
+    implementation libs.commons.collections4
 }

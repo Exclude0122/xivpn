@@ -1,6 +1,7 @@
 package cn.gov.xivpn2.service;
 
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
@@ -27,8 +28,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
+import org.apache.commons.collections4.queue.CircularFifoQueue;
+
 import java.io.File;
 import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,6 +57,7 @@ import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
+import cn.gov.xivpn2.ui.CrashLogActivity;
 import cn.gov.xivpn2.ui.MainActivity;
 import cn.gov.xivpn2.xrayconfig.Config;
 import cn.gov.xivpn2.xrayconfig.Inbound;
@@ -70,11 +75,14 @@ public class XiVPNService extends VpnService implements SocketProtect {
     private final IBinder binder = new XiVPNBinder();
     private final String TAG = "XiVPNService";
     private final Set<VPNStatusListener> listeners = new HashSet<>();
+
     private volatile Status status = Status.DISCONNECTED;
+
     private Process libxivpnProcess = null;
     private Thread ipcThread = null;
     private OutputStream ipcWriter = null;
     private ParcelFileDescriptor fileDescriptor;
+    private final CircularFifoQueue<String> stderrBuffer = new CircularFifoQueue<>(30);
 
     private synchronized void setStatus(Status newStatus) {
         Log.w(TAG, "status " + newStatus.name());
@@ -267,6 +275,11 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 }
             }
 
+            synchronized (stderrBuffer) {
+                stderrBuffer.clear();
+            }
+
+            // read stderr and stdout
             PrintStream log_ = log;
             new Thread(() -> {
                 Scanner scanner = new Scanner(libxivpnProcess.getInputStream());
@@ -276,6 +289,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
                     if (log_ != null) {
                         log_.println(line);
+                    }
+
+                    synchronized (stderrBuffer) {
+                        stderrBuffer.add(line);
                     }
                 }
                 if (log_ != null) {
@@ -355,10 +372,15 @@ public class XiVPNService extends VpnService implements SocketProtect {
             try {
                 ipcWriter.write("stop\n".getBytes(StandardCharsets.US_ASCII));
                 ipcWriter.flush();
+            } catch (Exception e) {
+                Log.e(TAG, "ipc write stop", e);
+            }
+
+            try {
                 libxivpnProcess.waitFor();
                 ipcThread.join();
-            } catch (Exception e) {
-                Log.e(TAG, "close libxivpn", e);
+            } catch (InterruptedException e) {
+                Log.e(TAG, "wait libxivpn", e);
             }
 
             try {
@@ -367,6 +389,46 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 Log.e(TAG, "close tun fd", e);
             }
 
+            int exitValue = libxivpnProcess.exitValue();
+            if (exitValue != 0) {
+                // process crashed
+                // save last 30 lines of output and send a notification to user
+
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.getDefault());
+                String datetime = sdf.format(new Date());
+                File file = new File(getCacheDir(), "crash_" + datetime + ".txt");
+
+                try {
+                    FileOutputStream outputStream = new FileOutputStream(file);
+                    outputStream.write("Libxivpn exited unexpectedly.\n".getBytes(StandardCharsets.UTF_8));
+                    outputStream.write(("Exit code " + exitValue + "\n\n").getBytes(StandardCharsets.UTF_8));
+                    outputStream.write("Last 30 lines of log before exit:\n\n".getBytes(StandardCharsets.UTF_8));
+                    synchronized (stderrBuffer) {
+                        for (String line : stderrBuffer) {
+                            outputStream.write(line.getBytes(StandardCharsets.UTF_8));
+                            outputStream.write('\n');
+                        }
+                    }
+                    outputStream.close();
+                } catch (IOException e) {
+                    Log.e(TAG, "write crash log", e);
+                }
+
+                Intent intent = new Intent(this, CrashLogActivity.class);
+                intent.putExtra("FILE", "crash_" + datetime + ".txt");
+
+                Notification notification = new Notification.Builder(this, "XiVPNService")
+                        .setContentTitle(getString(R.string.vpn_process_crashed))
+                        .setContentText(getString(R.string.click_to_open_crash_log))
+                        .setSmallIcon(R.drawable.baseline_error_24)
+                        .setContentIntent(PendingIntent.getActivity(this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
+                        .build();
+                getSystemService(NotificationManager.class).notify(NotificationID.getID(), notification);
+
+
+            }
+
+            stopForeground(true);
             stopSelf();
 
             setStatus(Status.DISCONNECTED);
