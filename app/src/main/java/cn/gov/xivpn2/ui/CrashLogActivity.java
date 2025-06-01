@@ -45,7 +45,7 @@ public class CrashLogActivity extends AppCompatActivity {
             try {
                 String text = FileUtils.readFileToString(file, "utf-8");
                 TextView textView = findViewById(R.id.text);
-                textView.setText(text + text);
+                textView.setText(text);
             } catch (IOException e) {
                 Log.e("CrashLogActivity", "read crash log", e);
             }
