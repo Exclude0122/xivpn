@@ -29,6 +29,7 @@ import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.service.SubscriptionWork;
+import cn.gov.xivpn2.service.XiVPNService;
 
 public class ProxiesActivity extends AppCompatActivity {
 
@@ -126,6 +127,8 @@ public class ProxiesActivity extends AppCompatActivity {
             SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
             Rules.setCatchAll(sp, proxy.label, proxy.subscription);
             adapter.setChecked(proxy.label, proxy.subscription);
+
+            XiVPNService.reloadLibxi(this);
         });
 
     }
@@ -144,6 +147,8 @@ public class ProxiesActivity extends AppCompatActivity {
                 sp.getString("SELECTED_LABEL", "No Proxy (Bypass Mode)"),
                 sp.getString("SELECTED_SUBSCRIPTION", "none")
         );
+
+        XiVPNService.reloadLibxi(this);
     }
 
     @Override

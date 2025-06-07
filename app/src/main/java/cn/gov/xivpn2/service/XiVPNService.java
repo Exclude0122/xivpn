@@ -48,10 +48,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.Semaphore;
 
 import cn.gov.xivpn2.NotificationID;
 import cn.gov.xivpn2.R;
@@ -73,13 +70,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
     private final IBinder binder = new XiVPNBinder();
     private final String TAG = "XiVPNService";
     private final Set<VPNStatusListener> listeners = new HashSet<>();
-
     private volatile Status status = Status.DISCONNECTED;
-
+    private final Semaphore statusLock = new Semaphore(1);
     private Process libxivpnProcess = null;
     private Thread ipcThread = null;
-    TimerTask stopVPNTask = null;
-    ReentrantLock stopVPNLock = null;
     private OutputStream ipcWriter = null;
     private ParcelFileDescriptor fileDescriptor;
     private final CircularFifoQueue<String> stderrBuffer = new CircularFifoQueue<>(30);
@@ -106,12 +100,23 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         Log.i(TAG, "on start command");
 
+        if (intent.getAction() != null && intent.getAction().equals("cn.gov.xivpn2.RELOAD")) {
+            statusLock.acquireUninterruptibly();
+            if (status == Status.CONNECTED) {
+                stopLibxi();
+                startLibxi();
+            } else {
+                statusLock.release();
+            }
+            return Service.START_NOT_STICKY;
+        }
+
         // https://developer.android.com/develop/connectivity/vpn#user_experience_2
         // https://developer.android.com/develop/connectivity/vpn#detect_always-on
         // We set always-on to false when the service is started by the app,
         // so we assume service started without always-on is started by the system.
 
-        boolean shouldStart = intent == null || intent.getBooleanExtra("always-on", true) || (intent.getAction() != null && intent.getAction().equals("cn.gov.xivpn2.START"));
+        boolean shouldStart = intent.getBooleanExtra("always-on", true) || intent.getAction() != null && intent.getAction().equals("cn.gov.xivpn2.START");
 
         // start vpn
         if (shouldStart) {
@@ -133,8 +138,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
             // start
             try {
-                Config config = buildXrayConfig();
-                startVPN(config);
+                startVPN();
             } catch (Exception e) {
                 Log.e(TAG, "start vpn", e);
                 for (VPNStatusListener listener : listeners) {
@@ -144,7 +148,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
 
         // stop vpn
-        if (intent != null && intent.getAction() != null && intent.getAction().equals("cn.gov.xivpn2.STOP")) {
+        if (intent.getAction() != null && intent.getAction().equals("cn.gov.xivpn2.STOP")) {
             if (status != Status.CONNECTED) {
                 Log.d(TAG, "on start command already stopped");
                 return Service.START_NOT_STICKY;
@@ -156,68 +160,77 @@ public class XiVPNService extends VpnService implements SocketProtect {
         return Service.START_NOT_STICKY;
     }
 
-    public synchronized void startVPN(Config config) throws IOException, ExecutionException, InterruptedException {
-        if (status != Status.DISCONNECTED) return;
+    public void startVPN() {
+        if (!statusLock.tryAcquire()) return;
+        if (status != Status.DISCONNECTED) {
+            statusLock.release();
+            return;
+        }
         setStatus(Status.CONNECTING);
 
-        if (stopVPNTask != null) {
-            stopVPNTask.cancel();
-            stopVPNLock.lock();
-        }
-        if (fileDescriptor != null) {
-            // reuse fd
-        } else {
-            // establish vpn
-            Builder vpnBuilder = new Builder();
-            vpnBuilder.addRoute("0.0.0.0", 0);
-            vpnBuilder.addRoute("[::]", 0);
-            vpnBuilder.addAddress("10.89.64.1", 32);
-            vpnBuilder.addDnsServer("8.8.8.8");
-            vpnBuilder.addDnsServer("8.8.4.4");
+        // establish vpn
+        Builder vpnBuilder = new Builder();
+        vpnBuilder.addRoute("0.0.0.0", 0);
+        vpnBuilder.addRoute("[::]", 0);
+        vpnBuilder.addAddress("10.89.64.1", 32);
+        vpnBuilder.addDnsServer("8.8.8.8");
+        vpnBuilder.addDnsServer("8.8.4.4");
 
-            Set<String> apps = getSharedPreferences("XIVPN", MODE_PRIVATE).getStringSet("APP_LIST", new HashSet<>());
-            boolean blacklist = PreferenceManager.getDefaultSharedPreferences(this).getString("split_tunnel_mode", "Blacklist").equals("Blacklist");
+        Set<String> apps = getSharedPreferences("XIVPN", MODE_PRIVATE).getStringSet("APP_LIST", new HashSet<>());
+        boolean blacklist = PreferenceManager.getDefaultSharedPreferences(this).getString("split_tunnel_mode", "Blacklist").equals("Blacklist");
 
-            Log.i(TAG, "is blacklist: " + blacklist);
-            for (String app : apps) {
-                try {
-                    Log.i(TAG, "add app: " + app);
-                    if (blacklist) {
-                        vpnBuilder.addDisallowedApplication(app);
-                    } else {
-                        vpnBuilder.addAllowedApplication(app);
-                    }
-                } catch (PackageManager.NameNotFoundException e) {
-                    Log.w(TAG, "package not found: " + app);
+        Log.i(TAG, "is blacklist: " + blacklist);
+        for (String app : apps) {
+            try {
+                Log.i(TAG, "add app: " + app);
+                if (blacklist) {
+                    vpnBuilder.addDisallowedApplication(app);
+                } else {
+                    vpnBuilder.addAllowedApplication(app);
                 }
+            } catch (PackageManager.NameNotFoundException e) {
+                Log.w(TAG, "package not found: " + app);
             }
-
-            fileDescriptor = vpnBuilder.establish();
         }
 
+        fileDescriptor = vpnBuilder.establish();
+
+        startLibxi();
+    }
+
+    private void startLibxi() {
         // start libxivpn
+        Config config = buildXrayConfig();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String xrayConfig = gson.toJson(config);
         Log.i(TAG, "xray config: " + xrayConfig);
 
-        // write xray config
-        FileOutputStream configStream = new FileOutputStream(new File(getFilesDir(), "config.json"));
-        configStream.write(xrayConfig.getBytes(StandardCharsets.UTF_8));
-        configStream.close();
-
-        String ipcPath = new File(getCacheDir(), "ipcsock").getAbsolutePath();
-
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-
-        ProcessBuilder builder = new ProcessBuilder().redirectErrorStream(true).directory(getFilesDir()).command(getApplicationInfo().nativeLibraryDir + "/libxivpn.so");
-        Map<String, String> env = builder.environment();
-        env.put("IPC_PATH", ipcPath);
-        env.put("XRAY_LOCATION_ASSET", getFilesDir().getAbsolutePath());
-        env.put("LOG_LEVEL", config.log.loglevel);
-        env.put("XRAY_SNIFFING", Boolean.valueOf(preferences.getBoolean("sniffing", true)).toString());
-        env.put("XRAY_SNIFFING_ROUTE_ONLY", Boolean.valueOf(preferences.getBoolean("sniffing_route_only", true)).toString());
-
+        // bypass network code on ui thread limit
         ipcThread = new Thread(() -> {
+            try {
+                // write xray config
+                FileOutputStream configStream = new FileOutputStream(new File(getFilesDir(), "config.json"));
+                configStream.write(xrayConfig.getBytes(StandardCharsets.UTF_8));
+                configStream.close();
+            } catch (IOException e) {
+                Log.e(TAG, "write xray config", e);
+                setStatus(Status.DISCONNECTED);
+                statusLock.release();
+                return;
+            }
+
+            String ipcPath = new File(getCacheDir(), "ipcsock").getAbsolutePath();
+
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+            ProcessBuilder builder = new ProcessBuilder().redirectErrorStream(true).directory(getFilesDir()).command(getApplicationInfo().nativeLibraryDir + "/libxivpn.so");
+            Map<String, String> env = builder.environment();
+            env.put("IPC_PATH", ipcPath);
+            env.put("XRAY_LOCATION_ASSET", getFilesDir().getAbsolutePath());
+            env.put("LOG_LEVEL", config.log.loglevel);
+            env.put("XRAY_SNIFFING", Boolean.valueOf(preferences.getBoolean("sniffing", true)).toString());
+            env.put("XRAY_SNIFFING_ROUTE_ONLY", Boolean.valueOf(preferences.getBoolean("sniffing_route_only", true)).toString());
+
             // ipc socket listen
             LocalSocket socket = new LocalSocket(LocalSocket.SOCKET_STREAM);
             try {
@@ -225,6 +238,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
             } catch (IOException e) {
                 Log.e(TAG, "bind ipc sock", e);
                 setStatus(Status.DISCONNECTED);
+                statusLock.release();
                 return;
             }
             Log.i(TAG, "ipc sock binded");
@@ -243,6 +257,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
             } catch (IOException e) {
                 Log.e(TAG, "listen ipc sock", e);
                 setStatus(Status.DISCONNECTED);
+                statusLock.release();
                 return;
             }
 
@@ -255,6 +270,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
             } catch (IOException e) {
                 Log.e(TAG, "write to ipc sock", e);
                 setStatus(Status.DISCONNECTED);
+                statusLock.release();
                 return;
             }
 
@@ -275,13 +291,12 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 } catch (Exception e) {
                     Log.e(TAG, "create libxivpn log", e);
                     setStatus(Status.DISCONNECTED);
+                    statusLock.release();
                     return;
                 }
             }
 
-            synchronized (stderrBuffer) {
-                stderrBuffer.clear();
-            }
+            stderrBuffer.clear();
 
             // read stderr and stdout
             PrintStream log_ = log;
@@ -295,9 +310,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
                         log_.println(line);
                     }
 
-                    synchronized (stderrBuffer) {
-                        stderrBuffer.add(line);
-                    }
+                    stderrBuffer.add(line);
                 }
                 if (log_ != null) {
                     log_.close();
@@ -306,6 +319,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
             }).start();
 
             setStatus(Status.CONNECTED);
+            statusLock.release();
 
             ipcLoop(socket);
 
@@ -368,11 +382,33 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
     }
 
-    public synchronized void stopVPN() {
-        if (status != Status.CONNECTED) return;
+    public void stopVPN() {
+        if (!statusLock.tryAcquire()) return;
+        if (status != Status.CONNECTED) {
+            statusLock.release();
+            return;
+        }
         setStatus(Status.DISCONNECTING);
 
-        new Thread(() -> {
+        stopLibxi();
+
+        try {
+            fileDescriptor.close();
+        } catch (IOException e) {
+            Log.e(TAG, "close tun fd", e);
+        }
+        fileDescriptor = null;
+
+        stopForeground(STOP_FOREGROUND_REMOVE);
+        stopSelf();
+
+        setStatus(Status.DISCONNECTED);
+        statusLock.release();
+    }
+
+    private void stopLibxi() {
+        // bypass network code on ui thread limit
+        Thread t = new Thread(() -> {
             try {
                 ipcWriter.write("stop\n".getBytes(StandardCharsets.US_ASCII));
                 ipcWriter.flush();
@@ -386,28 +422,6 @@ public class XiVPNService extends VpnService implements SocketProtect {
             } catch (InterruptedException e) {
                 Log.e(TAG, "wait for libxivpn", e);
             }
-
-            stopVPNLock = new ReentrantLock();
-            stopVPNTask = new TimerTask() {
-                @Override
-                public void run() {
-                    if (!stopVPNLock.tryLock()) {
-                        return;
-                    }
-
-                    try {
-                        fileDescriptor.close();
-                    } catch (IOException e) {
-                        Log.e(TAG, "close tun fd", e);
-                    }
-                    fileDescriptor = null;
-
-                    stopForeground(STOP_FOREGROUND_REMOVE);
-                    stopSelf();
-
-                    stopVPNLock.unlock();
-                }
-            };
 
             int exitValue = libxivpnProcess.exitValue();
             if (exitValue != 0) {
@@ -423,11 +437,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
                     outputStream.write("Libxivpn exited unexpectedly.\n".getBytes(StandardCharsets.UTF_8));
                     outputStream.write(("Exit code " + exitValue + "\n\n").getBytes(StandardCharsets.UTF_8));
                     outputStream.write("Last 30 lines of log before exit:\n\n".getBytes(StandardCharsets.UTF_8));
-                    synchronized (stderrBuffer) {
-                        for (String line : stderrBuffer) {
-                            outputStream.write(line.getBytes(StandardCharsets.UTF_8));
-                            outputStream.write('\n');
-                        }
+                    for (String line : stderrBuffer) {
+                        outputStream.write(line.getBytes(StandardCharsets.UTF_8));
+                        outputStream.write('\n');
                     }
                     outputStream.close();
                 } catch (IOException e) {
@@ -437,21 +449,23 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 Intent intent = new Intent(this, CrashLogActivity.class);
                 intent.putExtra("FILE", "crash_" + datetime + ".txt");
 
-                Notification notification = new Notification.Builder(this, "XiVPNService")
-                        .setContentTitle(getString(R.string.vpn_process_crashed))
-                        .setContentText(getString(R.string.click_to_open_crash_log))
-                        .setSmallIcon(R.drawable.baseline_error_24)
-                        .setContentIntent(PendingIntent.getActivity(this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
-                        .build();
+                Notification notification = new Notification.Builder(this, "XiVPNService").setContentTitle(getString(R.string.vpn_process_crashed)).setContentText(getString(R.string.click_to_open_crash_log)).setSmallIcon(R.drawable.baseline_error_24).setContentIntent(PendingIntent.getActivity(this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE)).build();
                 getSystemService(NotificationManager.class).notify(NotificationID.getID(), notification);
-
-                stopVPNTask.run();
-            } else {
-                new Timer().schedule(stopVPNTask, 350);
             }
+        });
+        t.start();
+        try {
+            t.join();
+        } catch (InterruptedException e) {
+            // won't happen
+            throw new RuntimeException(e);
+        }
+    }
 
-            setStatus(Status.DISCONNECTED);
-        }).start();
+    public static void reloadLibxi(Context context) {
+        Intent intent = new Intent(context, XiVPNService.class);
+        intent.setAction("cn.gov.xivpn2.RELOAD");
+        context.startService(intent);
     }
 
     @Override

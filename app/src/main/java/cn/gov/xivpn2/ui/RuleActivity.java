@@ -25,6 +25,7 @@ import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
+import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
 
 public class RuleActivity extends AppCompatActivity {
@@ -172,6 +173,8 @@ public class RuleActivity extends AppCompatActivity {
                     rules.set(index, rule);
                 }
                 Rules.writeRules(getFilesDir(), rules);
+
+                XiVPNService.reloadLibxi(this);
             } catch (IOException e) {
                 Log.wtf("RuleActivity", "save", e);
             }

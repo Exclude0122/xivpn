@@ -22,6 +22,7 @@ import java.util.ArrayList;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.Rules;
+import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
 
 public class RulesActivity extends AppCompatActivity {
@@ -138,6 +139,8 @@ public class RulesActivity extends AppCompatActivity {
             Toast.makeText(this, e.getClass().getSimpleName() + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
 
         }
+
+        XiVPNService.reloadLibxi(this);
     }
 
 
