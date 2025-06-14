@@ -219,6 +219,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         Log.i(TAG, "on start command");
 
+        if (intent == null) {
+            return Service.START_NOT_STICKY;
+        }
+
         if (intent.getAction() != null && intent.getAction().equals("cn.gov.xivpn2.RELOAD")) {
             synchronized (this) {
                 isXrayConfigStale = true;
