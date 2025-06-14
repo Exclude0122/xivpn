@@ -76,6 +76,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
     private OutputStream ipcWriter = null;
     private ParcelFileDescriptor fileDescriptor;
     private final CircularFifoQueue<String> stderrBuffer = new CircularFifoQueue<>(30);
+    private final Object vpnStateLock = new Object();
     private volatile VPNState vpnState = VPNState.DISCONNECTED;
     private Command commandBuffer = Command.NONE;
     private boolean mustLibxiStop = false;
@@ -99,8 +100,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
         vpnState = newState;
     }
 
-    private synchronized void setState(VPNState newState) {
-        setStateRaw(newState);
+    private void setState(VPNState newState) {
+        synchronized (vpnStateLock) {
+            setStateRaw(newState);
+        }
     }
 
     private void sendMessage(String msg) {
@@ -123,9 +126,11 @@ public class XiVPNService extends VpnService implements SocketProtect {
         NONE, CONNECT, DISCONNECT,
     }
 
-    private synchronized void updateCommand(Command command) {
-        commandBuffer = command;
-        notify();
+    private void updateCommand(Command command) {
+        synchronized (vpnStateLock) {
+            commandBuffer = command;
+            vpnStateLock.notify();
+        }
     }
 
     @Override
@@ -134,6 +139,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         new Thread(() -> {
 
+            // work to be executed outside the synchronized block
             Runnable work = () -> {
             };
             while (true) {
@@ -141,15 +147,17 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 work = () -> {
                 };
 
-                synchronized (this) {
+                synchronized (vpnStateLock) {
                     while (commandBuffer == Command.NONE && !mustLibxiStop && !isXrayConfigStale) {
                         try {
-                            wait();
+                            // wait for new command
+                            vpnStateLock.wait();
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
                     }
 
+                    // xray config will always become up to date
                     isXrayConfigStale = false;
 
                     if (commandBuffer == Command.CONNECT) {
@@ -224,9 +232,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
 
         if (intent.getAction() != null && intent.getAction().equals("cn.gov.xivpn2.RELOAD")) {
-            synchronized (this) {
+            synchronized (vpnStateLock) {
                 isXrayConfigStale = true;
-                notify();
+                vpnStateLock.notify();
             }
             return Service.START_NOT_STICKY;
         }
@@ -250,7 +258,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         return Service.START_NOT_STICKY;
     }
 
-    public boolean startVPN() {
+    private boolean startVPN() {
         Log.i(TAG, "start foreground");
 
         // start foreground service
@@ -408,12 +416,12 @@ public class XiVPNService extends VpnService implements SocketProtect {
         ipcThread = new Thread(() -> {
             ipcLoop(finalSocket);
 
-            synchronized (this) {
+            synchronized (vpnStateLock) {
                 if (vpnState != VPNState.STOPPING_LIBXI) {
                     sendMessage("error: libxivpn exit unexpectedly");
 
                     mustLibxiStop = true;
-                    notify();
+                    vpnStateLock.notify();
                 }
             }
         });
@@ -528,7 +536,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
     }
 
-    public void stopVPN() {
+    private void stopVPN() {
         try {
             fileDescriptor.close();
         } catch (IOException e) {
@@ -547,11 +555,13 @@ public class XiVPNService extends VpnService implements SocketProtect {
     }
 
     @Override
-    public synchronized void onRevoke() {
+    public void onRevoke() {
         Log.i(TAG, "on revoke");
 
-        mustLibxiStop = true;
-        notify();
+        synchronized (vpnStateLock) {
+            mustLibxiStop = true;
+            vpnStateLock.notify();
+        }
     }
 
     private Config buildXrayConfig() {
