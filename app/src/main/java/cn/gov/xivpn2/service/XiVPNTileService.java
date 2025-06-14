@@ -15,7 +15,7 @@ import androidx.core.service.quicksettings.TileServiceCompat;
 
 import cn.gov.xivpn2.ui.MainActivity;
 
-public class XiVPNTileService extends TileService implements XiVPNService.VPNStatusListener {
+public class XiVPNTileService extends TileService implements XiVPNService.VPNStateListener {
 
     private static final String TAG = "XiVPNTileService";
     private XiVPNService.XiVPNBinder binder;
@@ -35,7 +35,7 @@ public class XiVPNTileService extends TileService implements XiVPNService.VPNSta
     public void onClick() {
         if (binder != null) {
             // start vpn
-            if (binder.getStatus().equals(XiVPNService.Status.DISCONNECTED)) {
+            if (binder.getState() != XiVPNService.VPNState.CONNECTED) {
                 Intent intent = XiVPNService.prepare(this);
                 if (intent != null) {
                     TileServiceCompat.startActivityAndCollapse(
@@ -49,10 +49,7 @@ public class XiVPNTileService extends TileService implements XiVPNService.VPNSta
                 intent2.setAction("cn.gov.xivpn2.START");
                 intent2.putExtra("always-on", false);
                 startForegroundService(intent2);
-            }
-
-            // stop vpn
-            if (binder.getStatus().equals(XiVPNService.Status.CONNECTED)) {
+            } else {
                 Intent intent2 = new Intent(this, XiVPNService.class);
                 intent2.setAction("cn.gov.xivpn2.STOP");
                 intent2.putExtra("always-on", false);
@@ -71,7 +68,7 @@ public class XiVPNTileService extends TileService implements XiVPNService.VPNSta
                 Log.d(TAG, "service connected");
                 binder = (XiVPNService.XiVPNBinder) service;
                 binder.addListener(XiVPNTileService.this);
-                XiVPNTileService.this.setState(binder.getStatus().equals(XiVPNService.Status.CONNECTED));
+                XiVPNTileService.this.setState(binder.getState() == XiVPNService.VPNState.CONNECTED);
             }
 
             @Override
@@ -102,9 +99,9 @@ public class XiVPNTileService extends TileService implements XiVPNService.VPNSta
     }
 
     @Override
-    public void onStatusChanged(XiVPNService.Status status) {
-        Log.d(TAG, "on status change " +  status.toString());
-        setState(status == XiVPNService.Status.CONNECTED);
+    public void onStateChanged(XiVPNService.VPNState state) {
+        Log.d(TAG, "on state change " +  state.toString());
+        setState(state == XiVPNService.VPNState.CONNECTED);
     }
 
     @Override

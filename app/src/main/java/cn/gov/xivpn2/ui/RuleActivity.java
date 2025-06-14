@@ -174,7 +174,7 @@ public class RuleActivity extends AppCompatActivity {
                 }
                 Rules.writeRules(getFilesDir(), rules);
 
-                XiVPNService.reloadLibxi(this);
+                XiVPNService.markConfigStale(this);
             } catch (IOException e) {
                 Log.wtf("RuleActivity", "save", e);
             }

@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             binder = (XiVPNService.XiVPNBinder) service;
 
-            updateSwitch(binder.getStatus());
+            updateSwitch(binder.getState());
 
             binder.addListener(vpnStatusListener);
         }
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
             binder = null;
         }
     };
-    private XiVPNService.VPNStatusListener vpnStatusListener;
+    private XiVPNService.VPNStateListener vpnStatusListener;
 
     @Override
     protected void onStart() {
@@ -105,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
         aSwitch = findViewById(R.id.vpn_switch);
         drawerLayout = findViewById(R.id.main);
         navigationView = findViewById(R.id.navView);
+
 
         onCheckedChangeListener = (compoundButton, b) -> {
             if (b) {
@@ -195,11 +196,11 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // vpn service listener
-        vpnStatusListener = new XiVPNService.VPNStatusListener() {
+        vpnStatusListener = new XiVPNService.VPNStateListener() {
             @Override
-            public void onStatusChanged(XiVPNService.Status status) {
-                Log.i("MainActivity", "onStatusChanged " + status.name());
-                updateSwitch(status);
+            public void onStateChanged(XiVPNService.VPNState state) {
+                Log.i("MainActivity", "onStatusChanged " + state.name());
+                updateSwitch(state);
             }
 
             @Override
@@ -212,18 +213,18 @@ public class MainActivity extends AppCompatActivity {
     /**
      * update switch based on the status of vpn
      */
-    private void updateSwitch(XiVPNService.Status status) {
+    private void updateSwitch(XiVPNService.VPNState state) {
         // set listener to null so setChecked will not trigger the listener
         aSwitch.setOnCheckedChangeListener(null);
 
-        if (status == XiVPNService.Status.CONNECTING || status == XiVPNService.Status.DISCONNECTING) {
-            aSwitch.setChecked(status == XiVPNService.Status.DISCONNECTING);
+        if (state == XiVPNService.VPNState.CONNECTED || state == XiVPNService.VPNState.DISCONNECTED) {
+            aSwitch.setChecked(state == XiVPNService.VPNState.CONNECTED);
+            aSwitch.setEnabled(true);
+        } else {
+            aSwitch.setChecked(state == XiVPNService.VPNState.ESTABLISHING_VPN || state == XiVPNService.VPNState.STARTING_LIBXI);
             aSwitch.setEnabled(false);
-            aSwitch.setOnCheckedChangeListener(onCheckedChangeListener);
-            return;
         }
-        aSwitch.setEnabled(true);
-        aSwitch.setChecked(status == XiVPNService.Status.CONNECTED);
+
         aSwitch.setOnCheckedChangeListener(onCheckedChangeListener);
     }
 

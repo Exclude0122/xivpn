@@ -128,7 +128,7 @@ public class ProxiesActivity extends AppCompatActivity {
             Rules.setCatchAll(sp, proxy.label, proxy.subscription);
             adapter.setChecked(proxy.label, proxy.subscription);
 
-            XiVPNService.reloadLibxi(this);
+            XiVPNService.markConfigStale(this);
         });
 
     }
@@ -148,7 +148,7 @@ public class ProxiesActivity extends AppCompatActivity {
                 sp.getString("SELECTED_SUBSCRIPTION", "none")
         );
 
-        XiVPNService.reloadLibxi(this);
+        XiVPNService.markConfigStale(this);
     }
 
     @Override

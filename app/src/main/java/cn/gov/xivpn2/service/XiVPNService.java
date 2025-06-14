@@ -48,7 +48,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import cn.gov.xivpn2.NotificationID;
 import cn.gov.xivpn2.R;
@@ -69,29 +69,148 @@ import cn.gov.xivpn2.xrayconfig.StreamSettings;
 public class XiVPNService extends VpnService implements SocketProtect {
     private final IBinder binder = new XiVPNBinder();
     private final String TAG = "XiVPNService";
-    private final Set<VPNStatusListener> listeners = new HashSet<>();
-    private volatile Status status = Status.DISCONNECTED;
-    private final Semaphore statusLock = new Semaphore(1);
+    private final Set<VPNStateListener> listeners = new HashSet<>();
     private Process libxivpnProcess = null;
+    private Thread teeThread = null;
     private Thread ipcThread = null;
     private OutputStream ipcWriter = null;
     private ParcelFileDescriptor fileDescriptor;
     private final CircularFifoQueue<String> stderrBuffer = new CircularFifoQueue<>(30);
+    private volatile VPNState vpnState = VPNState.DISCONNECTED;
+    private Command commandBuffer = Command.NONE;
+    private boolean mustLibxiStop = false;
+    private boolean isXrayConfigStale = false;
 
-    private synchronized void setStatus(Status newStatus) {
-        Log.w(TAG, "status " + newStatus.name());
+    public enum VPNState {
+        DISCONNECTED, ESTABLISHING_VPN, STARTING_LIBXI, CONNECTED, STOPPING_LIBXI, STOPPING_VPN
+    }
+
+    private void setStateRaw(VPNState newState) {
+        Log.w(TAG, "state: " + newState.name());
+
         new Handler(Looper.getMainLooper()).post(() -> {
-            for (VPNStatusListener listener : listeners) {
-                listener.onStatusChanged(newStatus);
+            synchronized (listeners) {
+                for (VPNStateListener listener : listeners) {
+                    listener.onStateChanged(newState);
+                }
             }
         });
 
-        status = newStatus;
+        vpnState = newState;
+    }
+
+    private synchronized void setState(VPNState newState) {
+        setStateRaw(newState);
+    }
+
+    private void sendMessage(String msg) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            synchronized (listeners) {
+                for (VPNStateListener listener : listeners) {
+                    listener.onMessage(msg);
+                }
+            }
+        });
+    }
+
+    public interface VPNStateListener {
+        void onStateChanged(VPNState status);
+
+        void onMessage(String msg);
+    }
+
+    public enum Command {
+        NONE, CONNECT, DISCONNECT,
+    }
+
+    private synchronized void updateCommand(Command command) {
+        commandBuffer = command;
+        notify();
     }
 
     @Override
     public void onCreate() {
         Log.i(TAG, "on create");
+
+        new Thread(() -> {
+
+            Runnable work = () -> {
+            };
+            while (true) {
+                work.run();
+                work = () -> {
+                };
+
+                synchronized (this) {
+                    while (commandBuffer == Command.NONE && !mustLibxiStop && !isXrayConfigStale) {
+                        try {
+                            wait();
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    isXrayConfigStale = false;
+
+                    if (commandBuffer == Command.CONNECT) {
+                        commandBuffer = Command.NONE;
+
+                        if (vpnState != VPNState.DISCONNECTED) continue;
+
+                        setStateRaw(VPNState.ESTABLISHING_VPN);
+                        work = () -> {
+                            if (!startVPN()) {
+                                setState(VPNState.DISCONNECTED);
+                                return;
+                            }
+
+                            setState(VPNState.STARTING_LIBXI);
+                            if (!startLibxi()) {
+                                stopVPN();
+                                setState(VPNState.DISCONNECTED);
+                                return;
+                            }
+
+                            setState(VPNState.CONNECTED);
+                        };
+                    } else if (commandBuffer == Command.DISCONNECT || mustLibxiStop) {
+                        commandBuffer = Command.NONE;
+                        mustLibxiStop = false;
+
+                        if (vpnState != VPNState.CONNECTED) continue;
+
+                        setStateRaw(VPNState.STOPPING_LIBXI);
+                        work = () -> {
+                            stopLibxi();
+
+                            setState(VPNState.STOPPING_VPN);
+                            stopVPN();
+
+                            setState(VPNState.DISCONNECTED);
+                        };
+                    } else {
+                        // xray config is stale
+
+                        if (vpnState != VPNState.CONNECTED) continue;
+
+                        setStateRaw(VPNState.STOPPING_LIBXI);
+                        work = () -> {
+                            stopLibxi();
+
+                            setState(VPNState.STARTING_LIBXI);
+                            if (!startLibxi()) {
+                                stopVPN();
+                                setState(VPNState.DISCONNECTED);
+                                return;
+                            }
+
+                            setState(VPNState.CONNECTED);
+                        };
+                    }
+                }
+            }
+        }).start();
+
         super.onCreate();
     }
 
@@ -101,12 +220,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
         Log.i(TAG, "on start command");
 
         if (intent.getAction() != null && intent.getAction().equals("cn.gov.xivpn2.RELOAD")) {
-            statusLock.acquireUninterruptibly();
-            if (status == Status.CONNECTED) {
-                stopLibxi();
-                startLibxi();
-            } else {
-                statusLock.release();
+            synchronized (this) {
+                isXrayConfigStale = true;
+                notify();
             }
             return Service.START_NOT_STICKY;
         }
@@ -120,53 +236,27 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         // start vpn
         if (shouldStart) {
-            if (status != Status.DISCONNECTED) {
-                Log.d(TAG, "on start command already started");
-                return Service.START_NOT_STICKY;
-            }
-
-            Log.i(TAG, "start foreground");
-
-            // start foreground service
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "XiVPNService");
-            builder.setContentText("XiVPN is running");
-            builder.setSmallIcon(R.drawable.baseline_vpn_key_24);
-            builder.setPriority(NotificationCompat.PRIORITY_MAX);
-            builder.setOngoing(true);
-            builder.setContentIntent(PendingIntent.getActivity(this, 20, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
-            startForeground(NotificationID.getID(), builder.build());
-
-            // start
-            try {
-                startVPN();
-            } catch (Exception e) {
-                Log.e(TAG, "start vpn", e);
-                for (VPNStatusListener listener : listeners) {
-                    listener.onMessage(e.getClass().getSimpleName() + ": " + e.getMessage());
-                }
-            }
+            updateCommand(Command.CONNECT);
         }
-
         // stop vpn
-        if (intent.getAction() != null && intent.getAction().equals("cn.gov.xivpn2.STOP")) {
-            if (status != Status.CONNECTED) {
-                Log.d(TAG, "on start command already stopped");
-                return Service.START_NOT_STICKY;
-            }
-
-            stopVPN();
+        else if (intent.getAction() != null && intent.getAction().equals("cn.gov.xivpn2.STOP")) {
+            updateCommand(Command.DISCONNECT);
         }
 
         return Service.START_NOT_STICKY;
     }
 
-    public void startVPN() {
-        if (!statusLock.tryAcquire()) return;
-        if (status != Status.DISCONNECTED) {
-            statusLock.release();
-            return;
-        }
-        setStatus(Status.CONNECTING);
+    public boolean startVPN() {
+        Log.i(TAG, "start foreground");
+
+        // start foreground service
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "XiVPNService");
+        builder.setContentText("XiVPN is running");
+        builder.setSmallIcon(R.drawable.baseline_vpn_key_24);
+        builder.setPriority(NotificationCompat.PRIORITY_MAX);
+        builder.setOngoing(true);
+        builder.setContentIntent(PendingIntent.getActivity(this, 20, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        startForeground(NotificationID.getID(), builder.build());
 
         // establish vpn
         Builder vpnBuilder = new Builder();
@@ -194,145 +284,143 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
 
         fileDescriptor = vpnBuilder.establish();
-
-        startLibxi();
+        return fileDescriptor != null;
     }
 
-    private void startLibxi() {
+    private boolean startLibxi() {
         // start libxivpn
         Config config = buildXrayConfig();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String xrayConfig = gson.toJson(config);
         Log.i(TAG, "xray config: " + xrayConfig);
 
-        // bypass network code on ui thread limit
-        ipcThread = new Thread(() -> {
+        try {
+            // write xray config
+            FileOutputStream configStream = new FileOutputStream(new File(getFilesDir(), "config.json"));
+            configStream.write(xrayConfig.getBytes(StandardCharsets.UTF_8));
+            configStream.close();
+        } catch (IOException e) {
+            Log.e(TAG, "write xray config", e);
+            sendMessage("Error: Write xray config to file: " + e.getMessage());
+            return false;
+        }
+
+        String ipcPath = new File(getCacheDir(), "ipcsock").getAbsolutePath();
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        ProcessBuilder builder = new ProcessBuilder().redirectErrorStream(true).directory(getFilesDir()).command(getApplicationInfo().nativeLibraryDir + "/libxivpn.so");
+        Map<String, String> env = builder.environment();
+        env.put("IPC_PATH", ipcPath);
+        env.put("XRAY_LOCATION_ASSET", getFilesDir().getAbsolutePath());
+        env.put("LOG_LEVEL", config.log.loglevel);
+        env.put("XRAY_SNIFFING", Boolean.valueOf(preferences.getBoolean("sniffing", true)).toString());
+        env.put("XRAY_SNIFFING_ROUTE_ONLY", Boolean.valueOf(preferences.getBoolean("sniffing_route_only", true)).toString());
+
+        // ipc socket listen
+        LocalSocket socket = new LocalSocket(LocalSocket.SOCKET_STREAM);
+        try {
+            socket.bind(new LocalSocketAddress(ipcPath, LocalSocketAddress.Namespace.FILESYSTEM));
+        } catch (IOException e) {
+            Log.e(TAG, "bind ipc sock", e);
+            sendMessage("error: bind ipc socket to file: " + e.getMessage());
+            return false;
+        }
+        Log.i(TAG, "ipc sock bound");
+
+        LocalServerSocket serverSocket = null;
+        try {
+            serverSocket = new LocalServerSocket(socket.getFileDescriptor());
+
+            // start xray
+            libxivpnProcess = builder.start();
+
+            // wait for ipc connection
+            socket = serverSocket.accept();
+            ipcWriter = socket.getOutputStream();
+        } catch (IOException e) {
+            Log.e(TAG, "listen ipc sock", e);
+            sendMessage("error: listen on ipc socket: "+ e.getMessage());
+            return false;
+        }
+
+        // send tun fd
+        FileDescriptor[] fds = {fileDescriptor.getFileDescriptor()};
+        socket.setFileDescriptorsForSend(fds);
+        try {
+            ipcWriter.write("ping\n".getBytes(StandardCharsets.US_ASCII));
+            ipcWriter.flush();
+        } catch (IOException e) {
+            Log.e(TAG, "write tn ipc sock", e);
+            sendMessage("error: write to ipc socket: " + e.getMessage());
+            return false;
+        }
+
+        // logging
+        String logFile = "";
+        if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("logs", false)) {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.getDefault());
+            String datetime = sdf.format(new Date());
+            logFile = getFilesDir().getAbsolutePath() + "/logs/" + datetime + ".txt";
+            new File(getFilesDir().getAbsolutePath(), "logs").mkdirs();
+        }
+        Log.i(TAG, "log file: " + logFile);
+
+        PrintStream log = null;
+        if (!logFile.isEmpty()) {
             try {
-                // write xray config
-                FileOutputStream configStream = new FileOutputStream(new File(getFilesDir(), "config.json"));
-                configStream.write(xrayConfig.getBytes(StandardCharsets.UTF_8));
-                configStream.close();
-            } catch (IOException e) {
-                Log.e(TAG, "write xray config", e);
-                setStatus(Status.DISCONNECTED);
-                statusLock.release();
-                return;
+                log = new PrintStream(logFile);
+            } catch (Exception e) {
+                Log.e(TAG, "create libxivpn log", e);
+                sendMessage("error: create libxivpn log: " + e.getMessage());
+                return false;
             }
+        }
 
-            String ipcPath = new File(getCacheDir(), "ipcsock").getAbsolutePath();
+        stderrBuffer.clear();
 
-            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        // read stderr and stdout
+        PrintStream log_ = log;
+        teeThread = new Thread(() -> {
+            Scanner scanner = new Scanner(libxivpnProcess.getInputStream());
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                Log.d("libxivpn", line);
 
-            ProcessBuilder builder = new ProcessBuilder().redirectErrorStream(true).directory(getFilesDir()).command(getApplicationInfo().nativeLibraryDir + "/libxivpn.so");
-            Map<String, String> env = builder.environment();
-            env.put("IPC_PATH", ipcPath);
-            env.put("XRAY_LOCATION_ASSET", getFilesDir().getAbsolutePath());
-            env.put("LOG_LEVEL", config.log.loglevel);
-            env.put("XRAY_SNIFFING", Boolean.valueOf(preferences.getBoolean("sniffing", true)).toString());
-            env.put("XRAY_SNIFFING_ROUTE_ONLY", Boolean.valueOf(preferences.getBoolean("sniffing_route_only", true)).toString());
-
-            // ipc socket listen
-            LocalSocket socket = new LocalSocket(LocalSocket.SOCKET_STREAM);
-            try {
-                socket.bind(new LocalSocketAddress(ipcPath, LocalSocketAddress.Namespace.FILESYSTEM));
-            } catch (IOException e) {
-                Log.e(TAG, "bind ipc sock", e);
-                setStatus(Status.DISCONNECTED);
-                statusLock.release();
-                return;
-            }
-            Log.i(TAG, "ipc sock binded");
-
-            LocalServerSocket serverSocket = null;
-            OutputStream writer = null;
-            try {
-                serverSocket = new LocalServerSocket(socket.getFileDescriptor());
-
-                // start xray
-                libxivpnProcess = builder.start();
-
-                // wait for ipc connection
-                socket = serverSocket.accept();
-                writer = socket.getOutputStream();
-            } catch (IOException e) {
-                Log.e(TAG, "listen ipc sock", e);
-                setStatus(Status.DISCONNECTED);
-                statusLock.release();
-                return;
-            }
-
-            // send tun fd
-            FileDescriptor[] fds = {fileDescriptor.getFileDescriptor()};
-            socket.setFileDescriptorsForSend(fds);
-            try {
-                writer.write("ping\n".getBytes(StandardCharsets.US_ASCII));
-                writer.flush();
-            } catch (IOException e) {
-                Log.e(TAG, "write to ipc sock", e);
-                setStatus(Status.DISCONNECTED);
-                statusLock.release();
-                return;
-            }
-
-            // logging
-            String logFile = "";
-            if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("logs", false)) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.getDefault());
-                String datetime = sdf.format(new Date());
-                logFile = getFilesDir().getAbsolutePath() + "/logs/" + datetime + ".txt";
-                new File(getFilesDir().getAbsolutePath(), "logs").mkdirs();
-            }
-            Log.i(TAG, "log file: " + logFile);
-
-            PrintStream log = null;
-            if (!logFile.isEmpty()) {
-                try {
-                    log = new PrintStream(logFile);
-                } catch (Exception e) {
-                    Log.e(TAG, "create libxivpn log", e);
-                    setStatus(Status.DISCONNECTED);
-                    statusLock.release();
-                    return;
-                }
-            }
-
-            stderrBuffer.clear();
-
-            // read stderr and stdout
-            PrintStream log_ = log;
-            new Thread(() -> {
-                Scanner scanner = new Scanner(libxivpnProcess.getInputStream());
-                while (scanner.hasNextLine()) {
-                    String line = scanner.nextLine();
-                    Log.d("libxivpn", line);
-
-                    if (log_ != null) {
-                        log_.println(line);
-                    }
-
-                    stderrBuffer.add(line);
-                }
                 if (log_ != null) {
-                    log_.close();
+                    log_.println(line);
                 }
-                scanner.close();
-            }).start();
 
-            setStatus(Status.CONNECTED);
-            statusLock.release();
+                stderrBuffer.add(line);
+            }
+            if (log_ != null) {
+                log_.close();
+            }
+            scanner.close();
+        });
+        teeThread.start();
 
-            ipcLoop(socket);
+        LocalSocket finalSocket = socket;
+        ipcThread = new Thread(() -> {
+            ipcLoop(finalSocket);
 
-            stopVPN();
+            synchronized (this) {
+                if (vpnState != VPNState.STOPPING_LIBXI) {
+                    sendMessage("error: libxivpn exit unexpectedly");
+
+                    mustLibxiStop = true;
+                    notify();
+                }
+            }
         });
         ipcThread.start();
+
+        return true;
     }
 
     private void ipcLoop(LocalSocket socket) {
         try {
             InputStream reader = socket.getInputStream();
-            OutputStream writer = socket.getOutputStream();
-            ipcWriter = writer;
 
             Field fdField = FileDescriptor.class.getDeclaredField("descriptor");
             fdField.setAccessible(true);
@@ -366,8 +454,8 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
                         Log.i(TAG, "ipc protect " + fd);
 
-                        writer.write("protect_ack\n".getBytes(StandardCharsets.US_ASCII));
-                        writer.flush();
+                        ipcWriter.write("protect_ack\n".getBytes(StandardCharsets.US_ASCII));
+                        ipcWriter.flush();
                         break;
                 }
             }
@@ -382,16 +470,61 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
     }
 
-    public void stopVPN() {
-        if (!statusLock.tryAcquire()) return;
-        if (status != Status.CONNECTED) {
-            statusLock.release();
-            return;
+    private void stopLibxi() {
+        try {
+            ipcWriter.write("stop\n".getBytes(StandardCharsets.US_ASCII));
+            ipcWriter.flush();
+        } catch (Exception e) {
+            Log.e(TAG, "ipc write stop", e);
         }
-        setStatus(Status.DISCONNECTING);
 
-        stopLibxi();
+        try {
+            if (!libxivpnProcess.waitFor(1, TimeUnit.SECONDS)) {
+                sendMessage("error: timeout when waiting for libxivpn exit");
 
+                libxivpnProcess.destroyForcibly();
+                libxivpnProcess.waitFor();
+            }
+            ipcThread.join();
+            teeThread.join();
+        } catch (InterruptedException e) {
+            Log.e(TAG, "wait for libxivpn", e);
+        }
+
+        int exitValue = libxivpnProcess.exitValue();
+        if (exitValue != 0) {
+            // process crashed
+            // save last 30 lines of output and send a notification to user
+
+            Log.e(TAG, "libxivpn process crashed with value " + exitValue);
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.getDefault());
+            String datetime = sdf.format(new Date());
+            File file = new File(getCacheDir(), "crash_" + datetime + ".txt");
+
+            try {
+                FileOutputStream outputStream = new FileOutputStream(file);
+                outputStream.write("Libxivpn exited unexpectedly.\n".getBytes(StandardCharsets.UTF_8));
+                outputStream.write(("Exit code " + exitValue + "\n\n").getBytes(StandardCharsets.UTF_8));
+                outputStream.write("Last 30 lines of log before exit:\n\n".getBytes(StandardCharsets.UTF_8));
+                for (String line : stderrBuffer) {
+                    outputStream.write(line.getBytes(StandardCharsets.UTF_8));
+                    outputStream.write('\n');
+                }
+                outputStream.close();
+            } catch (IOException e) {
+                Log.e(TAG, "write crash log", e);
+            }
+
+            Intent intent = new Intent(this, CrashLogActivity.class);
+            intent.putExtra("FILE", "crash_" + datetime + ".txt");
+
+            Notification notification = new Notification.Builder(this, "XiVPNService").setContentTitle(getString(R.string.vpn_process_crashed)).setContentText(getString(R.string.click_to_open_crash_log)).setSmallIcon(R.drawable.baseline_error_24).setContentIntent(PendingIntent.getActivity(this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE)).build();
+            getSystemService(NotificationManager.class).notify(NotificationID.getID(), notification);
+        }
+    }
+
+    public void stopVPN() {
         try {
             fileDescriptor.close();
         } catch (IOException e) {
@@ -401,78 +534,20 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
-
-        setStatus(Status.DISCONNECTED);
-        statusLock.release();
     }
 
-    private void stopLibxi() {
-        // bypass network code on ui thread limit
-        Thread t = new Thread(() -> {
-            try {
-                ipcWriter.write("stop\n".getBytes(StandardCharsets.US_ASCII));
-                ipcWriter.flush();
-            } catch (Exception e) {
-                Log.e(TAG, "ipc write stop", e);
-            }
-
-            try {
-                libxivpnProcess.waitFor();
-                ipcThread.join();
-            } catch (InterruptedException e) {
-                Log.e(TAG, "wait for libxivpn", e);
-            }
-
-            int exitValue = libxivpnProcess.exitValue();
-            if (exitValue != 0) {
-                // process crashed
-                // save last 30 lines of output and send a notification to user
-
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.getDefault());
-                String datetime = sdf.format(new Date());
-                File file = new File(getCacheDir(), "crash_" + datetime + ".txt");
-
-                try {
-                    FileOutputStream outputStream = new FileOutputStream(file);
-                    outputStream.write("Libxivpn exited unexpectedly.\n".getBytes(StandardCharsets.UTF_8));
-                    outputStream.write(("Exit code " + exitValue + "\n\n").getBytes(StandardCharsets.UTF_8));
-                    outputStream.write("Last 30 lines of log before exit:\n\n".getBytes(StandardCharsets.UTF_8));
-                    for (String line : stderrBuffer) {
-                        outputStream.write(line.getBytes(StandardCharsets.UTF_8));
-                        outputStream.write('\n');
-                    }
-                    outputStream.close();
-                } catch (IOException e) {
-                    Log.e(TAG, "write crash log", e);
-                }
-
-                Intent intent = new Intent(this, CrashLogActivity.class);
-                intent.putExtra("FILE", "crash_" + datetime + ".txt");
-
-                Notification notification = new Notification.Builder(this, "XiVPNService").setContentTitle(getString(R.string.vpn_process_crashed)).setContentText(getString(R.string.click_to_open_crash_log)).setSmallIcon(R.drawable.baseline_error_24).setContentIntent(PendingIntent.getActivity(this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE)).build();
-                getSystemService(NotificationManager.class).notify(NotificationID.getID(), notification);
-            }
-        });
-        t.start();
-        try {
-            t.join();
-        } catch (InterruptedException e) {
-            // won't happen
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static void reloadLibxi(Context context) {
+    public static void markConfigStale(Context context) {
         Intent intent = new Intent(context, XiVPNService.class);
         intent.setAction("cn.gov.xivpn2.RELOAD");
         context.startService(intent);
     }
 
     @Override
-    public void onRevoke() {
+    public synchronized void onRevoke() {
         Log.i(TAG, "on revoke");
 
-        stopVPN();
+        mustLibxiStop = true;
+        notify();
     }
 
     private Config buildXrayConfig() {
@@ -594,16 +669,6 @@ public class XiVPNService extends VpnService implements SocketProtect {
         protect(fd);
     }
 
-    public enum Status {
-        CONNECTED, CONNECTING, DISCONNECTED, DISCONNECTING,
-    }
-
-    public interface VPNStatusListener {
-        void onStatusChanged(Status status);
-
-        void onMessage(String msg);
-    }
-
     @Override
     public void onDestroy() {
         Log.i(TAG, "on destroy");
@@ -612,18 +677,22 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
     public class XiVPNBinder extends Binder {
 
-        public Status getStatus() {
-            return XiVPNService.this.status;
+        public VPNState getState() {
+            return XiVPNService.this.vpnState;
         }
 
-        public void addListener(VPNStatusListener listener) {
-            Log.d(TAG, "add listener " + listener.toString());
-            XiVPNService.this.listeners.add(listener);
+        public void addListener(VPNStateListener listener) {
+            synchronized (listeners) {
+                Log.d(TAG, "add listener " + listener.toString());
+                XiVPNService.this.listeners.add(listener);
+            }
         }
 
-        public void removeListener(VPNStatusListener listener) {
-            Log.d(TAG, "remove listener " + listener.toString());
-            XiVPNService.this.listeners.remove(listener);
+        public void removeListener(VPNStateListener listener) {
+            synchronized (listeners) {
+                Log.d(TAG, "remove listener " + listener.toString());
+                XiVPNService.this.listeners.remove(listener);
+            }
         }
 
     }

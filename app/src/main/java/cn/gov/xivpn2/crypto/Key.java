@@ -5,11 +5,11 @@
 
 package cn.gov.xivpn2.crypto;
 
-import cn.gov.xivpn2.crypto.KeyFormatException.Type;
-
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
+
+import cn.gov.xivpn2.crypto.KeyFormatException.Type;
 
 /**
  * Represents a WireGuard public or private key. This class uses specialized constant-time base64

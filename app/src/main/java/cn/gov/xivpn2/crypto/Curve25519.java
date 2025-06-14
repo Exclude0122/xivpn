@@ -6,9 +6,9 @@
 
 package cn.gov.xivpn2.crypto;
 
-import java.util.Arrays;
-
 import androidx.annotation.Nullable;
+
+import java.util.Arrays;
 
 /**
  * Implementation of Curve25519 ECDH.

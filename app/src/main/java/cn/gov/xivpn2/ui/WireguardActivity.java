@@ -6,11 +6,11 @@ import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.regex.Pattern;
 
+import cn.gov.xivpn2.crypto.Key;
 import cn.gov.xivpn2.crypto.KeyFormatException;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.WireguardPeer;
 import cn.gov.xivpn2.xrayconfig.WireguardSettings;
-import cn.gov.xivpn2.crypto.Key;
 
 public class WireguardActivity extends ProxyActivity<WireguardSettings> {
 

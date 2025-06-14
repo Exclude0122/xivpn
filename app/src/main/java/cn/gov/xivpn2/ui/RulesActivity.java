@@ -140,7 +140,7 @@ public class RulesActivity extends AppCompatActivity {
 
         }
 
-        XiVPNService.reloadLibxi(this);
+        XiVPNService.markConfigStale(this);
     }
 
 
