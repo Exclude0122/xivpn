@@ -171,6 +171,8 @@ public class SubscriptionWork extends Worker {
             Log.e(TAG, "reset deleted proxies", e);
         }
 
+        XiVPNService.markConfigStale(getApplicationContext());
+
         Log.i(TAG, "doWork finish");
         return Result.success();
     }
