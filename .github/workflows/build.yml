@@ -32,8 +32,8 @@ jobs:
         run: |
           echo libxivpn commit: $(git rev-parse HEAD)
           ./build.sh all patch
-          mkdir -p ./app/src/main/jniLibs/arm64-v8a
-          mkdir -p ./app/src/main/jniLibs/x86_64
+          mkdir -p ../app/src/main/jniLibs/arm64-v8a
+          mkdir -p ../app/src/main/jniLibs/x86_64
           cp libxivpn_x86_64.so ./../app/src/main/jniLibs/x86_64/libxivpn.so
           cp libxivpn_arm64.so ./../app/src/main/jniLibs/arm64-v8a/libxivpn.so
         working-directory: ./libxivpn
