@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Setup Java
         uses: actions/setup-java@v3
@@ -19,14 +21,21 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
-      - name: Download Native Binary
+      - name: Setup NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          add-to-path: false
+          ndk-version: r27
+
+      - name: Build
         run: |
-          mkdir -p ./app/src/main/jniLibs/arm64-v8a
-          mkdir -p ./app/src/main/jniLibs/x86_64
-          curl -L https://github.com/Exclude0122/libxivpn/releases/latest/download/libxivpn_arm64.so > ./app/src/main/jniLibs/arm64-v8a/libxivpn.so
-          curl -L https://github.com/Exclude0122/libxivpn/releases/latest/download/libxivpn_x86_64.so > ./app/src/main/jniLibs/x86_64/libxivpn.so
-          sha256sum ./app/src/main/jniLibs/arm64-v8a/libxivpn.so
-          sha256sum ./app/src/main/jniLibs/x86_64/libxivpn.so
+          ./build.sh all patch
+          cp libxivpn_x86_64.so ./../app/src/main/jniLibs/x86_64/libxivpn.so
+          cp libxivpn_arm64.so ./../app/src/main/jniLibs/arm64-v8a/libxivpn.so
+        working-directory: ./libxivpn
+        env:
+          NDK: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -51,6 +60,8 @@ jobs:
           sha256sum ./app/build/outputs/apk/arm64_v8a/release/app-arm64_v8a-release.apk > sha256.txt
           sha256sum ./app/build/outputs/apk/universal/release/app-universal-release.apk >> sha256.txt
           sha256sum ./app/build/outputs/apk/x86_64/release/app-x86_64-release.apk >> sha256.txt
+          sha256sum ./libxivpn/libxivpn_x86_64.so >> sha256.txt
+          sha256sum ./libxivpnlibxivpn_arm64.so >> sha256.txt
 
       - name: Upload Universal APK to Artifacts
         uses: actions/upload-artifact@v4
@@ -69,6 +80,18 @@ jobs:
         with:
           name: xivpn-arm64_v8a.apk
           path: ./app/build/outputs/apk/arm64_v8a/release/app-arm64_v8a-release.apk
+
+      - name: Upload x86_64 libxivpn to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: libxivpn_x86_64.so
+          path: ./libxivpn/libxivpn_x86_64.so
+
+      - name: Upload libxivpn_arm64 libxivpn to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: libxivpn_arm64.so
+          path: ./libxivpn/libxivpn_arm64.so
 
       - name: Upload SHA256 to Artifacts
         uses: actions/upload-artifact@v4
