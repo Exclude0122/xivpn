@@ -33,6 +33,7 @@ import cn.gov.xivpn2.Utils;
 import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.ProxyDao;
+import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.HttpUpgradeSettings;
 import cn.gov.xivpn2.xrayconfig.MuxSettings;
 import cn.gov.xivpn2.xrayconfig.Outbound;
@@ -151,6 +152,8 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                         proxy.protocol = getProtocolName();
                         proxyDao.add(proxy);
                     }
+
+                    XiVPNService.markConfigStale(this);
                 } else {
                     Log.i(TAG, "inline result: " + json);
                     Intent intent = new Intent();

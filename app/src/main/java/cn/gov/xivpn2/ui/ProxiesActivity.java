@@ -82,6 +82,8 @@ public class ProxiesActivity extends AppCompatActivity {
                         Log.e("ProxiesActivity", "reset deleted proxies", e);
                     }
 
+                    XiVPNService.markConfigStale(this);
+
                     refresh();
 
                 } else if (item.getItemId() == R.id.edit) {
@@ -148,7 +150,7 @@ public class ProxiesActivity extends AppCompatActivity {
                 sp.getString("SELECTED_SUBSCRIPTION", "none")
         );
 
-        XiVPNService.markConfigStale(this);
+
     }
 
     @Override
@@ -176,6 +178,8 @@ public class ProxiesActivity extends AppCompatActivity {
                         } else {
                             Toast.makeText(this, R.string.proxy_added, Toast.LENGTH_SHORT).show();
                         }
+
+                        XiVPNService.markConfigStale(this);
 
                         refresh();
 
