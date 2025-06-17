@@ -18,6 +18,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
 import androidx.preference.PreferenceManager;
@@ -221,6 +222,11 @@ public class XiVPNService extends VpnService implements SocketProtect {
                             }
 
                             setState(VPNState.CONNECTED);
+
+                            new Handler(Looper.getMainLooper()).post(() -> {
+                                Toast.makeText(this, R.string.xray_config_reloaded, Toast.LENGTH_SHORT).show();
+                            });
+
                         };
                     }
                 }

@@ -88,4 +88,5 @@
     <string name="vpn_process_crashed">VPN 进程崩溃</string>
     <string name="click_to_open_crash_log">单击查看崩溃日志</string>
     <string name="tile_label">开关</string>
+    <string name="xray_config_reloaded">Xray 配置已重载</string>
 </resources>

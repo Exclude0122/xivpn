@@ -88,4 +88,5 @@
     <string name="vpn_process_crashed">VPN Process Crashed</string>
     <string name="click_to_open_crash_log">Click here to open crash log</string>
     <string name="tile_label">Toggle VPN</string>
+    <string name="xray_config_reloaded">Xray config reloaded</string>
 </resources>
