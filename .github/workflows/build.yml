@@ -64,7 +64,7 @@ jobs:
           sha256sum ./app/build/outputs/apk/universal/release/app-universal-release.apk >> sha256.txt
           sha256sum ./app/build/outputs/apk/x86_64/release/app-x86_64-release.apk >> sha256.txt
           sha256sum ./libxivpn/libxivpn_x86_64.so >> sha256.txt
-          sha256sum ./libxivpnlibxivpn_arm64.so >> sha256.txt
+          sha256sum ./libxivpn/libxivpn_arm64.so >> sha256.txt
 
       - name: Upload Universal APK to Artifacts
         uses: actions/upload-artifact@v4
