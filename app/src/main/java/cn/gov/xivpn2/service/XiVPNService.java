@@ -76,9 +76,13 @@ public class XiVPNService extends VpnService implements SocketProtect {
     private OutputStream ipcWriter = null;
     private ParcelFileDescriptor fileDescriptor;
     private final CircularFifoQueue<String> stderrBuffer = new CircularFifoQueue<>(30);
+
     private final Object vpnStateLock = new Object();
     private volatile VPNState vpnState = VPNState.DISCONNECTED;
     private Command commandBuffer = Command.NONE;
+    /**
+     * mustLibxiStop is true if libxivpn exited unexpectedly
+     */
     private boolean mustLibxiStop = false;
     private boolean isXrayConfigStale = false;
 
@@ -86,6 +90,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
         DISCONNECTED, ESTABLISHING_VPN, STARTING_LIBXI, CONNECTED, STOPPING_LIBXI, STOPPING_VPN
     }
 
+    /**
+     * Set new state.
+     * This method must be called in a synchronized vpnStateLock block
+     */
     private void setStateRaw(VPNState newState) {
         Log.w(TAG, "state: " + newState.name());
 
@@ -153,7 +161,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
                             // wait for new command
                             vpnStateLock.wait();
                         } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
+                            Log.wtf(TAG, "wait for new command", e);
                         }
                     }
 
@@ -258,6 +266,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
         return Service.START_NOT_STICKY;
     }
 
+    /**
+     * Start vpn interface
+     */
     private boolean startVPN() {
         Log.i(TAG, "start foreground");
 
@@ -417,6 +428,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
             ipcLoop(finalSocket);
 
             synchronized (vpnStateLock) {
+
                 if (vpnState != VPNState.STOPPING_LIBXI) {
                     sendMessage("error: libxivpn exit unexpectedly");
 
@@ -430,6 +442,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
         return true;
     }
 
+    /**
+     * Handles IPC commands from libxivpn. Called in ipcTread.
+     */
     private void ipcLoop(LocalSocket socket) {
         try {
             InputStream reader = socket.getInputStream();
@@ -482,6 +497,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
     }
 
+    /**
+     * Stop libxivpn process.
+     */
     private void stopLibxi() {
         try {
             ipcWriter.write("stop\n".getBytes(StandardCharsets.US_ASCII));
