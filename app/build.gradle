@@ -72,7 +72,7 @@ android {
         armabi_v7a {
             signingConfig signingConfigs.githubaction
             ndk {
-                abiFilters "armabi-v7a"
+                abiFilters "armeabi-v7a"
             }
             versionCode = defaultConfig.versionCode * 10 + 4
         }
