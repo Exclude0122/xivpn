@@ -108,6 +108,8 @@ public class MainActivity extends AppCompatActivity {
 
 
         onCheckedChangeListener = (compoundButton, b) -> {
+            textView.setText("");
+
             if (b) {
                 // start vpn
 
