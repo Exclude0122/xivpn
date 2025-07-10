@@ -95,6 +95,10 @@ android {
         showAll true
     }
 
+    androidResources {
+        generateLocaleConfig true
+    }
+
 
 }
 
