@@ -82,7 +82,7 @@
     <string name="invalid_link">无效链接</string>
     <string name="proxy_added">代理已添加</string>
     <string name="split_tunnel">应用分流</string>
-    <string name="split_tunnel_summary">黑名单：代理未选中的应用\\n白名单：代理选中的应用</string>
+    <string name="split_tunnel_summary">黑名单：代理未选中的应用\n白名单：代理选中的应用</string>
     <string name="split_tunnel_apps">应用列表</string>
     <string name="search">搜索</string>
     <string name="vpn_process_crashed">VPN 进程崩溃</string>
