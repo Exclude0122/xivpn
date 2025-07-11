@@ -193,6 +193,9 @@ public class MainActivity extends AppCompatActivity {
             if (item.getItemId() == R.id.rules) {
                 startActivity(new Intent(this, RulesActivity.class));
             }
+            if (item.getItemId() == R.id.dns_toolbox) {
+                startActivity(new Intent(this, DNSToolbox.class));
+            }
             drawerLayout.close();
             return false;
         });

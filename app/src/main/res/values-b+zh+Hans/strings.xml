@@ -89,4 +89,16 @@
     <string name="click_to_open_crash_log">单击查看崩溃日志</string>
     <string name="tile_label">开关</string>
     <string name="xray_config_reloaded">Xray 配置已重载</string>
+    <string name="dns_toolbox">DNS 工具箱</string>
+    <string name="help">帮助</string>
+    <string name="dns_toolbox_help">DNS 工具箱允许你使用 Android 系统 DNS 进行 DNS 查询</string>
+    <string name="name">Name</string>
+    <string name="qtype">类型</string>
+    <string name="qname">域名</string>
+    <string name="dns_no_cache_lookup">不使用缓存</string>
+    <string name="dns_no_cache_store">不写入缓存</string>
+    <string name="dns_no_retry">不进行重试</string>
+    <string name="query">查询</string>
+    <string name="error">错误</string>
+    <string name="dns_requires_api_29">这个功能需要 Android 9 或更高版本</string>
 </resources>

@@ -25,4 +25,10 @@
         android:title="@string/settings"
         app:showAsAction="ifRoom" />
 
+    <item
+        android:id="@+id/dns_toolbox"
+        android:title="@string/dns_toolbox"
+        app:showAsAction="ifRoom"
+        android:icon="@drawable/build_24dp_e3e3e3_fill0_wght400_grad0_opsz24"/>
+
 </menu>

@@ -23,6 +23,9 @@
         android:theme="@style/Theme.XiVPN"
         tools:targetApi="31">
         <activity
+            android:name=".ui.DNSToolbox"
+            android:exported="false" />
+        <activity
             android:name=".ui.CrashLogActivity"
             android:exported="false" />
         <activity
@@ -109,6 +112,7 @@
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
+
             <meta-data
                 android:name="android.service.quicksettings.TOGGLEABLE_TILE"
                 android:value="true" />

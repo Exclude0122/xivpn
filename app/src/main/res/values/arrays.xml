@@ -10,4 +10,8 @@
         <item>Whitelist</item>
         <item>Blacklist</item>
     </string-array>
+    <string-array name="qtype">
+        <item>A</item>
+        <item>AAAA</item>
+    </string-array>
 </resources>

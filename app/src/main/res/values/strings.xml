@@ -89,4 +89,16 @@
     <string name="click_to_open_crash_log">Click here to open crash log</string>
     <string name="tile_label">Toggle VPN</string>
     <string name="xray_config_reloaded">Xray config reloaded</string>
+    <string name="dns_toolbox">DNS Toolbox</string>
+    <string name="help">Help</string>
+    <string name="dns_toolbox_help">DNS Toolbox allows you to perform DNS query using Android\'s built-in DNS resolver.</string>
+    <string name="name">Name</string>
+    <string name="qtype">QTYPE</string>
+    <string name="qname">QNAME</string>
+    <string name="dns_no_cache_lookup">No cache lookup</string>
+    <string name="dns_no_cache_store">No cache store</string>
+    <string name="dns_no_retry">No retry</string>
+    <string name="query">Query</string>
+    <string name="error">Error</string>
+    <string name="dns_requires_api_29">This feature requires Android 9 or above.</string>
 </resources>
