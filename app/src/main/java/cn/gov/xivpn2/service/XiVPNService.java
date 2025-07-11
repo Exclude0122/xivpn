@@ -17,6 +17,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
+import android.system.ErrnoException;
+import android.system.Os;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -484,6 +486,12 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
                         int fd = fdField.getInt(fds[0]);
                         protectFd(fd);
+
+                        try {
+                            Os.close(fds[0]);
+                        } catch (ErrnoException e) {
+                            Log.e(TAG, "protect os.close", e);
+                        }
 
                         Log.i(TAG, "ipc protect " + fd);
 
