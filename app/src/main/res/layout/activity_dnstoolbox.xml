@@ -66,12 +66,24 @@
                 android:layout_height="wrap_content"
                 android:text="@string/dns_no_retry"/>
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" >
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn"
-                android:text="@string/query"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn"
+                    android:text="@string/query"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:layout_marginStart="6dp"
+                    android:id="@+id/btn2"
+                    android:text="@string/system_network_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
 
             <TextView
                 android:id="@+id/text"

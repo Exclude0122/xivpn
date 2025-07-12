@@ -1,6 +1,11 @@
 package cn.gov.xivpn2.ui;
 
+import android.net.ConnectivityManager;
 import android.net.DnsResolver;
+import android.net.LinkAddress;
+import android.net.LinkProperties;
+import android.net.Network;
+import android.net.RouteInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,6 +29,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import cn.gov.xivpn2.R;
 
@@ -69,6 +75,7 @@ public class DNSToolbox extends AppCompatActivity {
         DnsResolver instance = DnsResolver.getInstance();
 
         MaterialButton btn = findViewById(R.id.btn);
+        MaterialButton btn2 = findViewById(R.id.btn2);
         TextInputEditText qnameEdittext = findViewById(R.id.qname);
         AutoCompleteTextView qtypeEdittext = findViewById(R.id.qtype);
         MaterialCheckBox checkboxNoStore = findViewById(R.id.no_cache_store);
@@ -130,6 +137,68 @@ public class DNSToolbox extends AppCompatActivity {
                 print(error.getClass().getSimpleName() + ": " + error);
             }
 
+        });
+
+        btn2.setOnClickListener(v -> {
+            StringBuilder sb = new StringBuilder();
+
+            try {
+                ConnectivityManager connectivityManager = getSystemService(ConnectivityManager.class);
+
+                Network activeNetwork = connectivityManager.getActiveNetwork();
+                Network boundNetworkForProcess = connectivityManager.getBoundNetworkForProcess();
+
+                for (Network network : connectivityManager.getAllNetworks()) {
+                    LinkProperties linkProperties = connectivityManager.getLinkProperties(network);
+                    if (linkProperties == null) {
+                        continue;
+                    }
+
+                    sb.append("Interface ").append(linkProperties.getInterfaceName());
+                    if (network.equals(activeNetwork)) {
+                        sb.append(" (Active)");
+                    }
+                    if (network.equals(boundNetworkForProcess)) {
+                        sb.append(" (Bound)");
+                    }
+                    sb.append(":\n");
+
+                    sb.append("  Private Name Server:\n");
+                    String privateDnsServerName = linkProperties.getPrivateDnsServerName();
+                    sb.append("   - ").append(Objects.requireNonNullElse(privateDnsServerName, "Not set")).append("\n");
+
+                    sb.append("  DNS Servers:\n");
+                    List<InetAddress> dnsServers = linkProperties.getDnsServers();
+                    for (InetAddress dnsServer : dnsServers) {
+                        sb.append("   - ").append(dnsServer.toString()).append("\n");
+                    }
+
+                    sb.append("  Link Addresses:\n");
+                    List<LinkAddress> linkAddresses = linkProperties.getLinkAddresses();
+                    for (LinkAddress linkAddress : linkAddresses) {
+                        sb.append("   - ").append(linkAddress.toString()).append("\n");
+                    }
+
+                    sb.append("  Routes:\n");
+                    List<RouteInfo> routes = linkProperties.getRoutes();
+                    for (RouteInfo route : routes) {
+                        sb.append("   - ").append(route.toString()).append("\n");
+                    }
+
+                    sb.append("\n");
+                }
+            } catch (Exception e) {
+                Log.e("DNSToolbox", "system dns info", e);
+                sb.append("\nError:\n");
+                sb.append(e.getClass().getSimpleName()).append(": ").append(e.getMessage());
+            }
+
+
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.system_network_info)
+                    .setMessage(sb.toString())
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
         });
     }
 
