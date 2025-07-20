@@ -26,6 +26,9 @@ public interface ProxyDao {
     @Query("INSERT OR IGNORE INTO proxy (label, protocol, subscription, config) VALUES ('Block', 'blackhole', 'none', '{\"protocol\": \"blackhole\"}')")
     void addBlackhole();
 
+    @Query("INSERT OR IGNORE INTO proxy (label, protocol, subscription, config) VALUES ('Built-in DNS Server', 'dns', 'none', '{\"protocol\": \"dns\", \"settings\": {\"nonIPQuery\": \"drop\"}}')")
+    void addDNSOutbound();
+
     @Query("SELECT count(*) FROM proxy WHERE label = :label AND subscription = :subscription LIMIT 1")
     int exists(String label, String subscription);
 

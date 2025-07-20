@@ -63,8 +63,8 @@ public class ProxiesActivity extends AppCompatActivity {
 
         // on list item clicked
         adapter.setOnLongClickListener((view, proxy, i) -> {
-            if (proxy.protocol.equals("freedom") || proxy.protocol.equals("blackhole")) {
-                // freedom and blackhole is not removable and editable
+            if (proxy.protocol.equals("freedom") || proxy.protocol.equals("blackhole") || proxy.protocol.equals("dns")) {
+                // freedom / blackhole / dns is not removable and editable
                 return;
             }
 
@@ -126,6 +126,8 @@ public class ProxiesActivity extends AppCompatActivity {
         });
 
         adapter.setOnClickListener((view, proxy, i) -> {
+            if (proxy.protocol.equals("dns")) return; // dns can not be the default outbound
+
             SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
             Rules.setCatchAll(sp, proxy.label, proxy.subscription);
             adapter.setChecked(proxy.label, proxy.subscription);

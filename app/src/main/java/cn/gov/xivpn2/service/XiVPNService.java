@@ -56,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 import cn.gov.xivpn2.NotificationID;
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
+import cn.gov.xivpn2.database.DNS;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.ui.CrashLogActivity;
@@ -68,6 +69,7 @@ import cn.gov.xivpn2.xrayconfig.Routing;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
 import cn.gov.xivpn2.xrayconfig.Sockopt;
 import cn.gov.xivpn2.xrayconfig.StreamSettings;
+import cn.gov.xivpn2.xrayconfig.XrayDNS;
 
 public class XiVPNService extends VpnService implements SocketProtect {
     private final IBinder binder = new XiVPNBinder();
@@ -607,6 +609,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
         config.log.loglevel = preferences.getString("log_level", "warning");
 
         try {
+
+            // dns
+            config.dns = DNS.readDNSSettings(getFilesDir());
 
             // routing
             List<RoutingRule> rules = Rules.readRules(getFilesDir());

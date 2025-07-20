@@ -20,6 +20,13 @@
         android:title="@string/rules" />
 
     <item
+        android:id="@+id/dns"
+        android:icon="@drawable/travel_explore"
+        android:title="@string/dns"
+        app:showAsAction="ifRoom" />
+
+
+    <item
         android:id="@+id/settings"
         android:icon="@drawable/baseline_settings_24"
         android:title="@string/settings"

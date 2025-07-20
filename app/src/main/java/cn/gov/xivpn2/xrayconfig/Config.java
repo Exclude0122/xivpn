@@ -7,4 +7,5 @@ public class Config {
     public List<Outbound> outbounds;
     public Log log = new Log();
     public Routing routing;
+    public XrayDNS dns;
 }

@@ -23,6 +23,15 @@
         android:theme="@style/Theme.XiVPN"
         tools:targetApi="31">
         <activity
+            android:name=".ui.DNSServerActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.DNSServersActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.DNSActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.DNSToolbox"
             android:exported="false" />
         <activity

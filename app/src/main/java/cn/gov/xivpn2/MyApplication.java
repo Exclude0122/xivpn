@@ -72,6 +72,7 @@ public class MyApplication extends Application {
 
         db.proxyDao().addFreedom();
         db.proxyDao().addBlackhole();
+        db.proxyDao().addDNSOutbound();
 
         // background work
         WorkManager workManager = WorkManager.getInstance(this);
@@ -85,6 +86,7 @@ public class MyApplication extends Application {
 
         // copy assets
         writeAsset("default_rules.json", new File(getFilesDir(), "rules.json"));
+        writeAsset("default_dns.json", new File(getFilesDir(), "dns.json"));
     }
 
     private void writeAsset(String asset, File out) {
