@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
@@ -32,6 +33,7 @@ public class RuleActivity extends AppCompatActivity {
 
     private RoutingRule rule;
     private TextInputEditText label;
+    private TextInputEditText inbound;
     private TextInputEditText domains;
     private TextInputEditText ips;
     private TextInputEditText port;
@@ -60,6 +62,7 @@ public class RuleActivity extends AppCompatActivity {
 
         // bind views
         label = findViewById(R.id.edit_label);
+        inbound = findViewById(R.id.edit_inbound);
         domains = findViewById(R.id.edit_domains);
         ips = findViewById(R.id.edit_ips);
         port = findViewById(R.id.edit_port);
@@ -84,6 +87,7 @@ public class RuleActivity extends AppCompatActivity {
                 rule.network = "tcp,udp";
                 rule.protocol = new ArrayList<>();
                 rule.outboundTag = "";
+                rule.inboundTag = new ArrayList<>();
                 getSupportActionBar().setTitle(R.string.new_rule);
             } else {
                 // edit existing rule
@@ -98,6 +102,7 @@ public class RuleActivity extends AppCompatActivity {
             ips.setText(String.join("\n", rule.ip));
             port.setText(rule.port);
             protocols.setText(String.join("\n", rule.protocol));
+            inbound.setText((rule.inboundTag == null || rule.inboundTag.isEmpty()) ? "" : rule.inboundTag.get(0));
 
             network.setAdapter(new NonFilterableArrayAdapter(this, R.layout.list_item, List.of("tcp", "udp", "tcp,udp")));
             network.setText(rule.network);
@@ -164,6 +169,11 @@ public class RuleActivity extends AppCompatActivity {
             rule.protocol = Arrays.asList(protocols.getText().toString().split("\n"));
             if (protocols.getText().toString().isEmpty()) rule.protocol = List.of();
             rule.outboundTag = "";
+            if (Objects.requireNonNull(inbound.getText()).toString().isBlank()) {
+                rule.inboundTag = null;
+            } else {
+                rule.inboundTag = List.of(inbound.getText().toString());
+            }
 
             try {
                 List<RoutingRule> rules = Rules.readRules(getFilesDir());

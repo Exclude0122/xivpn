@@ -117,4 +117,7 @@
     <string name="edit_dns_server">Edit DNS Server</string>
     <string name="could_not_read_dns">Could not read DNS settings</string>
     <string name="dns_server_help">Supported formats for address:\n  - DNS over UDP: IP Address (e.g. 1.1.1.1)\n  - DNS over TCP: tcp://host (e.g. tcp://8.8.8.8)\n  - DNS over HTTPS: https://host:port/dns-query (e.g. https://dns.google/dns-query)\n\nPort:\n  The port number for DNS. Defaults to 53. Not applicable for DNS over HTTPS.\n\nDomains:\n  List of domains that prefer to be resolved using this DNS server.</string>
+    <string name="inbound">Inbound</string>
+    <string name="inbound_helper_text">Inbound tag can be used to match DNS queries originated from Xray\'s built-in DNS server.</string>
+    <string name="inbound_tag">Inbound Tag</string>
 </resources>
