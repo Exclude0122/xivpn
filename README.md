@@ -19,6 +19,7 @@ Or download from [Github releases](https://github.com/Exclude0122/xivpn/releases
 - Configurable proxy settings
 - Routing
 - Proxy chain
+- Custom DNS settings
 - Fully open source
 
 ## Screenshots
@@ -34,6 +35,7 @@ Or download from [Github releases](https://github.com/Exclude0122/xivpn/releases
 ![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/6.png)
 ![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/7.png)
 ![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/8.png)
+![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/9.png)
 
 
 </details>
