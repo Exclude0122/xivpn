@@ -1,5 +1,5 @@
 [versions]
-agp = "8.9.1"
+agp = "8.10.1"
 commonsCollections4 = "4.5.0"
 commonsIo = "2.18.0"
 gson = "2.11.0"
