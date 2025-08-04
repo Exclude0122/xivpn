@@ -101,4 +101,20 @@
     <string name="query">查询</string>
     <string name="error">错误</string>
     <string name="dns_requires_api_29">这个功能需要 Android 9 或更高版本</string>
+    <string name="system_network_info">系统网络信息</string>
+    <string name="dns">DNS</string>
+    <string name="hosts_format_error">无效 Hosts：</string>
+    <string name="dns_help">这个页面可以更改 XRAY 内置 DNS 服务器。\n\n注意：DNS 请求默认不会被 XRAY 处理。如果需要使用内置 DNS 服务器，请设置路由规则把 DNS 重定向到 DNS 出站</string>
+    <string name="dns_servers">DNS 服务器</string>
+    <string name="open_xray_docs_dns">打开 Xray 文档</string>
+    <string name="could_not_save_dns">无法保存 DNS 设置</string>
+    <string name="at_least_one_dns_server">必须至少有一个 DNS 服务器</string>
+    <string name="address">地址</string>
+    <string name="new_dns_server">新建 DNS 服务器</string>
+    <string name="edit_dns_server">编辑 DNS 服务器</string>
+    <string name="could_not_read_dns">无法读取 DNS 设置</string>
+    <string name="dns_server_help">支持的格式:\n  - DNS over UDP: IP 地址 (例如 1.1.1.1)\n  - DNS over TCP: tcp://host (例如 tcp://8.8.8.8)\n  - DNS over HTTPS: https://host:port/dns-query (例如 https://dns.google/dns-query)\n\n端口:\n  DNS 服务器的端口. 默认 53. 对于 HTTPS 无效.\n\n域名:\n  使用此 DNS 服务器解析的域名列表.</string>
+    <string name="inbound">入站</string>
+    <string name="inbound_helper_text">入站标签可以用来匹配从内置 DNS 服务器发出的 DNS 请求</string>
+    <string name="inbound_tag">入站标签</string>
 </resources>

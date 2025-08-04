@@ -103,8 +103,8 @@
     <string name="dns_requires_api_29">This feature requires Android 9 or above.</string>
     <string name="system_network_info">System Network Info</string>
     <string name="dns">DNS</string>
-    <string name="hosts">Hosts</string>
-    <string name="hosts_placeholder">one.one.one.one 1.1.1.1\nexample.com example.org</string>
+    <string name="hosts" translatable="false">Hosts</string>
+    <string name="hosts_placeholder" translatable="false">one.one.one.one 1.1.1.1\nexample.com example.org</string>
     <string name="hosts_format_error">Malformatted host line:</string>
     <string name="dns_help">This page lets you configure xray\'s built-in DNS server.\n\nNote that DNS queries are not handled by xray unless you manually set a routing rule to redirect them to the DNS outbound.</string>
     <string name="dns_servers">DNS Servers</string>
@@ -112,7 +112,7 @@
     <string name="could_not_save_dns">Could not save DNS settings</string>
     <string name="at_least_one_dns_server">You must keep at least one DNS server</string>
     <string name="address">Address</string>
-    <string name="tag">Tag</string>
+    <string name="tag" translatable="false">Tag</string>
     <string name="new_dns_server">New DNS Server</string>
     <string name="edit_dns_server">Edit DNS Server</string>
     <string name="could_not_read_dns">Could not read DNS settings</string>
