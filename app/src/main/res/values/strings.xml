@@ -120,4 +120,6 @@
     <string name="inbound">Inbound</string>
     <string name="inbound_helper_text">Inbound tag can be used to match DNS queries originated from Xray\'s built-in DNS server.</string>
     <string name="inbound_tag">Inbound Tag</string>
+    <string name="skip_fallback">Skip Fallback</string>
+    <string name="invalid_port">Invalid port</string>
 </resources>

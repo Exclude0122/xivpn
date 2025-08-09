@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -38,6 +39,7 @@ public class DNSServerActivity extends AppCompatActivity {
     private TextInputEditText port;
     private TextInputEditText tag;
     private TextInputEditText domains;
+    private CheckBox skipFallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +59,8 @@ public class DNSServerActivity extends AppCompatActivity {
         port = findViewById(R.id.edit_port);
         tag = findViewById(R.id.edit_tag);
         domains = findViewById(R.id.edit_domains);
+        skipFallback = findViewById(R.id.skip_fallback);
+
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
@@ -73,6 +77,7 @@ public class DNSServerActivity extends AppCompatActivity {
                 port.setText(String.valueOf(dnsServer.port));
                 tag.setText(dnsServer.tag);
                 domains.setText(String.join("\n", dnsServer.domains));
+                skipFallback.setChecked(dnsServer.skipFallback);
             } catch (IOException | IndexOutOfBoundsException e) {
                 Log.e(TAG, "read dns settings", e);
                 Toast.makeText(this, R.string.could_not_read_dns, Toast.LENGTH_SHORT).show();
@@ -99,29 +104,26 @@ public class DNSServerActivity extends AppCompatActivity {
             try {
                 XrayDNS xrayDNS = DNS.readDNSSettings(getFilesDir());
 
+                DNSServer e;
                 if (index == -1) {
-                    DNSServer e = new DNSServer();
-                    e.address = address.getText().toString();
-                    e.tag = tag.getText().toString();
-                    if (!domains.getText().toString().isBlank()) {
-                        e.domains = Arrays.asList(domains.getText().toString().split("\n"));
-                    }
-                    else {
-                        e.domains = List.of();
-                    }
-                    e.port = Integer.parseInt(port.getText().toString());
-                    xrayDNS.servers.add(e);
+                    e = new DNSServer(); // add
                 } else {
-                    DNSServer e = xrayDNS.servers.get(index);
-                    e.address = address.getText().toString();
-                    e.tag = tag.getText().toString();
-                    if (!domains.getText().toString().isBlank()) {
-                        e.domains = Arrays.asList(domains.getText().toString().split("\n"));
-                    }
-                    else {
-                        e.domains = List.of();
-                    }
-                    e.port = Integer.parseInt(port.getText().toString());
+                    e = xrayDNS.servers.get(index); // edit
+                }
+
+                e.address = address.getText().toString();
+                e.tag = tag.getText().toString();
+                if (!domains.getText().toString().isBlank()) {
+                    e.domains = Arrays.asList(domains.getText().toString().split("\n"));
+                }
+                else {
+                    e.domains = List.of();
+                }
+                e.port = Integer.parseInt(port.getText().toString());
+                e.skipFallback = skipFallback.isChecked();
+
+                if (index == -1) {
+                    xrayDNS.servers.add(e);
                 }
 
                 DNS.writeDNSSettings(getFilesDir(), xrayDNS);
@@ -129,6 +131,7 @@ public class DNSServerActivity extends AppCompatActivity {
                 Log.e(TAG, "write dns settings", e);
                 Toast.makeText(this, R.string.could_not_save_dns, Toast.LENGTH_SHORT).show();
             } catch (NumberFormatException e) {
+                Toast.makeText(this, R.string.invalid_port, Toast.LENGTH_SHORT).show();
                 return true;
             }
             finish();

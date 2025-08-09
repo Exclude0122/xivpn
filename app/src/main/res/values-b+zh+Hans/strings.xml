@@ -117,4 +117,6 @@
     <string name="inbound">入站</string>
     <string name="inbound_helper_text">入站标签可以用来匹配从内置 DNS 服务器发出的 DNS 请求</string>
     <string name="inbound_tag">入站标签</string>
+    <string name="skip_fallback">跳过回退查询（Skip fallback）</string>
+    <string name="invalid_port">无效端口</string>
 </resources>
