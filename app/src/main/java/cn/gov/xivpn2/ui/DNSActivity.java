@@ -26,6 +26,7 @@ import java.util.Objects;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.DNS;
+import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.XrayDNS;
 
 public class DNSActivity extends AppCompatActivity {
@@ -113,6 +114,7 @@ public class DNSActivity extends AppCompatActivity {
                 }
 
                 DNS.writeDNSSettings(getFilesDir(), xrayDNS);
+                XiVPNService.markConfigStale(this);
 
                 finish();
             } catch (IOException e) {

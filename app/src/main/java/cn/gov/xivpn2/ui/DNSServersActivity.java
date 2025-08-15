@@ -25,6 +25,7 @@ import java.util.List;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.DNS;
+import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.DNSServer;
 import cn.gov.xivpn2.xrayconfig.ProxyChain;
 import cn.gov.xivpn2.xrayconfig.XrayDNS;
@@ -137,6 +138,7 @@ public class DNSServersActivity extends AppCompatActivity {
             xrayDNS.servers = dnsServers;
 
             DNS.writeDNSSettings(getFilesDir(), xrayDNS);
+            XiVPNService.markConfigStale(this);
         } catch (IOException e) {
             Log.e(TAG, "write dns settings", e);
             Toast.makeText(this, R.string.could_not_save_dns, Toast.LENGTH_SHORT).show();
