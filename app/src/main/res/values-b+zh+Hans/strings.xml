@@ -78,6 +78,7 @@
     <string name="proxy_chain_not_found">链式代理 %s: 代理 %s 不存在</string>
     <string name="proxy_chain_nesting_error">链式代理 %s: 不支持嵌套链式代理</string>
     <string name="import_form_clipboard">从剪切板导入</string>
+    <string name="copy_share_link">复制分享连接</string>
     <string name="share_link_example">ss://</string>
     <string name="invalid_link">无效链接</string>
     <string name="proxy_added">代理已添加</string>
@@ -119,4 +120,6 @@
     <string name="inbound_tag">入站标签</string>
     <string name="skip_fallback">跳过回退查询（Skip fallback）</string>
     <string name="invalid_port">无效端口</string>
+    <string name="security_option_unsupported">暂不支持 Security 选项 "%1$s"</string>
+    <string name="protocol_unsupported">暂不支持协议 "$1$s"</string>
 </resources>

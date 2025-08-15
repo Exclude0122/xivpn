@@ -17,6 +17,8 @@ import androidx.work.WorkerParameters;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -24,6 +26,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -72,6 +75,39 @@ public class SubscriptionWork extends Worker {
             query_pairs.put(URLDecoder.decode(pair.substring(0, idx), "UTF-8"), URLDecoder.decode(pair.substring(idx + 1), "UTF-8"));
         }
         return query_pairs;
+    }
+
+    private static String quote(String s) {
+        try {
+            return URLEncoder.encode(s, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static String queryFromMap(Map<String, String> queries) {
+        StringBuilder s = new StringBuilder();
+
+        boolean first = true;
+
+        for (Map.Entry<String, String> entry : queries.entrySet()) {
+            if (entry.getValue().isEmpty()) {
+                continue;
+            }
+
+            if (first) {
+                first = false;
+                s.append("?");
+            } else {
+                s.append("&");
+            }
+
+            s.append(quote(entry.getKey()));
+            s.append("=");
+            s.append(quote(entry.getValue()));
+        }
+
+        return s.toString();
     }
 
     private static String nullable(String s, String d) {
@@ -218,15 +254,161 @@ public class SubscriptionWork extends Worker {
         proxy.subscription = subscription;
 
         int n = 2;
-        String proxyLabel = proxy.label;
+        String baseLabel = proxy.label;
+
+        if (proxy.label.matches("[\\s\\S]* \\d+$")) {
+            int splitAt = proxy.label.lastIndexOf(" ");
+            n = Integer.parseInt(proxy.label.substring(splitAt + 1)) + 1;
+            baseLabel = proxy.label.substring(0, splitAt);
+        }
+
         while (AppDatabase.getInstance().proxyDao().find(proxy.label, proxy.subscription) != null) {
             // add number to label if already exists
-            proxy.label = proxyLabel + " " + n;
+            proxy.label = baseLabel + " " + n;
             n++;
         }
         AppDatabase.getInstance().proxyDao().add(proxy);
 
         return true;
+    }
+
+    private static String quoteHost(String host) {
+        if ((host.indexOf(':') >= 0) && !host.startsWith("[") && !host.endsWith("]")) {
+            return "[" + host + "]";
+        }
+        return host;
+    }
+
+    public static class MarshalProxyException extends Exception {
+        public int resId;
+
+        public MarshalProxyException(int resId, String m) {
+            super(m);
+            this.resId = resId;
+        }
+    }
+
+    public static String marshalProxy(Proxy proxy) throws MarshalProxyException {
+        try {
+            if (proxy.protocol.equals("shadowsocks")) {
+                Outbound<ShadowsocksSettings> outbound = new Gson().fromJson(proxy.config, new TypeToken<>() {
+                });
+
+                ShadowsocksServerSettings server = outbound.settings.servers.get(0);
+
+                return "ss://"
+                        + server.method + ":" + quote(server.password)
+                        + "@" + quoteHost(server.address) + ":" + server.port
+                        + "#" + quote(proxy.label);
+            } else if (proxy.protocol.equals("vmess")) {
+                Outbound<VmessSettings> outbound = new Gson().fromJson(proxy.config, new TypeToken<>() {
+                });
+
+                VmessServerSettings server = outbound.settings.vnext.get(0);
+                VmessUser vmessUser = server.users.get(0);
+
+                VmessShare vmessShare = new VmessShare();
+                vmessShare.ps = proxy.label;
+                vmessShare.add = server.address;
+                vmessShare.port = Integer.valueOf(server.port).toString();
+
+                vmessShare.security = vmessUser.security;
+                vmessShare.id = vmessUser.id;
+
+                vmessShare.network = outbound.streamSettings.network;
+                if (vmessShare.network.equals("ws")) {
+                    vmessShare.path = outbound.streamSettings.wsSettings.path;
+                    vmessShare.host = outbound.streamSettings.wsSettings.host;
+                } else if (vmessShare.network.equals("httpupgrade") || vmessShare.network.equals("splithttp")) {
+                    vmessShare.path = outbound.streamSettings.httpupgradeSettings.path;
+                    vmessShare.host = outbound.streamSettings.httpupgradeSettings.host;
+                }
+
+                vmessShare.tls = outbound.streamSettings.security;
+                if (vmessShare.tls != null) {
+                    if (vmessShare.tls.equals("tls")) {
+                        vmessShare.sni = outbound.streamSettings.tlsSettings.serverName;
+                        vmessShare.alpn = String.join(",", outbound.streamSettings.tlsSettings.alpn);
+                        vmessShare.fingerprint = outbound.streamSettings.tlsSettings.fingerprint;
+                    } else {
+                        throw new MarshalProxyException(R.string.security_option_unsupported, vmessShare.tls);
+                    }
+                }
+
+                String link = new Gson().toJson(vmessShare);
+                return "vmess://" + Base64.encodeToString(link.getBytes(StandardCharsets.UTF_8), Base64.URL_SAFE | Base64.NO_WRAP);
+            } else if (proxy.protocol.equals("trojan")) {
+                Outbound<TrojanSettings> outbound = new Gson().fromJson(proxy.config, new TypeToken<>() {
+                });
+
+                TrojanServerSettings server = outbound.settings.servers.get(0);
+                TLSSettings tlsSettings = outbound.streamSettings.tlsSettings;
+
+                if (!outbound.streamSettings.security.equals("tls")) {
+                    throw new MarshalProxyException(R.string.security_option_unsupported, outbound.streamSettings.security);
+                }
+
+                Map<String, String> queries = new LinkedHashMap<>();
+                queries.put("allowInsecure", tlsSettings.allowInsecure ? "1" : "");
+                queries.put("sni", tlsSettings.serverName);
+                queries.put("alpn", String.join(",", tlsSettings.alpn));
+                queries.put("fp", tlsSettings.fingerprint);
+
+                return "trojan://"
+                        + quote(server.password)
+                        + "@" + quoteHost(server.address) + ":" + server.port
+                        + queryFromMap(queries) + "#" + quote(proxy.label);
+            } else if (proxy.protocol.equals("vless")) {
+                Outbound<VlessSettings> outbound = new Gson().fromJson(proxy.config, new TypeToken<>() {
+                });
+
+                VlessServerSettings server = outbound.settings.vnext.get(0);
+                VlessUser vlessUser = server.users.get(0);
+                StreamSettings streamSettings = outbound.streamSettings;
+
+                Map<String, String> queries = new LinkedHashMap<>();
+
+                queries.put("type", streamSettings.network);
+                if (streamSettings.network.equals("ws")) {
+                    queries.put("host", streamSettings.wsSettings.host);
+                    queries.put("path", streamSettings.wsSettings.path);
+                } else if (streamSettings.network.equals("xhttp")) {
+                    queries.put("host", streamSettings.xHttpSettings.host);
+                    queries.put("path", streamSettings.xHttpSettings.path);
+                    queries.put("mode", streamSettings.xHttpSettings.mode);
+                } else if (streamSettings.network.equals("httpupgrade")) {
+                    queries.put("host", streamSettings.httpupgradeSettings.host);
+                    queries.put("path", streamSettings.httpupgradeSettings.path);
+                }
+
+                queries.put("encryption", vlessUser.encryption.equals("none") ? "" : vlessUser.encryption);
+                queries.put("flow", vlessUser.flow);
+
+                queries.put("security", nullable(streamSettings.security, ""));
+                if (streamSettings.security != null) {
+                    if (streamSettings.security.equals("tls")) {
+                        queries.put("sni", streamSettings.tlsSettings.serverName);
+                        queries.put("fp", streamSettings.tlsSettings.fingerprint);
+                        queries.put("alpn", String.join(",", streamSettings.tlsSettings.alpn));
+                        queries.put("allowInsecure", streamSettings.tlsSettings.allowInsecure ? "1" : "");
+                    } else if (streamSettings.security.equals("reality")) {
+                        queries.put("sni", streamSettings.realitySettings.serverName);
+                        queries.put("fp", streamSettings.realitySettings.fingerprint);
+                        queries.put("pbk", streamSettings.realitySettings.publicKey);
+                        queries.put("sid", streamSettings.realitySettings.shortId);
+                    }
+                }
+
+                return "vless://"
+                        + vlessUser.id
+                        + "@" + quoteHost(server.address) + ":" + server.port
+                        + queryFromMap(queries) + "#" + quote(proxy.label);
+            } else {
+                throw new MarshalProxyException(R.string.protocol_unsupported, proxy.protocol);
+            }
+        } catch (JsonSyntaxException | IndexOutOfBoundsException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -386,7 +568,7 @@ public class SubscriptionWork extends Worker {
 
     private static Proxy parseVless(String line) throws URISyntaxException, UnsupportedEncodingException {
         if (!line.startsWith("vless://")) {
-            throw new IllegalArgumentException("invalid trojan " + line);
+            throw new IllegalArgumentException("invalid vless " + line);
         }
 
         URI uri = new URI(line);

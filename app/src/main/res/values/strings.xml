@@ -78,6 +78,7 @@
     <string name="proxy_chain_not_found">Proxy chain \"%s\": proxy \"%s\" not found</string>
     <string name="proxy_chain_nesting_error">Proxy chain \"%s\": Nested proxy chains are not supported</string>
     <string name="import_form_clipboard">Import from clipboard</string>
+    <string name="copy_share_link">Copy share link</string>
     <string name="share_link_example">ss://</string>
     <string name="invalid_link">Invalid link</string>
     <string name="proxy_added">Proxy added</string>
@@ -122,4 +123,6 @@
     <string name="inbound_tag">Inbound Tag</string>
     <string name="skip_fallback">Skip Fallback</string>
     <string name="invalid_port">Invalid port</string>
+    <string name="security_option_unsupported">Security option "%1$s" is unsupported</string>
+    <string name="protocol_unsupported">Protocol "$1$s" is unsupported</string>
 </resources>
