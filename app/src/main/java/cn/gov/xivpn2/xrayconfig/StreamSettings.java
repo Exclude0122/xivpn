@@ -4,7 +4,6 @@ public class StreamSettings {
     public String network;
     public String security;
     public WsSettings wsSettings;
-    public XHttpSettings splithttpSettings;
     public HttpUpgradeSettings httpupgradeSettings;
     public QuicSettings quicSettings;
     public TLSSettings tlsSettings;

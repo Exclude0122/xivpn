@@ -319,9 +319,13 @@ public class SubscriptionWork extends Worker {
                 if (vmessShare.network.equals("ws")) {
                     vmessShare.path = outbound.streamSettings.wsSettings.path;
                     vmessShare.host = outbound.streamSettings.wsSettings.host;
-                } else if (vmessShare.network.equals("httpupgrade") || vmessShare.network.equals("splithttp")) {
+                } else if (vmessShare.network.equals("httpupgrade")) {
                     vmessShare.path = outbound.streamSettings.httpupgradeSettings.path;
                     vmessShare.host = outbound.streamSettings.httpupgradeSettings.host;
+                } else if (vmessShare.network.equals("xhttp")) {
+                    vmessShare.path = outbound.streamSettings.xHttpSettings.path;
+                    vmessShare.host = outbound.streamSettings.xHttpSettings.host;
+                    vmessShare.type = outbound.streamSettings.xHttpSettings.mode;
                 }
 
                 vmessShare.tls = outbound.streamSettings.security;
@@ -503,13 +507,16 @@ public class SubscriptionWork extends Worker {
             outbound.streamSettings.httpupgradeSettings.host = vmessShare.host;
             outbound.streamSettings.httpupgradeSettings.path = vmessShare.path;
         }
-        if (vmessShare.network.equals("splithttp")) {
-            outbound.streamSettings.splithttpSettings = new XHttpSettings();
-            outbound.streamSettings.httpupgradeSettings.host = vmessShare.host;
-            outbound.streamSettings.httpupgradeSettings.path = vmessShare.path;
-        }
-        if (!vmessShare.type.equals("none") && !vmessShare.type.equals("auto") && !vmessShare.type.isEmpty()) {
-            throw new IllegalArgumentException("unsupported type " + vmessShare.type);
+        if (vmessShare.network.equals("xhttp")) {
+            outbound.streamSettings.xHttpSettings = new XHttpSettings();
+            outbound.streamSettings.xHttpSettings.host = vmessShare.host;
+            outbound.streamSettings.xHttpSettings.path = vmessShare.path;
+            outbound.streamSettings.xHttpSettings.mode = !vmessShare.type.isEmpty() ? vmessShare.type : "auto";
+            outbound.streamSettings.xHttpSettings.downloadSettings = null;
+
+            if (!vmessShare.type.equals("packet-up") && !vmessShare.type.equals("stream-up") && !vmessShare.type.equals("auto") && !vmessShare.type.equals("stream-one")) {
+                throw new IllegalArgumentException("unsupported type " + vmessShare.type);
+            }
         }
         outbound.streamSettings.security = vmessShare.tls;
         if (outbound.streamSettings.security.equals("tls")) {

@@ -9,7 +9,7 @@ public class VmessShare {
     public String port = "";
     public String id = "";
     @SerializedName("aid")
-    public String alterId = "";
+    public String alterId = "0";
     @SerializedName("scy")
     public String security = "auto";
     @SerializedName("net")
