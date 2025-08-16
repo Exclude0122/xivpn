@@ -121,5 +121,5 @@
     <string name="skip_fallback">跳过回退查询（Skip fallback）</string>
     <string name="invalid_port">无效端口</string>
     <string name="security_option_unsupported">暂不支持 Security 选项 "%1$s"</string>
-    <string name="protocol_unsupported">暂不支持协议 "$1$s"</string>
+    <string name="protocol_unsupported">暂不支持协议 "%1$s"</string>
 </resources>

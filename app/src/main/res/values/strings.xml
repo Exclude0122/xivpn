@@ -124,5 +124,5 @@
     <string name="skip_fallback">Skip Fallback</string>
     <string name="invalid_port">Invalid port</string>
     <string name="security_option_unsupported">Security option "%1$s" is unsupported</string>
-    <string name="protocol_unsupported">Protocol "$1$s" is unsupported</string>
+    <string name="protocol_unsupported">Protocol "%1$s" is unsupported</string>
 </resources>
