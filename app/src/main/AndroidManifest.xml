@@ -65,24 +65,30 @@
             android:name=".ui.SubscriptionsActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.ShadowsocksActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.VmessActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.VlessActivity"
             android:exported="false" />
         <activity
             android:name=".ui.ProxiesActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.TrojanActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.WireguardActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.XHttpStreamActivity"
             android:exported="false" />
 
