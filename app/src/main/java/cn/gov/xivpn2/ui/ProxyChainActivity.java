@@ -204,13 +204,22 @@ public class ProxyChainActivity extends AppCompatActivity {
             finish();
             return true;
 
+        } else if (item.getItemId() == R.id.help) {
+
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.help)
+                    .setMessage(R.string.proxy_chain_help)
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+            return true;
+
         }
         return super.onOptionsItemSelected(item);
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.proxy_activity, menu);
+        getMenuInflater().inflate(R.menu.proxychain_activity, menu);
         return super.onCreateOptionsMenu(menu);
     }
 }
