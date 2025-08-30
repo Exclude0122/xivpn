@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.Utils;
@@ -310,6 +311,11 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             } else {
                 outbound.streamSettings.realitySettings.fingerprint = adapter.getValue("SECURITY_REALITY_FINGERPRINT");
             }
+            if (!adapter.getValue("SECURITY_REALITY_MLDSA65VERIFY").isBlank()) {
+                outbound.streamSettings.realitySettings.mldsa65Verify = adapter.getValue("SECURITY_REALITY_MLDSA65VERIFY");
+            } else {
+                outbound.streamSettings.realitySettings.mldsa65Verify = null;
+            }
         }
 
         if (this.adapter.getValue("MUX_ENABLED").equals("enabled")) {
@@ -387,11 +393,8 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             initials.put("SECURITY_REALITY_SNI", outbound.streamSettings.realitySettings.serverName);
             initials.put("SECURITY_REALITY_SHORTID", outbound.streamSettings.realitySettings.shortId);
             initials.put("SECURITY_REALITY_PUBLIC_KEY", outbound.streamSettings.realitySettings.publicKey);
-            if (outbound.streamSettings.realitySettings.fingerprint == null) {
-                initials.put("SECURITY_REALITY_FINGERPRINT", "None");
-            } else {
-                initials.put("SECURITY_REALITY_FINGERPRINT", outbound.streamSettings.realitySettings.fingerprint);
-            }
+            initials.put("SECURITY_REALITY_FINGERPRINT", Objects.requireNonNullElse(outbound.streamSettings.realitySettings.fingerprint, "None"));
+            initials.put("SECURITY_REALITY_MLDSA65VERIFY", Objects.requireNonNullElse(outbound.streamSettings.realitySettings.mldsa65Verify, ""));
         }
 
         if (outbound.mux == null) {
@@ -462,6 +465,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                     adapter.addInputAfter("SECURITY", "SECURITY_TLS_INSECURE", "TLS Allow Insecure", List.of("False", "True"));
                     adapter.addInputAfter("SECURITY", "SECURITY_TLS_FINGERPRINT", "TLS Fingerprint", List.of("None", "chrome", "firefox", "random", "randomized"));
                 } else if (value.equals("reality")) {
+                    adapter.addInputAfter("SECURITY", "SECURITY_REALITY_MLDSA65VERIFY", "REALITY MLDSA65 Public Key");
                     adapter.addInputAfter("SECURITY", "SECURITY_REALITY_SNI", "REALITY Server Name");
                     adapter.addInputAfter("SECURITY", "SECURITY_REALITY_FINGERPRINT", "REALITY Fingerprint", List.of("chrome", "firefox", "random", "randomized"));
                     adapter.addInputAfter("SECURITY", "SECURITY_REALITY_SHORTID", "REALITY Short ID");
