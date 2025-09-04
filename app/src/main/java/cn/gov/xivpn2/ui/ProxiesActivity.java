@@ -111,6 +111,9 @@ public class ProxiesActivity extends AppCompatActivity {
                         case "proxy-chain":
                             cls = ProxyChainActivity.class;
                             break;
+                        case "proxy-group":
+                            cls = ProxyGroupActivity.class;
+                            break;
                     }
 
                     if (cls != null) {
