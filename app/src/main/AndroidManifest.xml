@@ -56,6 +56,9 @@
             android:name=".ui.LicensesActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.ProxyGroupActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.PreferenceActivity"
             android:exported="false" />
         <activity

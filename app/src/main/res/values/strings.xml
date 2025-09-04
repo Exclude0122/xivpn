@@ -126,4 +126,6 @@
     <string name="security_option_unsupported">Security option "%1$s" is unsupported</string>
     <string name="protocol_unsupported">Protocol "%1$s" is unsupported</string>
     <string name="proxy_chain_help">Proxy chain allows you to use a series of servers.\n\nThe first server in the list is the entry server and the last server is the exit server. Everything in between is intermediate hops (just like tor).</string>
+    <string name="proxy_group">Proxy group</string>
+    <string name="proxy_group_help">PROXY GROUP HELP</string>
 </resources>

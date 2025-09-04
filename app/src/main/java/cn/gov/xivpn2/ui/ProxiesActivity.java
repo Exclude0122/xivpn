@@ -204,7 +204,7 @@ public class ProxiesActivity extends AppCompatActivity {
             view.requestFocus();
 
             return true;
-        } else if (item.getItemId() == R.id.shadowsocks || item.getItemId() == R.id.vmess || item.getItemId() == R.id.vless || item.getItemId() == R.id.trojan || item.getItemId() == R.id.wireguard || item.getItemId() == R.id.proxy_chain) {
+        } else if (item.getItemId() == R.id.shadowsocks || item.getItemId() == R.id.vmess || item.getItemId() == R.id.vless || item.getItemId() == R.id.trojan || item.getItemId() == R.id.wireguard || item.getItemId() == R.id.proxy_chain || item.getItemId() == R.id.proxy_group) {
 
             // add
 
@@ -235,6 +235,8 @@ public class ProxiesActivity extends AppCompatActivity {
                             cls = WireguardActivity.class;
                         } else if (item.getItemId() == R.id.proxy_chain) {
                             cls = ProxyChainActivity.class;
+                        } else if (item.getItemId() == R.id.proxy_group) {
+                            cls = ProxyGroupActivity.class;
                         }
 
                         Intent intent = new Intent(this, cls);
