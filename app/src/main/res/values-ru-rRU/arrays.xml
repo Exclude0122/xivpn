@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="log_levels">
+        <item>ошибка</item>
+        <item>предупреждение</item>
+        <item>информация</item>
+        <item>отладка</item>
+    </string-array>
+    <string-array name="split_tunnel_modes">
+        <item>Белый список</item>
+        <item>Чёрный список</item>
+    </string-array>
+    <string-array name="qtype">
+        <item>A</item>
+        <item>AAAA</item>
+    </string-array>
+</resources>
