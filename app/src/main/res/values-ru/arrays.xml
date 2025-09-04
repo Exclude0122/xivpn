@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string-array name="log_levels">
-        <item>ошибка</item>
-        <item>внимание</item>
-        <item>информация</item>
-        <item>отладка</item>
-    </string-array>
-</resources>
