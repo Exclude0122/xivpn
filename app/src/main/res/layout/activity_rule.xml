@@ -24,6 +24,7 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <com.google.android.material.textfield.TextInputEditText
+                android:inputType="text"
                 android:id="@+id/edit_label"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
@@ -46,6 +47,7 @@
                 android:id="@+id/edit_domains"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:inputType="text|textMultiLine|textNoSuggestions"
                 android:gravity="top"
                 android:lines="8" />
 
@@ -68,6 +70,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="top"
+                android:inputType="text|textMultiLine|textNoSuggestions"
                 android:lines="8" />
 
         </com.google.android.material.textfield.TextInputLayout>
@@ -84,6 +87,7 @@
             app:layout_constraintTop_toTopOf="parent">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/edit_port"
+                android:inputType="number"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -122,8 +126,29 @@
                 android:id="@+id/edit_protocols"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:inputType="text|textMultiLine|textNoSuggestions"
                 android:gravity="top"
                 android:lines="3" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_inbound"
+            style="?attr/textInputOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginTop="12dp"
+            android:hint="@string/inbound_tag"
+            app:helperText="@string/inbound_helper_text"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:inputType="text"
+                android:id="@+id/edit_inbound"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
         </com.google.android.material.textfield.TextInputLayout>
 

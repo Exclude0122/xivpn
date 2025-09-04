@@ -1,7 +1,5 @@
 package cn.gov.xivpn2.ui;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -109,7 +107,7 @@ public class SubscriptionsActivity extends AppCompatActivity {
             new MaterialAlertDialogBuilder(this)
                     .setTitle(subscription.label)
                     .setView(view)
-                    .setPositiveButton(R.string.update, (dialog, which) -> {
+                    .setPositiveButton(R.string.save, (dialog, which) -> {
                         // edit
                         AppDatabase.getInstance().subscriptionDao().updateUrl(subscription.label, urlEditText.getText().toString());
                         refresh();
@@ -140,6 +138,11 @@ public class SubscriptionsActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.subscription_activity, menu);
         return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
     }
 
     @Override

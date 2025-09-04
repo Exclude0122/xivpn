@@ -59,14 +59,7 @@ public class ProxiesAdapter extends RecyclerView.Adapter<ProxiesAdapter.ViewHold
         Proxy proxy = proxies.get(position);
         holder.getLabel().setText(proxy.label);
         holder.getProtocol().setText(proxy.protocol.toUpperCase());
-        int ping = proxy.ping;
-        if (ping == 0) {
-            holder.getPing().setText("");
-        } else if (ping > 0) {
-            holder.getPing().setText(ping + " MS");
-        } else {
-            holder.getPing().setText(R.string.timeout);
-        }
+        holder.getPing().setText("");
         if (proxy.subscription.equals("none")) {
             holder.getSubscription().setText("");
         } else {
@@ -104,7 +97,7 @@ public class ProxiesAdapter extends RecyclerView.Adapter<ProxiesAdapter.ViewHold
         return proxies.size();
     }
 
-    public static interface Listener {
+    public interface Listener {
         void onClick(View v, Proxy proxy, int i);
     }
 

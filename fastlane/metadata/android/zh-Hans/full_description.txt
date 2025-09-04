@@ -1,0 +1,25 @@
+XiVPN 是 XTLS/Xray-Core 的 GUI 客户端，它提供反审查代理协议。
+
+功能:
+- 从订阅连接获取代理服务器
+- 简单易用的界面
+- 可配置的代理服务器
+- 路由规则
+- 完全开源
+
+支持的协议:
+- VLESS
+- VMESS
+- Shadowsocks
+- Trojan
+- Wireguard
+
+支持的传输协议:
+- Websocket
+- QUIC
+- Httpupgrade
+- XHTTP
+
+支持的加密协议:
+- TLS / uTLS
+- REALITY

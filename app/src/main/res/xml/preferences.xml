@@ -7,34 +7,59 @@
         app:title="@string/vpn_settings">
 
         <ListPreference
-            app:defaultValue="warning"
             android:entries="@array/log_levels"
             android:entryValues="@array/log_levels"
-            app:singleLineTitle="true"
             android:title="@string/log_level"
+            app:defaultValue="warning"
             app:iconSpaceReserved="false"
-            app:key="log_level" />
+            app:key="log_level"
+            app:singleLineTitle="true" />
 
         <CheckBoxPreference
-            app:defaultValue="false"
             android:title="@string/logs"
+            app:defaultValue="false"
             app:iconSpaceReserved="false"
             app:key="logs"
             app:summary="@string/logs_summary" />
 
         <CheckBoxPreference
-            app:defaultValue="true"
             android:title="@string/sniffing"
+            app:defaultValue="true"
             app:iconSpaceReserved="false"
             app:key="sniffing"
             app:summary="@string/sniffing_summary" />
 
         <CheckBoxPreference
-            app:defaultValue="true"
             android:title="@string/sniffing_route_only"
+            app:defaultValue="true"
             app:iconSpaceReserved="false"
             app:key="sniffing_route_only"
             app:summary="@string/sniffing_route_only_summary" />
+
+        <Preference
+            android:title="@string/geoip_geosite"
+            app:iconSpaceReserved="false"
+            app:key="geoip_geosite" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/split_tunnel"
+        app:iconSpaceReserved="false">
+
+        <ListPreference
+            android:defaultValue="Blacklist"
+            android:entries="@array/split_tunnel_modes"
+            android:entryValues="@array/split_tunnel_modes"
+            android:title="Mode"
+            app:iconSpaceReserved="false"
+            app:key="split_tunnel_mode"
+            app:summary="@string/split_tunnel_summary" />
+
+        <Preference
+            app:iconSpaceReserved="false"
+            android:title="@string/split_tunnel_apps"
+            app:key="split_tunnel_apps" />
 
     </PreferenceCategory>
 
@@ -73,12 +98,6 @@
             app:iconSpaceReserved="false"
             app:key="open_source_licenses"
             app:title="@string/open_source_licenses" />
-
-        <Preference
-            android:title="@string/xray_version"
-            app:iconSpaceReserved="false"
-            app:key="xray_version"
-            app:summary="" />
 
         <Preference
             android:title="@string/app_version"

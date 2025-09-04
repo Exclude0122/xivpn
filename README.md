@@ -19,6 +19,9 @@ Or download from [Github releases](https://github.com/Exclude0122/xivpn/releases
 - Fetch proxies from subscription links
 - Easy to use GUI
 - Configurable proxy settings
+- Routing
+- Proxy chain
+- Custom DNS settings
 - Fully open source
 
 ## Screenshots
@@ -26,9 +29,15 @@ Or download from [Github releases](https://github.com/Exclude0122/xivpn/releases
 <details>
   <summary>Expand</summary>
 
-![Home page](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/1.png)
-![Proxies page](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/2.png)
-![Proxy settings page](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/3.png)
+![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/1.png)
+![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/2.png)
+![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/3.png)
+![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/4.png)
+![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/5.png)
+![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/6.png)
+![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/7.png)
+![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/8.png)
+![](https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/9.png)
 
 
 </details>

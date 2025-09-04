@@ -1,6 +1,10 @@
 package cn.gov.xivpn2.ui;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -9,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.AutoCompleteTextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.AppCompatTextView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
@@ -16,12 +21,10 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 
 import cn.gov.xivpn2.R;
 
@@ -44,7 +47,11 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
     @Override
     public int getItemViewType(int position) {
         if (inputs.get(position) instanceof ButtonInput) return 2;
-        return inputs.get(position) instanceof SelectInput ? 0 : 1;
+        if (inputs.get(position) instanceof SelectInput) return 0;
+        if (inputs.get(position) instanceof TextInputGen) return 4;
+        if (inputs.get(position) instanceof TextInput) return 1;
+        if (inputs.get(position) instanceof TitleInput) return 3;
+        throw new IllegalArgumentException("unexpected view type at position " + position);
     }
 
     /**
@@ -97,6 +104,11 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
     @Override
     public void addInput(String key, String label) {
         this.addInput(new TextInput(key, label, ""));
+    }
+
+    @Override
+    public void addGroupTitle(String key, String label) {
+        this.addInput(new TitleInput(key, label));
     }
 
     @Override
@@ -182,6 +194,12 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
         } else if (viewType == 2) {
             View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_button, parent, false);
             return new ButtonViewHolder(view);
+        } else if (viewType == 3) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_title, parent, false);
+            return new TitleViewHolder(view);
+        } else if (viewType == 4) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_edittext_gen, parent, false);
+            return new EditTextViewHolder(view);
         } else {
             throw new IllegalArgumentException("view type " + viewType);
         }
@@ -195,6 +213,8 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
 
             EditTextViewHolder holder = (EditTextViewHolder) h;
 
+            holder.onTextChanged = null;
+
             holder.editText.setText(input.value);
             holder.layout.setHint(input.title);
             holder.layout.setHelperText(input.helperText);
@@ -204,12 +224,30 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
                 holder.layout.setError("Invalid value");
             }
 
+            if (input.readonly) {
+                holder.editText.setInputType(InputType.TYPE_NULL);
+                holder.editText.setFocusable(false);
+                holder.editText.setOnClickListener((view) -> {
+                    ClipboardManager clipman = (ClipboardManager) view.getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("", input.value);
+                    clipman.setPrimaryClip(clip);
+                });
+            }
+
             holder.onTextChanged = () -> {
                 input.value = (Objects.requireNonNull(holder.editText.getText()).toString());
                 if (onInputChanged != null) {
                     onInputChanged.accept(input.key, input.value);
                 }
+
+                if (input instanceof TextInputGen) {
+                    ((TextInputGen) input).onTextChanged.run();
+                }
             };
+
+            if (input instanceof TextInputGen) {
+                holder.layout.setEndIconOnClickListener(((TextInputGen) input).onClickListener);
+            }
         }
 
         if (h instanceof DropdownViewHolder) {
@@ -246,6 +284,10 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
             }
         }
 
+        if (h instanceof TitleViewHolder) {
+            ((TitleViewHolder) h).textView.setText(inputs.get(position).title);
+        }
+
     }
 
     @Override
@@ -279,10 +321,22 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
             if (inputs.get(i).key.equals(key)) {
                 if (inputs.get(i) instanceof TextInput) {
                     ((TextInput) inputs.get(i)).value = value;
+                    if (inputs.get(i) instanceof TextInputGen) {
+                        ((TextInputGen) inputs.get(i)).onTextChanged.run();
+                    }
                 } else if (inputs.get(i) instanceof SelectInput) {
                     ((SelectInput) inputs.get(i)).value = value;
                 }
                 if (onInputChanged != null) onInputChanged.accept(key, value);
+            }
+        }
+    }
+
+    @Override
+    public void notifyValueChanged(String key) {
+        for (int i = 0; i < inputs.size(); i++) {
+            if (inputs.get(i).key.equals(key)) {
+                this.notifyItemChanged(i);
             }
         }
     }
@@ -340,6 +394,17 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
 
     }
 
+    public static class TitleViewHolder extends RecyclerView.ViewHolder {
+
+        private final AppCompatTextView textView;
+
+        public TitleViewHolder(@NonNull View itemView) {
+            super(itemView);
+            textView = itemView.findViewById(R.id.textview);
+        }
+
+    }
+
     public static class EditTextViewHolder extends RecyclerView.ViewHolder implements TextWatcher {
 
         private final TextInputLayout layout;
@@ -358,7 +423,6 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
 
         @Override
         public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
         }
 
         @Override
@@ -388,9 +452,16 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
         }
     }
 
+    public static class TitleInput extends Input {
+        public TitleInput(String key, String title) {
+            super(key, title, "");
+        }
+    }
+
     public static class TextInput extends Input {
 
         protected String value = "";
+        protected boolean readonly = false;
 
         public TextInput(String key, String title, String helperText) {
             super(key, title, helperText);
@@ -401,6 +472,21 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
             this.value = defaultValue;
         }
 
+        public TextInput(String key, String title, String helperText, boolean readonly) {
+            super(key, title, helperText);
+            this.readonly = readonly;
+        }
+    }
+
+    public static class TextInputGen extends TextInput {
+        protected View.OnClickListener onClickListener;
+        protected Runnable onTextChanged;
+
+        public TextInputGen(String key, String title, String helperText, View.OnClickListener onClickListener, Runnable onTextChanged) {
+            super(key, title, helperText);
+            this.onClickListener = onClickListener;
+            this.onTextChanged = onTextChanged;
+        }
     }
 
     public static class ButtonInput extends Input {

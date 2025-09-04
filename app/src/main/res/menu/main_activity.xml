@@ -20,9 +20,22 @@
         android:title="@string/rules" />
 
     <item
+        android:id="@+id/dns"
+        android:icon="@drawable/travel_explore"
+        android:title="@string/dns"
+        app:showAsAction="ifRoom" />
+
+
+    <item
         android:id="@+id/settings"
         android:icon="@drawable/baseline_settings_24"
         android:title="@string/settings"
         app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/dns_toolbox"
+        android:title="@string/dns_toolbox"
+        app:showAsAction="ifRoom"
+        android:icon="@drawable/build_24dp_e3e3e3_fill0_wght400_grad0_opsz24"/>
 
 </menu>

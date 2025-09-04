@@ -9,5 +9,5 @@ public class WireguardSettings {
     public List<WireguardPeer> peers = new ArrayList<>();
     public boolean kernelMode = false;
     public int[] reserved = new int[]{0, 0, 0};
-    public int workers = 4;
+    public int workers = 2;
 }

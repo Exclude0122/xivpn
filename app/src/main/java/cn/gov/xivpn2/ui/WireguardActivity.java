@@ -4,10 +4,10 @@ import com.google.common.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import cn.gov.xivpn2.Utils;
+import cn.gov.xivpn2.crypto.Key;
+import cn.gov.xivpn2.crypto.KeyFormatException;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.WireguardPeer;
 import cn.gov.xivpn2.xrayconfig.WireguardSettings;
@@ -93,7 +93,22 @@ public class WireguardActivity extends ProxyActivity<WireguardSettings> {
     protected void initializeInputs(IProxyEditor adapter) {
         adapter.addInput("ADDRESS1", "Address 1", "", "Local Address (IPv4 CIDR)");
         adapter.addInput("ADDRESS2", "Address 2", "", "Local Address (IPv6 CIDR)");
-        adapter.addInput("PRIVATE_KEY", "Private Key");
+        adapter.addInput(new ProxyEditTextAdapter.TextInputGen("PRIVATE_KEY", "Private Key", "", (view) -> {
+            Key privateKey = Key.generatePrivateKey();
+            adapter.setValue("PRIVATE_KEY", privateKey.toBase64());
+            adapter.notifyValueChanged("PRIVATE_KEY");
+
+            adapter.setValue("PUBLIC_KEY", Key.generatePublicKey(privateKey).toBase64());
+            adapter.notifyValueChanged("PUBLIC_KEY");
+        }, () -> {
+            String privateKey = adapter.getValue("PRIVATE_KEY");
+            try {
+                adapter.setValue("PUBLIC_KEY", Key.generatePublicKey(Key.fromBase64(privateKey)).toBase64());
+                adapter.notifyValueChanged("PUBLIC_KEY");
+            } catch (KeyFormatException ignored) {
+            }
+        }));
+        adapter.addInput(new ProxyEditTextAdapter.TextInput("PUBLIC_KEY", "Public Key", "", true));
         adapter.addInput("RESERVED", "Reserved", "0,0,0", "Format: 0,0,0");
         adapter.addInput("PEER_ENDPOINT", "Peer Endpoint", "", "Example: engage.cloudflareclient.com:2408");
         adapter.addInput("PEER_PUBLIC_KEY", "Peer Public Key");

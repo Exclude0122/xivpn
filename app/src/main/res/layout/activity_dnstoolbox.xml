@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.DNSToolbox">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:padding="12dp"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/qname">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/qname"
+                    android:inputType="text|textNoSuggestions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layout"
+                style="?attr/textInputOutlinedExposedDropdownMenuStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:hint="@string/qtype"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <AutoCompleteTextView
+                    android:text="A"
+                    app:simpleItems="@array/qtype"
+                    android:id="@+id/qtype"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/no_cache_lookup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/dns_no_cache_lookup"/>
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/no_cache_store"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/dns_no_cache_store"/>
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/no_retry"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/dns_no_retry"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" >
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn"
+                    android:text="@string/query"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:layout_marginStart="6dp"
+                    android:id="@+id/btn2"
+                    android:text="@string/system_network_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+
+            <TextView
+                android:id="@+id/text"
+                android:textAppearance="?attr/textAppearanceBody1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+    </ScrollView>
+
+</FrameLayout>

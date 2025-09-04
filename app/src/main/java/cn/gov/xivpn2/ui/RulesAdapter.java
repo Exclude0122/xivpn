@@ -13,7 +13,6 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;

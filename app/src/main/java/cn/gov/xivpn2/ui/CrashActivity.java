@@ -16,12 +16,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.common.net.UrlEscapers;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 import cn.gov.xivpn2.BuildConfig;
 import cn.gov.xivpn2.R;
@@ -29,20 +25,17 @@ import cn.gov.xivpn2.R;
 public class CrashActivity extends AppCompatActivity {
 
     private static @NonNull String getMessage(String exception) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Please report this issue to the developers.\n");
-        sb.append("Android Release: ").append(Build.VERSION.RELEASE).append("\n");
-        sb.append("Android SDK: ").append(Build.VERSION.SDK_INT).append("\n");
-        sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
-        sb.append("Supported ABIs: ").append(String.join(", ", Build.SUPPORTED_ABIS)).append("\n");
-        sb.append("App Version: ").append(BuildConfig.VERSION_NAME).append(" (").append(BuildConfig.VERSION_CODE).append(")\n");
-        sb.append("\n");
 
 
-        sb.append("Exception:\n");
-        sb.append(exception);
-
-        return sb.toString();
+        return "Please report this issue to the developers.\n" +
+                "Android Release: " + Build.VERSION.RELEASE + "\n" +
+                "Android SDK: " + Build.VERSION.SDK_INT + "\n" +
+                "Device: " + Build.MANUFACTURER + " " + Build.MODEL + "\n" +
+                "Supported ABIs: " + String.join(", ", Build.SUPPORTED_ABIS) + "\n" +
+                "App Version: " + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")\n" +
+                "\n" +
+                "Exception:\n" +
+                exception;
     }
 
     @Override

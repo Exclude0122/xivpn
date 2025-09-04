@@ -5,7 +5,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.res.AssetManager;
-import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import androidx.room.Room;
@@ -14,14 +13,12 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.file.Files;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 
@@ -30,6 +27,9 @@ import cn.gov.xivpn2.service.SubscriptionWork;
 import cn.gov.xivpn2.ui.CrashActivity;
 
 public class MyApplication extends Application {
+
+    private static final String TAG = "MyApplication";
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -49,12 +49,12 @@ public class MyApplication extends Application {
             System.exit(1);
         });
 
-        System.loadLibrary("xivpn");
-
         // notification
         NotificationChannel channelVpnService = new NotificationChannel("XiVPNService", "Xi VPN Service", NotificationManager.IMPORTANCE_DEFAULT);
+        channelVpnService.setSound(null, null);
         channelVpnService.setDescription("Xi VPN Background Service");
         NotificationChannel channelSubscriptions = new NotificationChannel("XiVPNSubscriptions", "Xi VPN Subscription Update", NotificationManager.IMPORTANCE_DEFAULT);
+        channelSubscriptions.setSound(null, null);
         channelSubscriptions.setDescription("Xi VPN Subscription Update Worker");
 
         NotificationManager notificationManager = getSystemService(NotificationManager.class);
@@ -72,32 +72,36 @@ public class MyApplication extends Application {
 
         db.proxyDao().addFreedom();
         db.proxyDao().addBlackhole();
+        db.proxyDao().addDNSOutbound();
 
         // background work
         WorkManager workManager = WorkManager.getInstance(this);
         workManager.enqueueUniquePeriodicWork(
                 "SUBSCRIPTION",
                 ExistingPeriodicWorkPolicy.UPDATE,
-                new PeriodicWorkRequest.Builder(SubscriptionWork.class, Duration.ofHours(1))
+                new PeriodicWorkRequest.Builder(SubscriptionWork.class, Duration.ofDays(1))
                         .build()
         );
 
-        // default routing rules
-        File file = new File(getFilesDir(), "rules.json");
-        if (!file.exists()) {
-            Log.i("MyApplication", "copy default rules to " + file.getAbsolutePath());
 
+        // copy assets
+        writeAsset("default_rules.json", new File(getFilesDir(), "rules.json"));
+        writeAsset("default_dns.json", new File(getFilesDir(), "dns.json"));
+    }
+
+    private void writeAsset(String asset, File out) {
+        Log.i(TAG, "write assets " + asset + " => " + out.getAbsolutePath());
+        if (!out.exists()) {
+            Log.i(TAG, "copy " + asset + " => " + out.getAbsolutePath());
             try {
                 AssetManager assets = getAssets();
-                InputStream inputStream = assets.open("default_rules.json");
-                byte[] bytes = IOUtils.toByteArray(inputStream);
+                InputStream inputStream = assets.open(asset);
+                FileUtils.copyToFile(inputStream, out);
                 inputStream.close();
-                FileUtils.writeByteArrayToFile(file, bytes);
             } catch (IOException e) {
-                Log.e("MyApplication", "copy default rules", e);
-                throw new RuntimeException(e);
+                Log.e(TAG, "write asset", e);
             }
         }
-
     }
+
 }

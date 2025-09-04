@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.GeoAssetsActivity">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="12dp"
+                android:textColor="?colorSecondary"
+                android:text="@string/geoip"
+                android:textAppearance="?attr/textAppearanceSubtitle2" />
+
+            <RadioGroup
+                android:id="@+id/group_geoip"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="12dp"
+                    android:text="@string/dbip" />
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/v2fly_geoip"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/v2fly_geoip" />
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/v2fly_geoip_cn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/v2fly_geoip_cn" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="12dp"
+                    android:text="@string/ipinfo"/>
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/ipinfo_geoip"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ipinfo_geoip" />
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/ipinfo_geoip_cn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ipinfo_geoip_cn" />
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/ipinfo_geoip_ir"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ipinfo_geoip_ir" />
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/ipinfo_geoip_ru"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ipinfo_geoip_ru" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="12dp"
+                    android:text="@string/custom" />
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/geoip_custom"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/custom" />
+
+                <androidx.appcompat.widget.AppCompatEditText
+                    android:visibility="gone"
+                    android:id="@+id/edit_custom_geoip"
+                    android:hint="@string/custom_geoip_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+
+            </RadioGroup>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="12dp"
+                android:textColor="?colorSecondary"
+                android:text="@string/geosite"
+                android:textAppearance="?attr/textAppearanceSubtitle2" />
+
+            <RadioGroup
+                android:id="@+id/group_geosite"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/v2lfy_dlc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/v2fly_dlc" />
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/geosite_custom"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/custom" />
+
+                <androidx.appcompat.widget.AppCompatEditText
+
+                    android:visibility="gone"
+                    android:id="@+id/edit_custom_geosite"
+                    android:hint="@string/custom_geosite_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+            </RadioGroup>
+
+        </LinearLayout>
+    </ScrollView>
+
+</FrameLayout>

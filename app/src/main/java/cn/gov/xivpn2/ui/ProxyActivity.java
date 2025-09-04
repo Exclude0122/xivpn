@@ -27,13 +27,16 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.Utils;
 import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.ProxyDao;
+import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.HttpUpgradeSettings;
+import cn.gov.xivpn2.xrayconfig.MuxSettings;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.QuicSettings;
 import cn.gov.xivpn2.xrayconfig.RealitySettings;
@@ -50,7 +53,6 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
 
     private String label;
     private String subscription;
-    private String config;
     private boolean inline;
 
     private String xhttpDownload = "";
@@ -71,23 +73,33 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
 
         label = getIntent().getStringExtra("LABEL");
         subscription = getIntent().getStringExtra("SUBSCRIPTION");
-        config = getIntent().getStringExtra("CONFIG");
+        String config = getIntent().getStringExtra("CONFIG");
         inline = getIntent().getBooleanExtra("INLINE", false);
 
-        getSupportActionBar().setTitle(label);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(label);
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
 
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new ProxyEditTextAdapter();
         recyclerView.setAdapter(adapter);
 
+        recyclerView.setItemAnimator(null);
+
         // initialize inputs
+        adapter.addGroupTitle("GROUP_PROXY", "Proxy settings");
         initializeInputs(adapter);
         if (hasStreamSettings()) {
+            adapter.addGroupTitle("GROUP_NETWORK", "Transport");
             adapter.addInput("NETWORK", "Network", Arrays.asList("tcp", "ws", "quic", "httpupgrade", "xhttp"));
+            adapter.addGroupTitle("GROUP_SECURITY", "Security");
             adapter.addInput("SECURITY", "Security", Arrays.asList("none", "tls", "reality"));
         }
+        adapter.addGroupTitle("GROUP_MUX", "Multiplex");
+        adapter.addInput("MUX_ENABLED", "Multiplex", Arrays.asList("disabled", "enabled"));
+
         afterInitializeInputs(adapter);
 
         adapter.setOnInputChangedListener((k, v) -> {
@@ -141,6 +153,8 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                         proxy.protocol = getProtocolName();
                         proxyDao.add(proxy);
                     }
+
+                    XiVPNService.markConfigStale(this);
                 } else {
                     Log.i(TAG, "inline result: " + json);
                     Intent intent = new Intent();
@@ -199,13 +213,20 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 return !value.isEmpty();
             case "NETWORK_XHTTP_DOWNLOAD_PORT":
                 return Utils.isValidPort(value);
+            case "MUX_XUDP_CONCURRENCY":
+            case "MUX_CONCURRENCY":
+                try {
+                    Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+
+                return true;
         }
 
 
         return true;
     }
-
-    ;
 
     /**
      * @return type of T
@@ -249,7 +270,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 outbound.streamSettings.xHttpSettings.mode = adapter.getValue("NETWORK_XHTTP_MODE");
                 outbound.streamSettings.xHttpSettings.path = adapter.getValue("NETWORK_XHTTP_PATH");
                 outbound.streamSettings.xHttpSettings.host = adapter.getValue("NETWORK_XHTTP_HOST");
-                if (xhttpDownload != null && !xhttpDownload.isEmpty()) {
+                if (xhttpDownload != null && !xhttpDownload.isEmpty() && adapter.getValue("NETWORK_XHTTP_SEPARATE_DOWNLOAD").equals("True")) {
                     Type type = new TypeToken<Map<String, Object>>() {
                     }.getType();
                     Gson gson = new GsonBuilder().create();
@@ -290,6 +311,19 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             } else {
                 outbound.streamSettings.realitySettings.fingerprint = adapter.getValue("SECURITY_REALITY_FINGERPRINT");
             }
+            if (!adapter.getValue("SECURITY_REALITY_MLDSA65VERIFY").isBlank()) {
+                outbound.streamSettings.realitySettings.mldsa65Verify = adapter.getValue("SECURITY_REALITY_MLDSA65VERIFY");
+            } else {
+                outbound.streamSettings.realitySettings.mldsa65Verify = null;
+            }
+        }
+
+        if (this.adapter.getValue("MUX_ENABLED").equals("enabled")) {
+            outbound.mux = new MuxSettings();
+            outbound.mux.enabled = true;
+            outbound.mux.concurrency = Integer.parseInt(adapter.getValue("MUX_CONCURRENCY"));
+            outbound.mux.xudpConcurrency = Integer.parseInt(adapter.getValue("MUX_XUDP_CONCURRENCY"));
+            outbound.mux.xudpProxyUDP443 = adapter.getValue("MUX_XUDP_PROXY_UDP443");
         }
 
         return outbound;
@@ -359,11 +393,17 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             initials.put("SECURITY_REALITY_SNI", outbound.streamSettings.realitySettings.serverName);
             initials.put("SECURITY_REALITY_SHORTID", outbound.streamSettings.realitySettings.shortId);
             initials.put("SECURITY_REALITY_PUBLIC_KEY", outbound.streamSettings.realitySettings.publicKey);
-            if (outbound.streamSettings.realitySettings.fingerprint == null) {
-                initials.put("SECURITY_REALITY_FINGERPRINT", "None");
-            } else {
-                initials.put("SECURITY_REALITY_FINGERPRINT", outbound.streamSettings.realitySettings.fingerprint);
-            }
+            initials.put("SECURITY_REALITY_FINGERPRINT", Objects.requireNonNullElse(outbound.streamSettings.realitySettings.fingerprint, "None"));
+            initials.put("SECURITY_REALITY_MLDSA65VERIFY", Objects.requireNonNullElse(outbound.streamSettings.realitySettings.mldsa65Verify, ""));
+        }
+
+        if (outbound.mux == null) {
+
+        } else {
+            initials.put("MUX_ENABLED", "enabled");
+            initials.put("MUX_CONCURRENCY", String.valueOf(outbound.mux.concurrency));
+            initials.put("MUX_XUDP_CONCURRENCY", String.valueOf(outbound.mux.xudpConcurrency));
+            initials.put("MUX_XUDP_PROXY_UDP443", outbound.mux.xudpProxyUDP443);
         }
 
         return initials;
@@ -425,6 +465,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                     adapter.addInputAfter("SECURITY", "SECURITY_TLS_INSECURE", "TLS Allow Insecure", List.of("False", "True"));
                     adapter.addInputAfter("SECURITY", "SECURITY_TLS_FINGERPRINT", "TLS Fingerprint", List.of("None", "chrome", "firefox", "random", "randomized"));
                 } else if (value.equals("reality")) {
+                    adapter.addInputAfter("SECURITY", "SECURITY_REALITY_MLDSA65VERIFY", "REALITY MLDSA65 Public Key");
                     adapter.addInputAfter("SECURITY", "SECURITY_REALITY_SNI", "REALITY Server Name");
                     adapter.addInputAfter("SECURITY", "SECURITY_REALITY_FINGERPRINT", "REALITY Fingerprint", List.of("chrome", "firefox", "random", "randomized"));
                     adapter.addInputAfter("SECURITY", "SECURITY_REALITY_SHORTID", "REALITY Short ID");
@@ -440,7 +481,6 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 } else {
                     adapter.removeInput("NETWORK_XHTTP_SEPARATE_DOWNLOAD");
                     adapter.removeInputByPrefix("NETWORK_XHTTP_DOWNLOAD_");
-                    xhttpDownload = "";
                 }
                 break;
 
@@ -455,11 +495,20 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                         Intent intent = new Intent(this, XHttpStreamActivity.class);
                         intent.putExtra("LABEL", "Download stream settings");
                         intent.putExtra("INLINE", true);
-                        if (!xhttpDownload.isEmpty()) intent.putExtra("CONFIG", xhttpDownload);
+                        if (adapter.getValue("NETWORK_XHTTP_SEPARATE_DOWNLOAD").equals("True") && !xhttpDownload.isEmpty())
+                            intent.putExtra("CONFIG", xhttpDownload);
                         startActivityForResult(intent, 2);
                     });
-                } else {
-                    xhttpDownload = "";
+                }
+                break;
+            case "MUX_ENABLED":
+                adapter.removeInput("MUX_CONCURRENCY");
+                adapter.removeInput("MUX_XUDP_CONCURRENCY");
+                adapter.removeInput("MUX_XUDP_PROXY_UDP443");
+                if (value.equals("enabled")) {
+                    adapter.addInputAfter("MUX_ENABLED", "MUX_XUDP_PROXY_UDP443", "XUDP Proxy UDP 443", List.of("reject", "skip"));
+                    adapter.addInputAfter("MUX_ENABLED", "MUX_XUDP_CONCURRENCY", "XUDP Concurrency", "16");
+                    adapter.addInputAfter("MUX_ENABLED", "MUX_CONCURRENCY", "Mux Concurrency", "4");
                 }
                 break;
         }

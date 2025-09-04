@@ -17,6 +17,7 @@ import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -28,8 +29,14 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.navigation.NavigationView;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
 import cn.gov.xivpn2.R;
+import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.service.XiVPNService;
+import cn.gov.xivpn2.xrayconfig.RoutingRule;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,19 +52,9 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             binder = (XiVPNService.XiVPNBinder) service;
 
-            updateSwitch(binder.getStatus());
+            updateSwitch(binder.getState());
 
-            binder.setListener(new XiVPNService.VPNStatusListener() {
-                @Override
-                public void onStatusChanged(XiVPNService.Status status) {
-                    updateSwitch(status);
-                }
-
-                @Override
-                public void onMessage(String msg) {
-                    textView.setText(msg);
-                }
-            });
+            binder.addListener(vpnStatusListener);
         }
 
         @Override
@@ -65,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
             binder = null;
         }
     };
+    private XiVPNService.VPNStateListener vpnStatusListener;
 
     @Override
     protected void onStart() {
@@ -76,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        if (binder != null) binder.removeListener(vpnStatusListener);
         unbindService(connection);
     }
 
@@ -107,7 +106,10 @@ public class MainActivity extends AppCompatActivity {
         drawerLayout = findViewById(R.id.main);
         navigationView = findViewById(R.id.navView);
 
+
         onCheckedChangeListener = (compoundButton, b) -> {
+            textView.setText("");
+
             if (b) {
                 // start vpn
 
@@ -117,6 +119,35 @@ public class MainActivity extends AppCompatActivity {
                     aSwitch.setChecked(false);
                     startActivityForResult(intent, 1);
                     return;
+                }
+
+                try {
+                    boolean geoip = false;
+                    boolean geosite = false;
+                    List<RoutingRule> routingRules = Rules.readRules(getFilesDir());
+                    for (RoutingRule routingRule : routingRules) {
+                        for (String s : routingRule.ip) {
+                            if (s.startsWith("geoip:")) {
+                                geoip = true;
+                            }
+                            if (s.startsWith("geosite:")) {
+                                geosite = true;
+                            }
+                        }
+                    }
+                    if ((geoip && !new File(getFilesDir(), "geoip.dat").isFile()) || (geosite && !new File(getFilesDir(), "geosite.dat").isFile())) {
+                        new AlertDialog.Builder(this)
+                                .setTitle(R.string.warning)
+                                .setMessage(R.string.geoip_not_downloaded)
+                                .setPositiveButton(R.string.download, (dialog, which) -> {
+                                    startActivity(new Intent(this, GeoAssetsActivity.class));
+                                })
+                                .show();
+                        aSwitch.setChecked(false);
+                        return;
+                    }
+                } catch (IOException e) {
+                    Log.e("MainActivity", "read rules", e);
                 }
 
                 // start service
@@ -162,26 +193,46 @@ public class MainActivity extends AppCompatActivity {
             if (item.getItemId() == R.id.rules) {
                 startActivity(new Intent(this, RulesActivity.class));
             }
+            if (item.getItemId() == R.id.dns_toolbox) {
+                startActivity(new Intent(this, DNSToolbox.class));
+            }
+            if (item.getItemId() == R.id.dns) {
+                startActivity(new Intent(this, DNSActivity.class));
+            }
             drawerLayout.close();
             return false;
         });
+
+        // vpn service listener
+        vpnStatusListener = new XiVPNService.VPNStateListener() {
+            @Override
+            public void onStateChanged(XiVPNService.VPNState state) {
+                Log.i("MainActivity", "onStatusChanged " + state.name());
+                updateSwitch(state);
+            }
+
+            @Override
+            public void onMessage(String msg) {
+                textView.setText(msg);
+            }
+        };
     }
 
     /**
      * update switch based on the status of vpn
      */
-    private void updateSwitch(XiVPNService.Status status) {
+    private void updateSwitch(XiVPNService.VPNState state) {
         // set listener to null so setChecked will not trigger the listener
         aSwitch.setOnCheckedChangeListener(null);
 
-        if (status == XiVPNService.Status.CONNECTING) {
-            aSwitch.setChecked(false);
+        if (state == XiVPNService.VPNState.CONNECTED || state == XiVPNService.VPNState.DISCONNECTED) {
+            aSwitch.setChecked(state == XiVPNService.VPNState.CONNECTED);
+            aSwitch.setEnabled(true);
+        } else {
+            aSwitch.setChecked(state == XiVPNService.VPNState.ESTABLISHING_VPN || state == XiVPNService.VPNState.STARTING_LIBXI);
             aSwitch.setEnabled(false);
-            aSwitch.setOnCheckedChangeListener(onCheckedChangeListener);
-            return;
         }
-        aSwitch.setEnabled(true);
-        aSwitch.setChecked(status == XiVPNService.Status.CONNECTED);
+
         aSwitch.setOnCheckedChangeListener(onCheckedChangeListener);
     }
 

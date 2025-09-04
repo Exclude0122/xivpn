@@ -1,0 +1,2 @@
+- support per-app language setting
+- bug fixes

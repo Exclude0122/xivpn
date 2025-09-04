@@ -6,11 +6,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <application
         android:name=".MyApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:extractNativeLibs="true"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -19,6 +23,30 @@
         android:theme="@style/Theme.XiVPN"
         tools:targetApi="31">
         <activity
+            android:name=".ui.DNSServerActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.DNSServersActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.DNSActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.DNSToolbox"
+            android:exported="false" />
+        <activity
+            android:name=".ui.CrashLogActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.SplitTunnelActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.ProxyChainActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.GeoAssetsActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.RuleActivity"
             android:exported="false" />
         <activity
@@ -26,6 +54,9 @@
             android:exported="false" />
         <activity
             android:name=".ui.LicensesActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.ProxyGroupActivity"
             android:exported="false" />
         <activity
             android:name=".ui.PreferenceActivity"
@@ -37,24 +68,30 @@
             android:name=".ui.SubscriptionsActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.ShadowsocksActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.VmessActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.VlessActivity"
             android:exported="false" />
         <activity
             android:name=".ui.ProxiesActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.TrojanActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.WireguardActivity"
             android:exported="false" />
         <activity
+            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.XHttpStreamActivity"
             android:exported="false" />
 
@@ -80,17 +117,32 @@
                 <action android:name="android.net.VpnService" />
             </intent-filter>
         </service>
-
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="shortService"
             tools:node="merge" />
+        <service
+            android:name=".service.XiVPNTileService"
+            android:exported="true"
+            android:icon="@drawable/tile_icon"
+            android:label="@string/tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.service.quicksettings.TOGGLEABLE_TILE"
+                android:value="true" />
+        </service>
 
         <activity
             android:name=".ui.MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>

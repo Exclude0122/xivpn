@@ -5,4 +5,5 @@ public class Outbound<T> {
     public String protocol;
     public T settings;
     public StreamSettings streamSettings;
+    public MuxSettings mux;
 }

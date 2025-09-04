@@ -1,0 +1,5 @@
+- xray v25.6.8
+- running xray-core as a separate process. now xray crashes will not affect the main app
+- automatically restarts xray when config changes
+- add armeabi-v7a for older devices
+- bug fixes

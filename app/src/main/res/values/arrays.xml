@@ -6,4 +6,12 @@
         <item>info</item>
         <item>debug</item>
     </string-array>
+    <string-array name="split_tunnel_modes">
+        <item>Whitelist</item>
+        <item>Blacklist</item>
+    </string-array>
+    <string-array name="qtype">
+        <item>A</item>
+        <item>AAAA</item>
+    </string-array>
 </resources>

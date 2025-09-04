@@ -28,6 +28,18 @@
                 android:id="@+id/wireguard"
                 android:icon="@drawable/baseline_vpn_key_24"
                 android:title="Wireguard" />
+            <item
+                android:id="@+id/proxy_group"
+                android:icon="@drawable/list_with_checkmark"
+                android:title="@string/proxy_group" />
+            <item
+                android:id="@+id/proxy_chain"
+                android:icon="@drawable/baseline_sync_alt_24"
+                android:title="@string/proxy_chain" />
+            <item
+                android:id="@+id/from_clipboard"
+                android:icon="@drawable/baseline_content_paste_24"
+                android:title="@string/import_form_clipboard" />
         </menu>
     </item>
 

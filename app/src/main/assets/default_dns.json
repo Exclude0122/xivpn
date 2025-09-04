@@ -1,0 +1,18 @@
+{
+  "hosts": {},
+  "servers": [
+    {
+      "address": "1.1.1.1",
+      "port": 53,
+      "tag": "",
+      "domains": []
+    },
+    {
+      "address": "1.0.0.1",
+      "port": 53,
+      "tag": "",
+      "domains": []
+    }
+  ],
+  "disableFallbackIfMatch": true
+}

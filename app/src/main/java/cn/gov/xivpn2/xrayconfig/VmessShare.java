@@ -9,7 +9,7 @@ public class VmessShare {
     public String port = "";
     public String id = "";
     @SerializedName("aid")
-    public String alterId = "";
+    public String alterId = "0";
     @SerializedName("scy")
     public String security = "auto";
     @SerializedName("net")
@@ -18,7 +18,7 @@ public class VmessShare {
     public String host = "";
     public String path = "";
     public String tls = "";
-    public String sni;
+    public String sni = "";
     public String alpn = "h2,http/1,1";
     @SerializedName("fp")
     public String fingerprint = "";

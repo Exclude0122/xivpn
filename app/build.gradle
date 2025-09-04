@@ -10,8 +10,8 @@ android {
         applicationId "io.github.exclude0122.xivpn"
         minSdk 28
         targetSdk 35
-        versionCode 19
-        versionName "1.1.2"
+        versionCode 34
+        versionName "1.6.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -28,13 +28,16 @@ android {
 
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    packagingOptions {
+        jniLibs {
+            keepDebugSymbols += ['**/*.so']
+            useLegacyPackaging true
+        }
     }
 
-    packagingOptions {
-        doNotStrip "**/*.so"
-    }
 
     buildFeatures {
         buildConfig true
@@ -45,7 +48,7 @@ android {
         universal {
             signingConfig signingConfigs.githubaction
             ndk {
-                abiFilters "arm64-v8a", "x86_64"
+                abiFilters "arm64-v8a", "x86_64", "armabi-v7a"
             }
             versionCode = defaultConfig.versionCode * 10 + 1
         }
@@ -66,6 +69,14 @@ android {
             versionCode = defaultConfig.versionCode * 10 + 3
         }
 
+        armabi_v7a {
+            signingConfig signingConfigs.githubaction
+            ndk {
+                abiFilters "armeabi-v7a"
+            }
+            versionCode = defaultConfig.versionCode * 10 + 4
+        }
+
 
     }
 
@@ -80,6 +91,14 @@ android {
         includeInApk false
         includeInBundle false
     }
+    lint {
+        showAll true
+    }
+
+    androidResources {
+        generateLocaleConfig true
+    }
+
 
 }
 
@@ -99,4 +118,6 @@ dependencies {
     implementation libs.okhttp
     implementation libs.preference
     implementation libs.commons.io
+    implementation libs.recyclerview
+    implementation libs.commons.collections4
 }

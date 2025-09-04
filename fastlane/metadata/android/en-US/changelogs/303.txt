@@ -1,0 +1,3 @@
+- xray v25.4.30
+- fix shadowsocks link parsing
+- bug fixes

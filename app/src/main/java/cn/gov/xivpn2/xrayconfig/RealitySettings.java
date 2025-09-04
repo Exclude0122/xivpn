@@ -5,4 +5,5 @@ public class RealitySettings {
     public String publicKey;
     public String shortId;
     public String fingerprint;
+    public String mldsa65Verify;
 }

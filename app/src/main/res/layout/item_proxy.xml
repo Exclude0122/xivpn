@@ -7,8 +7,11 @@
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card"
         android:layout_width="match_parent"
+        style="?materialCardViewElevatedStyle"
         android:layout_height="wrap_content"
-        android:layout_margin="6dp">
+        app:cardCornerRadius="4dp"
+        android:layout_marginHorizontal="6dp"
+        android:layout_marginTop="6dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -17,7 +20,8 @@
 
             <TextView
                 android:id="@+id/label"
-                style="?attr/textAppearanceTitleLarge"
+                style="?android:attr/textAppearanceMedium"
+                android:textStyle="bold"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="6dp"
@@ -27,31 +31,34 @@
 
             <TextView
                 android:id="@+id/protocol"
-                style="?attr/textAppearanceBody1"
+                style="?android:attr/textAppearanceSmall"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:text="VMESS"
+                android:textColor="?android:attr/textColorSecondary"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/label" />
 
             <TextView
                 android:id="@+id/ping"
-                style="?attr/textAppearanceBody1"
+                style="?android:attr/textAppearanceSmall"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:text="140MS"
+                android:textColor="?android:attr/textColorSecondary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/label" />
 
             <TextView
                 android:id="@+id/subscription"
-                style="?attr/textAppearanceBody1"
+                style="?android:attr/textAppearanceSmall"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="Paoluz"
+                android:textColor="?android:attr/textColorSecondary"
                 app:layout_constraintStart_toEndOf="@id/protocol"
                 app:layout_constraintTop_toBottomOf="@id/label" />
         </androidx.constraintlayout.widget.ConstraintLayout>

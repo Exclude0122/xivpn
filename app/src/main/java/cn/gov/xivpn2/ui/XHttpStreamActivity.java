@@ -39,6 +39,7 @@ public class XHttpStreamActivity extends ProxyActivity<XHttpSettings> {
     @Override
     protected void afterInitializeInputs(IProxyEditor adapter) {
         adapter.removeInputByPrefix("NETWORK");
+        adapter.removeInputByPrefix("GROUP");
     }
 
     @Override

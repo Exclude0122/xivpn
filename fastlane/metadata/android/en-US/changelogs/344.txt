@@ -1,0 +1,5 @@
+- xray v25.8.3
+- add dns toolbox
+- add inbound tag setting to rules
+- add skip-fallback setting for dns
+- support exporting proxy as share link

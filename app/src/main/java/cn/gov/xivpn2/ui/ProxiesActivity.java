@@ -1,5 +1,8 @@
 package cn.gov.xivpn2.ui;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -28,11 +31,12 @@ import java.io.IOException;
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Rules;
+import cn.gov.xivpn2.service.SubscriptionWork;
+import cn.gov.xivpn2.service.XiVPNService;
 
 public class ProxiesActivity extends AppCompatActivity {
 
 
-    private RecyclerView recyclerView;
     private ProxiesAdapter adapter;
 
     @Override
@@ -49,10 +53,12 @@ public class ProxiesActivity extends AppCompatActivity {
             return insets;
         });
 
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle(R.string.proxies);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle(R.string.proxies);
+        }
 
-        recyclerView = findViewById(R.id.recycler_view);
+        RecyclerView recyclerView = findViewById(R.id.recycler_view);
 
         this.adapter = new ProxiesAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -60,8 +66,8 @@ public class ProxiesActivity extends AppCompatActivity {
 
         // on list item clicked
         adapter.setOnLongClickListener((view, proxy, i) -> {
-            if (proxy.protocol.equals("freedom") || proxy.protocol.equals("blackhole")) {
-                // freedom and blackhole is not removable and editable
+            if (proxy.protocol.equals("freedom") || proxy.protocol.equals("blackhole") || proxy.protocol.equals("dns")) {
+                // freedom / blackhole / dns is not removable and editable
                 return;
             }
 
@@ -78,6 +84,8 @@ public class ProxiesActivity extends AppCompatActivity {
                     } catch (IOException e) {
                         Log.e("ProxiesActivity", "reset deleted proxies", e);
                     }
+
+                    XiVPNService.markConfigStale(this);
 
                     refresh();
 
@@ -100,6 +108,9 @@ public class ProxiesActivity extends AppCompatActivity {
                         case "wireguard":
                             cls = WireguardActivity.class;
                             break;
+                        case "proxy-chain":
+                            cls = ProxyChainActivity.class;
+                            break;
                     }
 
                     if (cls != null) {
@@ -110,6 +121,18 @@ public class ProxiesActivity extends AppCompatActivity {
                         startActivity(intent);
                     }
 
+                } else if (item.getItemId() == R.id.copy_share_link) {
+                    String link;
+                    try {
+                        link = SubscriptionWork.marshalProxy(proxy);
+                    } catch (SubscriptionWork.MarshalProxyException e) {
+                        Toast.makeText(this, String.format(getString(e.resId), e.getMessage()), Toast.LENGTH_SHORT).show();
+                        return true;
+                    }
+
+                    ClipboardManager clipman = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData sharelink = ClipData.newPlainText("", link);
+                    clipman.setPrimaryClip(sharelink);
                 }
 
                 return true;
@@ -118,9 +141,13 @@ public class ProxiesActivity extends AppCompatActivity {
         });
 
         adapter.setOnClickListener((view, proxy, i) -> {
+            if (proxy.protocol.equals("dns")) return; // dns can not be the default outbound
+
             SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
             Rules.setCatchAll(sp, proxy.label, proxy.subscription);
             adapter.setChecked(proxy.label, proxy.subscription);
+
+            XiVPNService.markConfigStale(this);
         });
 
     }
@@ -139,18 +166,50 @@ public class ProxiesActivity extends AppCompatActivity {
                 sp.getString("SELECTED_LABEL", "No Proxy (Bypass Mode)"),
                 sp.getString("SELECTED_SUBSCRIPTION", "none")
         );
+
+
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
             this.finish();
-        } else if (item.getItemId() == R.id.shadowsocks || item.getItemId() == R.id.vmess || item.getItemId() == R.id.vless || item.getItemId() == R.id.trojan || item.getItemId() == R.id.wireguard) {
+            return true;
+        } else if (item.getItemId() == R.id.from_clipboard) {
+
+            View view = LayoutInflater.from(this).inflate(R.layout.edit_text, null);
+            TextInputEditText editText2 = view.findViewById(R.id.edit_text);
+
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.import_form_clipboard)
+                    .setView(view)
+                    .setPositiveButton(R.string.ok, (dialog, which) -> {
+
+                        String s = editText2.getText().toString();
+                        if (s.isEmpty()) {
+                            return;
+                        }
+
+                        if (!SubscriptionWork.parseLine(s, "none")) {
+                            Toast.makeText(this, R.string.invalid_link, Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(this, R.string.proxy_added, Toast.LENGTH_SHORT).show();
+
+                            XiVPNService.markConfigStale(this);
+                            refresh();
+                        }
+
+                    }).show();
+
+            view.requestFocus();
+
+            return true;
+        } else if (item.getItemId() == R.id.shadowsocks || item.getItemId() == R.id.vmess || item.getItemId() == R.id.vless || item.getItemId() == R.id.trojan || item.getItemId() == R.id.wireguard || item.getItemId() == R.id.proxy_chain || item.getItemId() == R.id.proxy_group) {
 
             // add
 
             View view = LayoutInflater.from(this).inflate(R.layout.label_edit_text, null);
-            TextInputEditText editText = ((TextInputEditText) view.findViewById(R.id.edit_text));
+            TextInputEditText editText = view.findViewById(R.id.edit_text);
 
             new MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.label)
@@ -174,6 +233,10 @@ public class ProxiesActivity extends AppCompatActivity {
                             cls = TrojanActivity.class;
                         } else if (item.getItemId() == R.id.wireguard) {
                             cls = WireguardActivity.class;
+                        } else if (item.getItemId() == R.id.proxy_chain) {
+                            cls = ProxyChainActivity.class;
+                        } else if (item.getItemId() == R.id.proxy_group) {
+                            cls = ProxyGroupActivity.class;
                         }
 
                         Intent intent = new Intent(this, cls);
@@ -183,6 +246,7 @@ public class ProxiesActivity extends AppCompatActivity {
 
                     }).show();
 
+            return true;
         }
 
         return super.onOptionsItemSelected(item);

@@ -2,7 +2,6 @@ package cn.gov.xivpn2.ui;
 
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 
 public interface IProxyEditor {
     void setOnInputChangedListener(BiConsumer<String, String> onInputChanged);
@@ -15,6 +14,8 @@ public interface IProxyEditor {
      * Add text input
      */
     void addInput(String key, String label);
+
+    void addGroupTitle(String key, String label);
 
     /**
      * Add text input with default value
@@ -78,6 +79,8 @@ public interface IProxyEditor {
     boolean exists(String key);
 
     void setValue(String key, String value);
+
+    void notifyValueChanged(String key);
 
     List<ProxyEditTextAdapter.Input> getInputs();
 }
