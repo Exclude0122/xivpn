@@ -1,8 +1,8 @@
-[English](#libxivpn) | [Русский](#libxivpn)
+[English](#english) | [Русский](#русский)
 
 ---
 
-## libxivpn {#libxivpn}
+## libxivpn
 
 ### English
 
