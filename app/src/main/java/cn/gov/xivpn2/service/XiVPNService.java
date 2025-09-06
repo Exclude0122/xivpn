@@ -20,6 +20,7 @@ import android.os.ParcelFileDescriptor;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
+import android.util.Pair;
 import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
@@ -44,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -65,6 +67,7 @@ import cn.gov.xivpn2.xrayconfig.Config;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.ProxyChain;
 import cn.gov.xivpn2.xrayconfig.ProxyChainSettings;
+import cn.gov.xivpn2.xrayconfig.ProxyGroupSettings;
 import cn.gov.xivpn2.xrayconfig.Routing;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
 import cn.gov.xivpn2.xrayconfig.Sockopt;
@@ -598,6 +601,59 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
     }
 
+    // Returns the selected proxy.
+    private Proxy resolveProxyGroup(String label, String subscription, List<Pair<String, String>> visited) {
+
+        Log.d(TAG, "resolve proxy group " + label + " " + subscription + " " + visited.toString());
+
+        // check for cycles
+        if (visited.contains(new Pair<>(label, subscription))) {
+            StringBuilder sb = new StringBuilder(getString(R.string.proxy_group_cycle));
+            sb.append(visited.get(0).first).append(" (").append(visited.get(0).second).append(")");
+            for (int i = 1; i < visited.size(); i++) {
+                sb.append(" -> ").append(visited.get(i).first).append(" (").append(visited.get(i).second).append(")");
+            }
+            throw new IllegalStateException(sb.toString());
+        }
+
+        Proxy proxy = AppDatabase.getInstance().proxyDao().find(label, subscription);
+
+        if (proxy == null) {
+            throw new IllegalArgumentException(String.format(Locale.ROOT, getString(R.string.proxy_group_not_found), visited.get(visited.size()-1).first, label));
+        }
+
+        if (!proxy.protocol.equals("proxy-group")) {
+            return proxy;
+        }
+
+        Gson gson = new Gson();
+
+        Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() { }.getType());
+
+        if (proxyGroupSettings.settings.proxies.isEmpty()) {
+            throw new IllegalStateException(getString(R.string.proxy_group_empty) + label + " (" + subscription + ")");
+        }
+
+        ProxyChain selected = proxyGroupSettings.settings.selected;
+        ProxyChain found = proxyGroupSettings.settings.proxies.get(0); // default to the first one
+
+        for (ProxyChain proxyChain : proxyGroupSettings.settings.proxies) {
+            if (proxyChain.subscription == null || proxyChain.label == null || selected == null || selected.label == null || selected.subscription == null) {
+                continue;
+            }
+            if (proxyChain.label.equals(selected.label) && proxyChain.subscription.equals(selected.subscription)) {
+                selected = new ProxyChain();
+                selected.label = proxyChain.label;
+                selected.subscription = proxyChain.subscription;
+            }
+        }
+
+        List<Pair<String, String>> newVisited = new ArrayList<>(visited);
+        newVisited.add(new Pair<>(label, subscription));
+
+        return resolveProxyGroup(found.label, found.subscription, newVisited);
+    }
+
     private Config buildXrayConfig() {
         Config config = new Config();
         config.inbounds = new ArrayList<>();
@@ -653,6 +709,15 @@ public class XiVPNService extends VpnService implements SocketProtect {
             // outbounds
             for (Long id : proxyIdsList) {
                 Proxy proxy = AppDatabase.getInstance().proxyDao().findById(id);
+
+                String tag = String.format(Locale.ROOT, "#%d %s (%s)", id, proxy.label, proxy.subscription);
+
+                if (proxy.protocol.equals("proxy-group")) {
+                    proxy = resolveProxyGroup(proxy.label, proxy.subscription, new ArrayList<>());
+                    Log.i(TAG, "resolved proxy group " + tag + " => " + proxy.label + " " + proxy.subscription);
+                }
+
+
                 if (proxy.protocol.equals("proxy-chain")) {
                     // proxy chain
                     Outbound<ProxyChainSettings> proxyChainOutbound = gson.fromJson(proxy.config, new TypeToken<Outbound<ProxyChainSettings>>() {
@@ -668,13 +733,19 @@ public class XiVPNService extends VpnService implements SocketProtect {
                         if (p == null) {
                             throw new IllegalArgumentException(String.format(Locale.ROOT, getString(R.string.proxy_chain_not_found), proxy.label, each.label));
                         }
+
+                        if (p.protocol.equals("proxy-group")) {
+                            p = resolveProxyGroup(p.label, p.subscription, new ArrayList<>());
+                            Log.i(TAG, "resolved proxy group " + tag + " => " + p.label + " " + p.subscription);
+                        }
+
                         if (p.protocol.equals("proxy-chain")) {
                             throw new IllegalArgumentException(String.format(Locale.ROOT, getString(R.string.proxy_chain_nesting_error), proxy.label));
                         }
 
                         Outbound<?> outbound = gson.fromJson(p.config, Outbound.class);
                         if (i == proxyChains.size() - 1) {
-                            outbound.tag = String.format(Locale.ROOT, "#%d %s (%s)", id, proxy.label, proxy.subscription);
+                            outbound.tag = tag;
                         } else {
                             outbound.tag = String.format(Locale.ROOT, "CHAIN #%d %s (%s)", id, each.label, each.subscription);
                         }
@@ -694,7 +765,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
                 } else {
                     Outbound<?> outbound = gson.fromJson(proxy.config, Outbound.class);
-                    outbound.tag = String.format(Locale.ROOT, "#%d %s (%s)", id, proxy.label, proxy.subscription);
+                    outbound.tag = tag;
                     config.outbounds.add(outbound);
                 }
 
