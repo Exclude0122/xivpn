@@ -12,11 +12,13 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -25,6 +27,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.navigation.NavigationView;
@@ -40,19 +44,15 @@ import cn.gov.xivpn2.xrayconfig.RoutingRule;
 
 public class MainActivity extends AppCompatActivity {
 
-    private NavigationView navigationView;
     private DrawerLayout drawerLayout;
-    private MaterialSwitch aSwitch;
-    private TextView textView;
     private XiVPNService.XiVPNBinder binder;
-    private CompoundButton.OnCheckedChangeListener onCheckedChangeListener;
 
     private final ServiceConnection connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             binder = (XiVPNService.XiVPNBinder) service;
 
-            updateSwitch(binder.getState());
+            adapter.updateVpnState(binder.getState());
 
             binder.addListener(vpnStatusListener);
         }
@@ -63,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
     private XiVPNService.VPNStateListener vpnStatusListener;
+    private MainActivityAdapter adapter;
 
     @Override
     protected void onStart() {
@@ -79,13 +80,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        textView.setText("");
-        SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
-    }
-
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -99,28 +93,40 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setHomeAsUpIndicator(R.drawable.baseline_menu_24);
+        }
 
-        // bind views
-        textView = findViewById(R.id.textview);
-        aSwitch = findViewById(R.id.vpn_switch);
         drawerLayout = findViewById(R.id.main);
-        navigationView = findViewById(R.id.navView);
+
+        // recycler view
+
+        RecyclerView recyclerView = findViewById(R.id.recycler_view);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
 
-        onCheckedChangeListener = (compoundButton, b) -> {
-            textView.setText("");
+        // adapter
 
-            if (b) {
+        adapter = new MainActivityAdapter((button, isChecked) -> {
+
+            // on switch checked change
+
+            adapter.setMessage("");
+
+            if (isChecked) {
                 // start vpn
 
                 // request vpn permission
                 Intent intent = XiVPNService.prepare(this);
                 if (intent != null) {
-                    aSwitch.setChecked(false);
+                    button.setChecked(false);
                     startActivityForResult(intent, 1);
                     return;
                 }
 
+                // check whether geoip / geosite database is downloaded
                 try {
                     boolean geoip = false;
                     boolean geosite = false;
@@ -134,8 +140,17 @@ public class MainActivity extends AppCompatActivity {
                                 geosite = true;
                             }
                         }
+                        for (String s : routingRule.domain) {
+                            if (s.startsWith("geoip:")) {
+                                geoip = true;
+                            }
+                            if (s.startsWith("geosite:")) {
+                                geosite = true;
+                            }
+                        }
                     }
                     if ((geoip && !new File(getFilesDir(), "geoip.dat").isFile()) || (geosite && !new File(getFilesDir(), "geosite.dat").isFile())) {
+                        // ask the user to download geoip / geosite database
                         new AlertDialog.Builder(this)
                                 .setTitle(R.string.warning)
                                 .setMessage(R.string.geoip_not_downloaded)
@@ -143,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
                                     startActivity(new Intent(this, GeoAssetsActivity.class));
                                 })
                                 .show();
-                        aSwitch.setChecked(false);
+                        button.setChecked(false);
                         return;
                     }
                 } catch (IOException e) {
@@ -163,8 +178,9 @@ public class MainActivity extends AppCompatActivity {
                 intent2.putExtra("always-on", false);
                 startService(intent2);
             }
-        };
-        aSwitch.setOnCheckedChangeListener(onCheckedChangeListener);
+        });
+
+        recyclerView.setAdapter(adapter);
 
         // request notification permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -178,8 +194,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // drawer
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setHomeAsUpIndicator(R.drawable.baseline_menu_24);
+
+        NavigationView navigationView = findViewById(R.id.navView);
         navigationView.setNavigationItemSelectedListener(item -> {
             if (item.getItemId() == R.id.proxies) {
                 startActivity(new Intent(this, ProxiesActivity.class));
@@ -208,32 +224,39 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStateChanged(XiVPNService.VPNState state) {
                 Log.i("MainActivity", "onStatusChanged " + state.name());
-                updateSwitch(state);
+                adapter.updateVpnState(state);
             }
 
             @Override
             public void onMessage(String msg) {
-                textView.setText(msg);
+                adapter.setMessage(msg);
             }
         };
     }
 
-    /**
-     * update switch based on the status of vpn
-     */
-    private void updateSwitch(XiVPNService.VPNState state) {
-        // set listener to null so setChecked will not trigger the listener
-        aSwitch.setOnCheckedChangeListener(null);
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
 
-        if (state == XiVPNService.VPNState.CONNECTED || state == XiVPNService.VPNState.DISCONNECTED) {
-            aSwitch.setChecked(state == XiVPNService.VPNState.CONNECTED);
-            aSwitch.setEnabled(true);
-        } else {
-            aSwitch.setChecked(state == XiVPNService.VPNState.ESTABLISHING_VPN || state == XiVPNService.VPNState.STARTING_LIBXI);
-            aSwitch.setEnabled(false);
+        // adjust top margin to account for action bar height
+        if (hasFocus) {
+            RecyclerView recyclerView = findViewById(R.id.recycler_view);
+            ActionBar actionBar = getSupportActionBar();
+
+            if (actionBar != null) {
+                int height = actionBar.getHeight();
+                Log.d("MainActivity", "action bar height " + height);
+
+                DrawerLayout.LayoutParams layoutParams = new DrawerLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                );
+                layoutParams.setMargins(0, height, 0, 0);
+                recyclerView.setLayoutParams(layoutParams);
+            }
         }
 
-        aSwitch.setOnCheckedChangeListener(onCheckedChangeListener);
+
     }
 
     @Override
