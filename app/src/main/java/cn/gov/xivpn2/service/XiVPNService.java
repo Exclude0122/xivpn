@@ -45,7 +45,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -72,7 +71,6 @@ import cn.gov.xivpn2.xrayconfig.Routing;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
 import cn.gov.xivpn2.xrayconfig.Sockopt;
 import cn.gov.xivpn2.xrayconfig.StreamSettings;
-import cn.gov.xivpn2.xrayconfig.XrayDNS;
 
 public class XiVPNService extends VpnService implements SocketProtect {
     private final IBinder binder = new XiVPNBinder();

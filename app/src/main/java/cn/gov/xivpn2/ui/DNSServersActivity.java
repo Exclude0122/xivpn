@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -27,7 +26,6 @@ import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.DNS;
 import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.DNSServer;
-import cn.gov.xivpn2.xrayconfig.ProxyChain;
 import cn.gov.xivpn2.xrayconfig.XrayDNS;
 
 public class DNSServersActivity extends AppCompatActivity {
