@@ -66,6 +66,40 @@ public class FilesProvider extends DocumentsProvider {
             Document.COLUMN_SIZE
     };
 
+    /**
+     * Get the document id given a file. This document id must be consistent across time as other
+     * applications may save the ID and use it to reference documents later.
+     * <p/>
+     * The reverse of @{link #getFileForDocId}.
+     */
+    private static String getDocIdForFile(File file) {
+        return file.getAbsolutePath();
+    }
+
+    /**
+     * Get the file given a document id (the reverse of {@link #getDocIdForFile(File)}).
+     */
+    private static File getFileForDocId(String docId) throws FileNotFoundException {
+        final File f = new File(docId);
+        if (!f.exists()) throw new FileNotFoundException(f.getAbsolutePath() + " not found");
+        return f;
+    }
+
+    private static String getMimeType(File file) {
+        if (file.isDirectory()) {
+            return Document.MIME_TYPE_DIR;
+        } else {
+            final String name = file.getName();
+            final int lastDot = name.lastIndexOf('.');
+            if (lastDot >= 0) {
+                final String extension = name.substring(lastDot + 1).toLowerCase();
+                final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+                if (mime != null) return mime;
+            }
+            return "application/octet-stream";
+        }
+    }
+
     @Override
     public Cursor queryRoots(String[] projection) {
         final MatrixCursor result = new MatrixCursor(projection != null ? projection : DEFAULT_ROOT_PROJECTION);
@@ -196,40 +230,6 @@ public class FilesProvider extends DocumentsProvider {
     @Override
     public boolean isChildDocument(String parentDocumentId, String documentId) {
         return documentId.startsWith(parentDocumentId);
-    }
-
-    /**
-     * Get the document id given a file. This document id must be consistent across time as other
-     * applications may save the ID and use it to reference documents later.
-     * <p/>
-     * The reverse of @{link #getFileForDocId}.
-     */
-    private static String getDocIdForFile(File file) {
-        return file.getAbsolutePath();
-    }
-
-    /**
-     * Get the file given a document id (the reverse of {@link #getDocIdForFile(File)}).
-     */
-    private static File getFileForDocId(String docId) throws FileNotFoundException {
-        final File f = new File(docId);
-        if (!f.exists()) throw new FileNotFoundException(f.getAbsolutePath() + " not found");
-        return f;
-    }
-
-    private static String getMimeType(File file) {
-        if (file.isDirectory()) {
-            return Document.MIME_TYPE_DIR;
-        } else {
-            final String name = file.getName();
-            final int lastDot = name.lastIndexOf('.');
-            if (lastDot >= 0) {
-                final String extension = name.substring(lastDot + 1).toLowerCase();
-                final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
-                if (mime != null) return mime;
-            }
-            return "application/octet-stream";
-        }
     }
 
     /**

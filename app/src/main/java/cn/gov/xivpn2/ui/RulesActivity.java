@@ -27,9 +27,9 @@ import cn.gov.xivpn2.xrayconfig.RoutingRule;
 
 public class RulesActivity extends AppCompatActivity {
 
-    private RulesAdapter adapter;
     private final ArrayList<RoutingRule> rules = new ArrayList<>();
     private final String TAG = "RulesActivity";
+    private RulesAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

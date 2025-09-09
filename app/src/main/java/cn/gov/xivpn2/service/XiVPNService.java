@@ -76,14 +76,13 @@ public class XiVPNService extends VpnService implements SocketProtect {
     private final IBinder binder = new XiVPNBinder();
     private final String TAG = "XiVPNService";
     private final Set<VPNStateListener> listeners = new HashSet<>();
+    private final CircularFifoQueue<String> stderrBuffer = new CircularFifoQueue<>(30);
+    private final Object vpnStateLock = new Object();
     private Process libxivpnProcess = null;
     private Thread teeThread = null;
     private Thread ipcThread = null;
     private OutputStream ipcWriter = null;
     private ParcelFileDescriptor fileDescriptor;
-    private final CircularFifoQueue<String> stderrBuffer = new CircularFifoQueue<>(30);
-
-    private final Object vpnStateLock = new Object();
     private volatile VPNState vpnState = VPNState.DISCONNECTED;
     private Command commandBuffer = Command.NONE;
     /**
@@ -92,8 +91,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
     private boolean mustLibxiStop = false;
     private boolean isXrayConfigStale = false;
 
-    public enum VPNState {
-        DISCONNECTED, ESTABLISHING_VPN, STARTING_LIBXI, CONNECTED, STOPPING_LIBXI, STOPPING_VPN
+    public static void markConfigStale(Context context) {
+        Intent intent = new Intent(context, XiVPNService.class);
+        intent.setAction("cn.gov.xivpn2.RELOAD");
+        context.startService(intent);
     }
 
     /**
@@ -128,16 +129,6 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 }
             }
         });
-    }
-
-    public interface VPNStateListener {
-        void onStateChanged(VPNState status);
-
-        void onMessage(String msg);
-    }
-
-    public enum Command {
-        NONE, CONNECT, DISCONNECT,
     }
 
     private void updateCommand(Command command) {
@@ -384,7 +375,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
             ipcWriter = socket.getOutputStream();
         } catch (IOException e) {
             Log.e(TAG, "listen ipc sock", e);
-            sendMessage("error: listen on ipc socket: "+ e.getMessage());
+            sendMessage("error: listen on ipc socket: " + e.getMessage());
             return false;
         }
 
@@ -593,12 +584,6 @@ public class XiVPNService extends VpnService implements SocketProtect {
         stopSelf();
     }
 
-    public static void markConfigStale(Context context) {
-        Intent intent = new Intent(context, XiVPNService.class);
-        intent.setAction("cn.gov.xivpn2.RELOAD");
-        context.startService(intent);
-    }
-
     @Override
     public void onRevoke() {
         Log.i(TAG, "on revoke");
@@ -627,7 +612,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         Proxy proxy = AppDatabase.getInstance().proxyDao().find(label, subscription);
 
         if (proxy == null) {
-            throw new IllegalArgumentException(String.format(Locale.ROOT, getString(R.string.proxy_group_not_found), visited.get(visited.size()-1).first, label));
+            throw new IllegalArgumentException(String.format(Locale.ROOT, getString(R.string.proxy_group_not_found), visited.get(visited.size() - 1).first, label));
         }
 
         if (!proxy.protocol.equals("proxy-group")) {
@@ -635,7 +620,8 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
 
         Gson gson = new Gson();
-        Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() { }.getType());
+        Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() {
+        }.getType());
 
         if (proxyGroupSettings.settings.proxies.isEmpty()) {
             throw new IllegalStateException(getString(R.string.proxy_group_empty) + label + " (" + subscription + ")");
@@ -802,6 +788,20 @@ public class XiVPNService extends VpnService implements SocketProtect {
     public void onDestroy() {
         Log.i(TAG, "on destroy");
         super.onDestroy();
+    }
+
+    public enum VPNState {
+        DISCONNECTED, ESTABLISHING_VPN, STARTING_LIBXI, CONNECTED, STOPPING_LIBXI, STOPPING_VPN
+    }
+
+    public enum Command {
+        NONE, CONNECT, DISCONNECT,
+    }
+
+    public interface VPNStateListener {
+        void onStateChanged(VPNState status);
+
+        void onMessage(String msg);
     }
 
     public class XiVPNBinder extends Binder {

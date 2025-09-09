@@ -32,9 +32,9 @@ import cn.gov.xivpn2.R;
 public class SplitTunnelActivity extends AppCompatActivity {
 
     private static final String TAG = "SplitTunnelActivity";
+    private final List<InstalledAppsAdapter.App> allApps = new ArrayList<>();
     private Thread thread = null;
     private InstalledAppsAdapter adapter;
-    private final List<InstalledAppsAdapter.App> allApps = new ArrayList<>();
     private String searchKeyword = "";
 
     private List<InstalledAppsAdapter.App> filter() {

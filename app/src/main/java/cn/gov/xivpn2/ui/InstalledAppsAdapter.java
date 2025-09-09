@@ -20,9 +20,7 @@ import cn.gov.xivpn2.R;
 
 public class InstalledAppsAdapter extends RecyclerView.Adapter<InstalledAppsAdapter.ViewHolder> {
 
-    public BiConsumer<String, Boolean> onCheckListener = null;
-
-    public final SortedList<App> apps = new SortedList<>(App.class, new SortedList.Callback<App>() {
+    public final SortedList<App> apps = new SortedList<>(App.class, new SortedList.Callback<>() {
         @Override
         public int compare(App o1, App o2) {
             if (o1.checked && !o2.checked) return -1;
@@ -60,6 +58,7 @@ public class InstalledAppsAdapter extends RecyclerView.Adapter<InstalledAppsAdap
             InstalledAppsAdapter.this.notifyItemMoved(fromPosition, toPosition);
         }
     });
+    public BiConsumer<String, Boolean> onCheckListener = null;
 
     public InstalledAppsAdapter() {
     }

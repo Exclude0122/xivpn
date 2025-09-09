@@ -491,6 +491,7 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
 
     public static class ButtonInput extends Input {
         private final Runnable runnable;
+
         public ButtonInput(String key, String title, String helperText, Runnable runnable) {
             super(key, title, helperText);
             if (runnable == null) {
@@ -503,8 +504,8 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
 
     public static class SelectInput extends Input {
 
-        protected String value;
         protected final List<String> selections;
+        protected String value;
 
         public SelectInput(String key, String title, String helperText, List<String> selections) {
             super(key, title, helperText);

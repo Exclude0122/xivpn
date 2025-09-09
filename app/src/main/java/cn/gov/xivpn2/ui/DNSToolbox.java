@@ -103,7 +103,7 @@ public class DNSToolbox extends AppCompatActivity {
             btn.setEnabled(false);
             textView.setText("");
 
-            print("Question: " +qtype + " " + qname);
+            print("Question: " + qtype + " " + qname);
 
             long start = System.currentTimeMillis();
 

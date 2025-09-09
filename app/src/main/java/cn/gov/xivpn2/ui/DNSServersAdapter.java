@@ -22,7 +22,7 @@ public class DNSServersAdapter extends RecyclerView.Adapter<DNSServersAdapter.Vi
     private final List<DNSServer> servers;
     private final OnClickListener listener;
 
-    public DNSServersAdapter (List<DNSServer> servers, OnClickListener listener) {
+    public DNSServersAdapter(List<DNSServer> servers, OnClickListener listener) {
         this.servers = servers;
         this.listener = listener;
     }

@@ -52,7 +52,8 @@ public class MainActivity extends AppCompatActivity {
 
     private DrawerLayout drawerLayout;
     private XiVPNService.XiVPNBinder binder;
-
+    private XiVPNService.VPNStateListener vpnStatusListener;
+    private MainActivityAdapter adapter;
     private final ServiceConnection connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -68,8 +69,6 @@ public class MainActivity extends AppCompatActivity {
             binder = null;
         }
     };
-    private XiVPNService.VPNStateListener vpnStatusListener;
-    private MainActivityAdapter adapter;
 
     @Override
     protected void onStart() {
@@ -252,7 +251,8 @@ public class MainActivity extends AppCompatActivity {
             key.subscription = proxy.subscription;
 
             Gson gson = new Gson();
-            Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() { }.getType());
+            Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() {
+            }.getType());
 
             map.put(key, proxyGroupSettings.settings.proxies);
         }

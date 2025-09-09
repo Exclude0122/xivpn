@@ -94,13 +94,13 @@ public class XiVPNTileService extends TileService implements XiVPNService.VPNSta
 
     private void setState(boolean active) {
         Tile tile = getQsTile();
-        tile.setState(active ? Tile.STATE_ACTIVE: Tile.STATE_INACTIVE);
+        tile.setState(active ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
         tile.updateTile();
     }
 
     @Override
     public void onStateChanged(XiVPNService.VPNState state) {
-        Log.d(TAG, "on state change " +  state.toString());
+        Log.d(TAG, "on state change " + state.toString());
         setState(state == XiVPNService.VPNState.CONNECTED);
     }
 

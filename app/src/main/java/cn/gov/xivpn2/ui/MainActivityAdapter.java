@@ -192,10 +192,6 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         return VIEW_TYPE_CARDS;
     }
 
-    public interface Listener {
-        void onSwitchCheckedChange(CompoundButton compoundButton, boolean b);
-    }
-
     public void setMessage(String message) {
         this.message = message;
         notifyItemChanged(0);
@@ -226,9 +222,14 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         }
     }
 
+    public interface Listener {
+        void onSwitchCheckedChange(CompoundButton compoundButton, boolean b);
+    }
+
     public static class SwitchViewHolder extends RecyclerView.ViewHolder {
         public final MaterialSwitch aSwitch;
         public final TextView textView;
+
         public SwitchViewHolder(@NonNull View itemView) {
             super(itemView);
             aSwitch = itemView.findViewById(R.id.vpn_switch);
@@ -238,6 +239,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     public static class TabsViewHolder extends RecyclerView.ViewHolder {
         public final TabLayout tabLayout;
+
         public TabsViewHolder(@NonNull View itemView) {
             super(itemView);
             tabLayout = itemView.findViewById(R.id.tab_layout);
@@ -247,6 +249,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     public static class CardViewHolder extends RecyclerView.ViewHolder {
         public final TextView label;
         public final TextView subscription;
+
         public CardViewHolder(@NonNull View itemView) {
             super(itemView);
             label = itemView.findViewById(R.id.label);

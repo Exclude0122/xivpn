@@ -113,8 +113,7 @@ public class DNSServerActivity extends AppCompatActivity {
                 e.tag = tag.getText().toString();
                 if (!domains.getText().toString().isBlank()) {
                     e.domains = Arrays.asList(domains.getText().toString().split("\n"));
-                }
-                else {
+                } else {
                     e.domains = List.of();
                 }
                 e.port = Integer.parseInt(port.getText().toString());
