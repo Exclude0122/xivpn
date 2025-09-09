@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -32,14 +33,24 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.navigation.NavigationView;
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import cn.gov.xivpn2.R;
+import cn.gov.xivpn2.database.AppDatabase;
+import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.service.XiVPNService;
+import cn.gov.xivpn2.xrayconfig.Outbound;
+import cn.gov.xivpn2.xrayconfig.ProxyChain;
+import cn.gov.xivpn2.xrayconfig.ProxyGroupSettings;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
 
 public class MainActivity extends AppCompatActivity {
@@ -235,12 +246,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+
+        List<Proxy> proxies = AppDatabase.getInstance().proxyDao().findByProtocol("proxy-group");
+        Map<ProxyChain, List<ProxyChain>> map = new HashMap<>();
+        for (Proxy proxy : proxies) {
+            ProxyChain key = new ProxyChain();
+            key.label = proxy.label;
+            key.subscription = proxy.subscription;
+
+            Gson gson = new Gson();
+            Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() { }.getType());
+
+            map.put(key, proxyGroupSettings.settings.proxies);
+        }
+
+        adapter.setSelectors(map);
+    }
+
+    @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
 
         // adjust top margin to account for action bar height
         if (hasFocus) {
-            RecyclerView recyclerView = findViewById(R.id.recycler_view);
+            FrameLayout frameLayout = findViewById(R.id.frame_layout);
             ActionBar actionBar = getSupportActionBar();
 
             if (actionBar != null) {
@@ -252,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
                         ViewGroup.LayoutParams.MATCH_PARENT
                 );
                 layoutParams.setMargins(0, height, 0, 0);
-                recyclerView.setLayoutParams(layoutParams);
+                frameLayout.setLayoutParams(layoutParams);
             }
         }
 

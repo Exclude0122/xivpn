@@ -43,4 +43,7 @@ public interface ProxyDao {
 
     @Query("SELECT * FROM proxy WHERE id = :id")
     Proxy findById(long id);
+
+    @Query("SELECT * FROM proxy WHERE protocol = :protocol")
+    List<Proxy> findByProtocol(String protocol);
 }

@@ -325,7 +325,17 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
     private boolean startLibxi() {
         // start libxivpn
-        Config config = buildXrayConfig();
+        Config config = null;
+
+        try {
+            config = buildXrayConfig();
+        } catch (RuntimeException e) {
+            Log.e(TAG, "build xray config");
+            sendMessage("Error: Could not build xray config: " + e.getClass().getName() + ": " + e.getMessage());
+            return false;
+        }
+
+
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String xrayConfig = gson.toJson(config);
         Log.i(TAG, "xray config: " + xrayConfig);
@@ -627,7 +637,6 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
 
         Gson gson = new Gson();
-
         Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() { }.getType());
 
         if (proxyGroupSettings.settings.proxies.isEmpty()) {
