@@ -90,6 +90,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
      */
     private boolean mustLibxiStop = false;
     private boolean isXrayConfigStale = false;
+    private Toast toast;
 
     public static void markConfigStale(Context context) {
         Intent intent = new Intent(context, XiVPNService.class);
@@ -220,7 +221,11 @@ public class XiVPNService extends VpnService implements SocketProtect {
                             setState(VPNState.CONNECTED);
 
                             new Handler(Looper.getMainLooper()).post(() -> {
-                                Toast.makeText(this, R.string.xray_config_reloaded, Toast.LENGTH_SHORT).show();
+                                if (toast != null) {
+                                    toast.cancel();
+                                }
+                                toast = Toast.makeText(this, R.string.xray_config_reloaded, Toast.LENGTH_SHORT);
+                                toast.show();
                             });
 
                         };
