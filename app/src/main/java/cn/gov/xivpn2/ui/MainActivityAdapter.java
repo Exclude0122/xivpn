@@ -20,7 +20,7 @@ import java.util.Objects;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.service.XiVPNService;
-import cn.gov.xivpn2.xrayconfig.ProxyChain;
+import cn.gov.xivpn2.xrayconfig.LabelSubscription;
 
 public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -34,8 +34,8 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     private XiVPNService.VPNState vpnState = XiVPNService.VPNState.DISCONNECTED;
     private String message;
-    private Map<ProxyChain, List<ProxyChain>> selectors = new HashMap<>();
-    private ProxyChain activeTab = null;
+    private Map<LabelSubscription, List<LabelSubscription>> groups = new HashMap<>(); // proxy group -> servers in proxy group
+    private LabelSubscription activeTab = null; // currently selected proxy group
 
     public MainActivityAdapter(Listener listener) {
         this.listener = listener;
@@ -83,7 +83,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
             viewHolder.tabLayout.removeAllTabs();
 
-            for (ProxyChain key : selectors.keySet()) {
+            for (LabelSubscription key : groups.keySet()) {
                 TabLayout.Tab tab = viewHolder.tabLayout.newTab();
                 tab.setText(key.label);
                 viewHolder.tabLayout.addTab(tab);
@@ -95,7 +95,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 @Override
                 public void onTabSelected(TabLayout.Tab tab) {
                     int count = getItemCount();
-                    activeTab = ((ProxyChain) tab.getTag());
+                    activeTab = ((LabelSubscription) tab.getTag());
                     notifyItemRangeRemoved(2, count - 2);
                     notifyItemRangeInserted(2, getItemCount() - 2);
                 }
@@ -114,9 +114,9 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         } else if (holder instanceof CardViewHolder) {
             CardViewHolder viewHolder = (CardViewHolder) holder;
 
-            List<ProxyChain> proxies = selectors.get(activeTab);
+            List<LabelSubscription> proxies = groups.get(activeTab);
             if (proxies != null) {
-                ProxyChain proxy = proxies.get(holder.getBindingAdapterPosition() - 2);
+                LabelSubscription proxy = proxies.get(holder.getBindingAdapterPosition() - 2);
                 viewHolder.subscription.setText(proxy.subscription);
                 viewHolder.label.setText(proxy.label);
             } else {
@@ -133,7 +133,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
         // off -> on
         if (!oldState.equals(XiVPNService.VPNState.CONNECTED) && newState.equals(XiVPNService.VPNState.CONNECTED)) {
-            List<ProxyChain> selected = selectors.get(activeTab);
+            List<LabelSubscription> selected = groups.get(activeTab);
             if (selected != null) {
                 notifyItemRangeInserted(1, 1 + selected.size());
             } else {
@@ -146,8 +146,8 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
             int items = 0;
 
-            if (!selectors.isEmpty()) {
-                List<ProxyChain> selected = selectors.get(activeTab);
+            if (!groups.isEmpty()) {
+                List<LabelSubscription> selected = groups.get(activeTab);
                 if (selected == null) {
                     items += 1;
                 } else {
@@ -165,8 +165,8 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     public int getItemCount() {
         if (!vpnState.equals(XiVPNService.VPNState.CONNECTED)) return 1;
 
-        if (selectors.isEmpty()) return 1; // hide tabs
-        List<ProxyChain> selected = selectors.get(activeTab); // servers under selected tab
+        if (groups.isEmpty()) return 1; // hide tabs
+        List<LabelSubscription> selected = groups.get(activeTab); // servers under selected tab
         if (selected == null) return 1;
         return 2 + selected.size();
     }
@@ -175,7 +175,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     public int getItemViewType(int position) {
         if (position == 0) {
             if (XiVPNService.VPNState.CONNECTED == vpnState) {
-                if (selectors.isEmpty()) {
+                if (groups.isEmpty()) {
                     return VIEW_TYPE_SWITCH_CENTER;
                 } else {
                     return VIEW_TYPE_SWITCH;
@@ -197,14 +197,14 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         notifyItemChanged(0);
     }
 
-    public void setSelectors(Map<ProxyChain, List<ProxyChain>> selectors) {
+    public void setGroups(Map<LabelSubscription, List<LabelSubscription>> groups) {
         int servers = 0;
-        if (selectors.get(activeTab) != null) {
-            servers = Objects.requireNonNull(selectors.get(activeTab)).size();
+        if (groups.get(activeTab) != null) {
+            servers = Objects.requireNonNull(groups.get(activeTab)).size();
         }
 
-        this.selectors = selectors;
-        Iterator<ProxyChain> iterator = selectors.keySet().iterator();
+        this.groups = groups;
+        Iterator<LabelSubscription> iterator = groups.keySet().iterator();
         if (iterator.hasNext()) {
             this.activeTab = iterator.next();
         } else {
@@ -216,7 +216,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             notifyItemChanged(1);
 
             // update servers
-            List<ProxyChain> selected = selectors.get(this.activeTab); // servers under tab
+            List<LabelSubscription> selected = groups.get(this.activeTab); // servers under tab
             notifyItemRangeRemoved(2, servers); // remove all old server cards
             if (selected != null) notifyItemRangeInserted(2, selected.size()); // insert new cards
         }

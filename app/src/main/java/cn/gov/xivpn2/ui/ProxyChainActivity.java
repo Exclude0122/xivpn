@@ -33,14 +33,14 @@ import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.ProxyDao;
 import cn.gov.xivpn2.xrayconfig.Outbound;
-import cn.gov.xivpn2.xrayconfig.ProxyChain;
+import cn.gov.xivpn2.xrayconfig.LabelSubscription;
 import cn.gov.xivpn2.xrayconfig.ProxyChainSettings;
 
 public class ProxyChainActivity extends AppCompatActivity {
 
     private final static String TAG = "ProxyChainActivity";
 
-    private final ArrayList<ProxyChain> proxyChains = new ArrayList<>();
+    private final ArrayList<LabelSubscription> proxyChains = new ArrayList<>();
     private String label = "";
     private String subscription = "";
 
@@ -87,7 +87,7 @@ public class ProxyChainActivity extends AppCompatActivity {
             @Override
             public void onUp(int i) {
                 if (i == 0) return;
-                ProxyChain tmp = proxyChains.get(i);
+                LabelSubscription tmp = proxyChains.get(i);
                 proxyChains.set(i, proxyChains.get(i - 1));
                 proxyChains.set(i - 1, tmp);
                 adapter.notifyItemRangeChanged(i - 1, 2);
@@ -96,7 +96,7 @@ public class ProxyChainActivity extends AppCompatActivity {
             @Override
             public void onDown(int i) {
                 if (i == proxyChains.size() - 1) return;
-                ProxyChain tmp = proxyChains.get(i);
+                LabelSubscription tmp = proxyChains.get(i);
                 proxyChains.set(i, proxyChains.get(i + 1));
                 proxyChains.set(i + 1, tmp);
                 adapter.notifyItemRangeChanged(i, 2);
@@ -154,7 +154,7 @@ public class ProxyChainActivity extends AppCompatActivity {
                         if (selected[0].isEmpty() && selected[1].isEmpty()) return;
 
                         // add proxy to proxy chain
-                        ProxyChain pc = new ProxyChain();
+                        LabelSubscription pc = new LabelSubscription();
                         pc.label = selected[0];
                         pc.subscription = selected[1];
                         proxyChains.add(pc);

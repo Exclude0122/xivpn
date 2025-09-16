@@ -2,14 +2,14 @@ package cn.gov.xivpn2.xrayconfig;
 
 import java.util.Objects;
 
-public class ProxyChain {
+public class LabelSubscription {
     public String label;
     public String subscription;
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof ProxyChain)) return false;
-        ProxyChain that = (ProxyChain) o;
+        if (!(o instanceof LabelSubscription)) return false;
+        LabelSubscription that = (LabelSubscription) o;
         return Objects.equals(label, that.label) && Objects.equals(subscription, that.subscription);
     }
 

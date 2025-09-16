@@ -4,5 +4,5 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProxyChainSettings {
-    public List<ProxyChain> proxies = new ArrayList<>();
+    public List<LabelSubscription> proxies = new ArrayList<>();
 }

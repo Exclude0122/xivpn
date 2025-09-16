@@ -44,7 +44,7 @@ import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.Outbound;
-import cn.gov.xivpn2.xrayconfig.ProxyChain;
+import cn.gov.xivpn2.xrayconfig.LabelSubscription;
 import cn.gov.xivpn2.xrayconfig.ProxyGroupSettings;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
 
@@ -244,9 +244,9 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
 
         List<Proxy> proxies = AppDatabase.getInstance().proxyDao().findByProtocol("proxy-group");
-        Map<ProxyChain, List<ProxyChain>> map = new HashMap<>();
+        Map<LabelSubscription, List<LabelSubscription>> map = new HashMap<>();
         for (Proxy proxy : proxies) {
-            ProxyChain key = new ProxyChain();
+            LabelSubscription key = new LabelSubscription();
             key.label = proxy.label;
             key.subscription = proxy.subscription;
 
@@ -257,7 +257,7 @@ public class MainActivity extends AppCompatActivity {
             map.put(key, proxyGroupSettings.settings.proxies);
         }
 
-        adapter.setSelectors(map);
+        adapter.setGroups(map);
     }
 
     @Override

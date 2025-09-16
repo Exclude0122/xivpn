@@ -15,18 +15,18 @@ import com.google.android.material.card.MaterialCardView;
 import java.util.ArrayList;
 
 import cn.gov.xivpn2.R;
-import cn.gov.xivpn2.xrayconfig.ProxyChain;
+import cn.gov.xivpn2.xrayconfig.LabelSubscription;
 
 public class ProxyChainAdapter extends RecyclerView.Adapter<ProxyChainAdapter.ViewHolder> {
 
     private OnClickListener listener;
-    private ArrayList<ProxyChain> proxies;
+    private ArrayList<LabelSubscription> proxies;
 
     public ProxyChainAdapter() {
         proxies = new ArrayList<>();
     }
 
-    public void setProxies(ArrayList<ProxyChain> proxies) {
+    public void setProxies(ArrayList<LabelSubscription> proxies) {
         this.proxies = proxies;
     }
 
@@ -44,7 +44,7 @@ public class ProxyChainAdapter extends RecyclerView.Adapter<ProxyChainAdapter.Vi
     @SuppressLint("SetTextI18n")
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        ProxyChain p = proxies.get(position);
+        LabelSubscription p = proxies.get(position);
 
         holder.subcription.setText(p.subscription);
         holder.label.setText(p.label);

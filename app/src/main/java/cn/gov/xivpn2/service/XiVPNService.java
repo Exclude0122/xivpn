@@ -64,7 +64,7 @@ import cn.gov.xivpn2.ui.CrashLogActivity;
 import cn.gov.xivpn2.ui.MainActivity;
 import cn.gov.xivpn2.xrayconfig.Config;
 import cn.gov.xivpn2.xrayconfig.Outbound;
-import cn.gov.xivpn2.xrayconfig.ProxyChain;
+import cn.gov.xivpn2.xrayconfig.LabelSubscription;
 import cn.gov.xivpn2.xrayconfig.ProxyChainSettings;
 import cn.gov.xivpn2.xrayconfig.ProxyGroupSettings;
 import cn.gov.xivpn2.xrayconfig.Routing;
@@ -627,15 +627,15 @@ public class XiVPNService extends VpnService implements SocketProtect {
             throw new IllegalStateException(getString(R.string.proxy_group_empty) + label + " (" + subscription + ")");
         }
 
-        ProxyChain selected = proxyGroupSettings.settings.selected;
-        ProxyChain found = proxyGroupSettings.settings.proxies.get(0); // default to the first one
+        LabelSubscription selected = proxyGroupSettings.settings.selected;
+        LabelSubscription found = proxyGroupSettings.settings.proxies.get(0); // default to the first one
 
-        for (ProxyChain proxyChain : proxyGroupSettings.settings.proxies) {
+        for (LabelSubscription proxyChain : proxyGroupSettings.settings.proxies) {
             if (proxyChain.subscription == null || proxyChain.label == null || selected == null || selected.label == null || selected.subscription == null) {
                 continue;
             }
             if (proxyChain.label.equals(selected.label) && proxyChain.subscription.equals(selected.subscription)) {
-                selected = new ProxyChain();
+                selected = new LabelSubscription();
                 selected.label = proxyChain.label;
                 selected.subscription = proxyChain.subscription;
             }
@@ -717,10 +717,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
                     }.getType());
 
-                    List<ProxyChain> proxyChains = proxyChainOutbound.settings.proxies;
+                    List<LabelSubscription> proxyChains = proxyChainOutbound.settings.proxies;
 
                     for (int i = proxyChains.size() - 1; i >= 0; i--) {
-                        ProxyChain each = proxyChains.get(i);
+                        LabelSubscription each = proxyChains.get(i);
 
                         Proxy p = AppDatabase.getInstance().proxyDao().find(each.label, each.subscription);
                         if (p == null) {

@@ -4,6 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProxyGroupSettings {
-    public ProxyChain selected;
-    public List<ProxyChain> proxies = new ArrayList<>();
+    public LabelSubscription selected;
+    public List<LabelSubscription> proxies = new ArrayList<>();
 }

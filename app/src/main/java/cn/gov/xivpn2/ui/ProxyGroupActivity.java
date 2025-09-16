@@ -33,7 +33,7 @@ import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.ProxyDao;
 import cn.gov.xivpn2.xrayconfig.Outbound;
-import cn.gov.xivpn2.xrayconfig.ProxyChain;
+import cn.gov.xivpn2.xrayconfig.LabelSubscription;
 import cn.gov.xivpn2.xrayconfig.ProxyChainSettings;
 import cn.gov.xivpn2.xrayconfig.ProxyGroupSettings;
 
@@ -41,7 +41,7 @@ public class ProxyGroupActivity extends AppCompatActivity {
 
     private final static String TAG = "ProxyGroupActivity";
 
-    private final ArrayList<ProxyChain> proxies = new ArrayList<>();
+    private final ArrayList<LabelSubscription> proxies = new ArrayList<>();
     private String label = "";
     private String subscription = "";
 
@@ -91,7 +91,7 @@ public class ProxyGroupActivity extends AppCompatActivity {
             @Override
             public void onUp(int i) {
                 if (i == 0) return;
-                ProxyChain tmp = proxies.get(i);
+                LabelSubscription tmp = proxies.get(i);
                 proxies.set(i, proxies.get(i - 1));
                 proxies.set(i - 1, tmp);
                 adapter.notifyItemRangeChanged(i - 1, 2);
@@ -100,7 +100,7 @@ public class ProxyGroupActivity extends AppCompatActivity {
             @Override
             public void onDown(int i) {
                 if (i == proxies.size() - 1) return;
-                ProxyChain tmp = proxies.get(i);
+                LabelSubscription tmp = proxies.get(i);
                 proxies.set(i, proxies.get(i + 1));
                 proxies.set(i + 1, tmp);
                 adapter.notifyItemRangeChanged(i, 2);
@@ -152,7 +152,7 @@ public class ProxyGroupActivity extends AppCompatActivity {
                         if (selected[0].isEmpty() && selected[1].isEmpty()) return;
 
                         // add proxy to proxy chain
-                        ProxyChain pc = new ProxyChain();
+                        LabelSubscription pc = new LabelSubscription();
                         pc.label = selected[0];
                         pc.subscription = selected[1];
                         this.proxies.add(pc);
