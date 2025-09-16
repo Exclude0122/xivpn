@@ -159,7 +159,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         this.vpnState = newState;
 
         // off -> on
-        if (!oldState.equals(XiVPNService.VPNState.CONNECTED) && newState.equals(XiVPNService.VPNState.CONNECTED)) {
+        if (oldState.equals(XiVPNService.VPNState.DISCONNECTED) && !newState.equals(XiVPNService.VPNState.DISCONNECTED)) {
             Pair<List<LabelSubscription>, LabelSubscription> selected = groups.get(activeTab);
             if (selected != null) {
                 notifyItemRangeInserted(1, 1 + selected.first.size());
@@ -169,7 +169,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         }
 
         // on -> off
-        if (oldState.equals(XiVPNService.VPNState.CONNECTED) && !newState.equals(XiVPNService.VPNState.CONNECTED)) {
+        if (!oldState.equals(XiVPNService.VPNState.DISCONNECTED) && newState.equals(XiVPNService.VPNState.DISCONNECTED)) {
 
             int items = 0;
 
@@ -190,7 +190,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     @Override
     public int getItemCount() {
-        if (!vpnState.equals(XiVPNService.VPNState.CONNECTED)) return 1;
+        if (vpnState.equals(XiVPNService.VPNState.DISCONNECTED)) return 1;
 
         if (groups.isEmpty()) return 1; // hide tabs
         Pair<List<LabelSubscription>, LabelSubscription> selected = groups.get(activeTab); // servers under selected tab
@@ -201,7 +201,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     @Override
     public int getItemViewType(int position) {
         if (position == 0) {
-            if (XiVPNService.VPNState.CONNECTED == vpnState) {
+            if (XiVPNService.VPNState.DISCONNECTED != vpnState) {
                 if (groups.isEmpty()) {
                     return VIEW_TYPE_SWITCH_CENTER;
                 } else {
@@ -238,7 +238,7 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             this.activeTab = null;
         }
 
-        if (vpnState.equals(XiVPNService.VPNState.CONNECTED)) {
+        if (!vpnState.equals(XiVPNService.VPNState.DISCONNECTED)) {
             // update tabs
             notifyItemChanged(1);
 
