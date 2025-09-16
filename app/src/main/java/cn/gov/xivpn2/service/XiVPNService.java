@@ -635,9 +635,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 continue;
             }
             if (proxyChain.label.equals(selected.label) && proxyChain.subscription.equals(selected.subscription)) {
-                selected = new LabelSubscription();
-                selected.label = proxyChain.label;
-                selected.subscription = proxyChain.subscription;
+                found = new LabelSubscription();
+                found.label = proxyChain.label;
+                found.subscription = proxyChain.subscription;
+                break;
             }
         }
 

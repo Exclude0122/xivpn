@@ -10,8 +10,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
+import android.util.Pair;
 import android.view.MenuItem;
 import android.view.ViewGroup;
+import android.widget.CompoundButton;
 import android.widget.FrameLayout;
 
 import androidx.activity.EdgeToEdge;
@@ -31,6 +33,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -114,76 +117,101 @@ public class MainActivity extends AppCompatActivity {
 
         // adapter
 
-        adapter = new MainActivityAdapter((button, isChecked) -> {
+        adapter = new MainActivityAdapter(new MainActivityAdapter.Listener() {
+            @Override
+            public void onSwitchCheckedChange(CompoundButton button, boolean isChecked) {
 
-            // on switch checked change
+                // on switch checked change
 
-            adapter.setMessage("");
+                adapter.setMessage("");
 
-            if (isChecked) {
-                // start vpn
+                if (isChecked) {
+                    // start vpn
 
-                // request vpn permission
-                Intent intent = XiVPNService.prepare(this);
-                if (intent != null) {
-                    button.setChecked(false);
-                    startActivityForResult(intent, 1);
-                    return;
-                }
-
-                // check whether geoip / geosite database is downloaded
-                try {
-                    boolean geoip = false;
-                    boolean geosite = false;
-                    List<RoutingRule> routingRules = Rules.readRules(getFilesDir());
-                    for (RoutingRule routingRule : routingRules) {
-                        for (String s : routingRule.ip) {
-                            if (s.startsWith("geoip:")) {
-                                geoip = true;
-                            }
-                            if (s.startsWith("geosite:")) {
-                                geosite = true;
-                            }
-                        }
-                        for (String s : routingRule.domain) {
-                            if (s.startsWith("geoip:")) {
-                                geoip = true;
-                            }
-                            if (s.startsWith("geosite:")) {
-                                geosite = true;
-                            }
-                        }
-                    }
-                    if ((geoip && !new File(getFilesDir(), "geoip.dat").isFile()) || (geosite && !new File(getFilesDir(), "geosite.dat").isFile())) {
-                        // ask the user to download geoip / geosite database
-                        new AlertDialog.Builder(this)
-                                .setTitle(R.string.warning)
-                                .setMessage(R.string.geoip_not_downloaded)
-                                .setPositiveButton(R.string.download, (dialog, which) -> {
-                                    startActivity(new Intent(this, GeoAssetsActivity.class));
-                                })
-                                .show();
+                    // request vpn permission
+                    Intent intent = XiVPNService.prepare(MainActivity.this);
+                    if (intent != null) {
                         button.setChecked(false);
+                        startActivityForResult(intent, 1);
                         return;
                     }
-                } catch (IOException e) {
-                    Log.e("MainActivity", "read rules", e);
+
+                    // check whether geoip / geosite database is downloaded
+                    try {
+                        boolean geoip = false;
+                        boolean geosite = false;
+                        List<RoutingRule> routingRules = Rules.readRules(getFilesDir());
+                        for (RoutingRule routingRule : routingRules) {
+                            for (String s : routingRule.ip) {
+                                if (s.startsWith("geoip:")) {
+                                    geoip = true;
+                                }
+                                if (s.startsWith("geosite:")) {
+                                    geosite = true;
+                                }
+                            }
+                            for (String s : routingRule.domain) {
+                                if (s.startsWith("geoip:")) {
+                                    geoip = true;
+                                }
+                                if (s.startsWith("geosite:")) {
+                                    geosite = true;
+                                }
+                            }
+                        }
+                        if ((geoip && !new File(getFilesDir(), "geoip.dat").isFile()) || (geosite && !new File(getFilesDir(), "geosite.dat").isFile())) {
+                            // ask the user to download geoip / geosite database
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle(R.string.warning)
+                                    .setMessage(R.string.geoip_not_downloaded)
+                                    .setPositiveButton(R.string.download, (dialog, which) -> {
+                                        startActivity(new Intent(MainActivity.this, GeoAssetsActivity.class));
+                                    })
+                                    .show();
+                            button.setChecked(false);
+                            return;
+                        }
+                    } catch (IOException e) {
+                        Log.e("MainActivity", "read rules", e);
+                    }
+
+                    // start service
+                    Intent intent2 = new Intent(MainActivity.this, XiVPNService.class);
+                    intent2.setAction("cn.gov.xivpn2.START");
+                    intent2.putExtra("always-on", false);
+                    startForegroundService(intent2);
+
+                } else {
+                    // stop
+                    Intent intent2 = new Intent(MainActivity.this, XiVPNService.class);
+                    intent2.setAction("cn.gov.xivpn2.STOP");
+                    intent2.putExtra("always-on", false);
+                    startService(intent2);
                 }
+            }
 
-                // start service
-                Intent intent2 = new Intent(this, XiVPNService.class);
-                intent2.setAction("cn.gov.xivpn2.START");
-                intent2.putExtra("always-on", false);
-                startForegroundService(intent2);
+            @Override
+            public void onServerSelected(LabelSubscription group, LabelSubscription selected) {
 
-            } else {
-                // stop
-                Intent intent2 = new Intent(this, XiVPNService.class);
-                intent2.setAction("cn.gov.xivpn2.STOP");
-                intent2.putExtra("always-on", false);
-                startService(intent2);
+                // on proxy group selection change
+
+                Proxy proxyGroup = AppDatabase.getInstance().proxyDao().find(group.label, group.subscription);
+
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxyGroup.config, new TypeToken<Outbound<ProxyGroupSettings>>() {
+                }.getType());
+
+                proxyGroupSettings.settings.selected = selected;
+
+                String json = gson.toJson(proxyGroupSettings);
+
+                AppDatabase.getInstance().proxyDao().updateConfig(group.label, group.subscription, json);
+
+                XiVPNService.markConfigStale(MainActivity.this);
+
             }
         });
+
 
         recyclerView.setAdapter(adapter);
 
@@ -243,8 +271,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
+        // update proxy groups
+
         List<Proxy> proxies = AppDatabase.getInstance().proxyDao().findByProtocol("proxy-group");
-        Map<LabelSubscription, List<LabelSubscription>> map = new HashMap<>();
+        Map<LabelSubscription, Pair<List<LabelSubscription>, LabelSubscription>> map = new HashMap<>();
         for (Proxy proxy : proxies) {
             LabelSubscription key = new LabelSubscription();
             key.label = proxy.label;
@@ -254,7 +284,13 @@ public class MainActivity extends AppCompatActivity {
             Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() {
             }.getType());
 
-            map.put(key, proxyGroupSettings.settings.proxies);
+            if (proxyGroupSettings.settings.selected == null) {
+                // default to the first one
+                // same behavior as XiVPNService
+                proxyGroupSettings.settings.selected = proxyGroupSettings.settings.proxies.get(0);
+            }
+
+            map.put(key, Pair.create(proxyGroupSettings.settings.proxies, proxyGroupSettings.settings.selected));
         }
 
         adapter.setGroups(map);

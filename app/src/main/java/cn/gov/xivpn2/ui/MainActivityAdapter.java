@@ -1,5 +1,6 @@
 package cn.gov.xivpn2.ui;
 
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,6 +10,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.tabs.TabLayout;
 
@@ -34,7 +36,10 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     private XiVPNService.VPNState vpnState = XiVPNService.VPNState.DISCONNECTED;
     private String message;
-    private Map<LabelSubscription, List<LabelSubscription>> groups = new HashMap<>(); // proxy group -> servers in proxy group
+    /**
+     * proxy group -> (servers in proxy group, selected server)
+     */
+    private Map<LabelSubscription, Pair<List<LabelSubscription>, LabelSubscription>> groups = new HashMap<>();
     private LabelSubscription activeTab = null; // currently selected proxy group
 
     public MainActivityAdapter(Listener listener) {
@@ -114,15 +119,37 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         } else if (holder instanceof CardViewHolder) {
             CardViewHolder viewHolder = (CardViewHolder) holder;
 
-            List<LabelSubscription> proxies = groups.get(activeTab);
-            if (proxies != null) {
-                LabelSubscription proxy = proxies.get(holder.getBindingAdapterPosition() - 2);
+            viewHolder.card.setCheckable(true);
+
+            Pair<List<LabelSubscription>, LabelSubscription> selected = groups.get(activeTab);
+
+            if (selected != null) {
+
+                LabelSubscription proxy = selected.first.get(holder.getBindingAdapterPosition() - 2);
+
+                viewHolder.card.setChecked(selected.second.equals(proxy));
+
                 viewHolder.subscription.setText(proxy.subscription);
                 viewHolder.label.setText(proxy.label);
-            } else {
+
+                viewHolder.card.setOnClickListener(v -> {
+                    listener.onServerSelected(this.activeTab, proxy);
+
+                    int oldPosition = selected.first.indexOf(selected.second);
+                    if (oldPosition >= 0) notifyItemChanged(oldPosition + 2); // unselect the old server
+                    groups.put(activeTab, Pair.create(selected.first, proxy));
+                    notifyItemChanged(holder.getBindingAdapterPosition());
+                });
+
+            }else {
+
                 viewHolder.subscription.setText("");
                 viewHolder.label.setText("");
+                viewHolder.card.setOnClickListener(null);
+                viewHolder.card.setChecked(false);
             }
+
+
         }
     }
 
@@ -133,9 +160,9 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
         // off -> on
         if (!oldState.equals(XiVPNService.VPNState.CONNECTED) && newState.equals(XiVPNService.VPNState.CONNECTED)) {
-            List<LabelSubscription> selected = groups.get(activeTab);
+            Pair<List<LabelSubscription>, LabelSubscription> selected = groups.get(activeTab);
             if (selected != null) {
-                notifyItemRangeInserted(1, 1 + selected.size());
+                notifyItemRangeInserted(1, 1 + selected.first.size());
             } else {
                 notifyItemRangeInserted(1, 1);
             }
@@ -147,11 +174,11 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             int items = 0;
 
             if (!groups.isEmpty()) {
-                List<LabelSubscription> selected = groups.get(activeTab);
+                Pair<List<LabelSubscription>, LabelSubscription> selected = groups.get(activeTab);
                 if (selected == null) {
                     items += 1;
                 } else {
-                    items = 2 + selected.size();
+                    items = 2 + selected.first.size();
                 }
             }
 
@@ -166,9 +193,9 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         if (!vpnState.equals(XiVPNService.VPNState.CONNECTED)) return 1;
 
         if (groups.isEmpty()) return 1; // hide tabs
-        List<LabelSubscription> selected = groups.get(activeTab); // servers under selected tab
+        Pair<List<LabelSubscription>, LabelSubscription> selected = groups.get(activeTab); // servers under selected tab
         if (selected == null) return 1;
-        return 2 + selected.size();
+        return 2 + selected.first.size();
     }
 
     @Override
@@ -197,10 +224,10 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         notifyItemChanged(0);
     }
 
-    public void setGroups(Map<LabelSubscription, List<LabelSubscription>> groups) {
+    public void setGroups(Map<LabelSubscription, Pair<List<LabelSubscription>, LabelSubscription>> groups) {
         int servers = 0;
         if (groups.get(activeTab) != null) {
-            servers = Objects.requireNonNull(groups.get(activeTab)).size();
+            servers = Objects.requireNonNull(groups.get(activeTab)).first.size();
         }
 
         this.groups = groups;
@@ -216,14 +243,15 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             notifyItemChanged(1);
 
             // update servers
-            List<LabelSubscription> selected = groups.get(this.activeTab); // servers under tab
+            Pair<List<LabelSubscription>, LabelSubscription> selected = groups.get(this.activeTab); // servers under tab
             notifyItemRangeRemoved(2, servers); // remove all old server cards
-            if (selected != null) notifyItemRangeInserted(2, selected.size()); // insert new cards
+            if (selected != null) notifyItemRangeInserted(2, selected.first.size()); // insert new cards
         }
     }
 
     public interface Listener {
-        void onSwitchCheckedChange(CompoundButton compoundButton, boolean b);
+        void onSwitchCheckedChange(CompoundButton button, boolean isChecked);
+        void onServerSelected(LabelSubscription group, LabelSubscription selected);
     }
 
     public static class SwitchViewHolder extends RecyclerView.ViewHolder {
@@ -249,11 +277,13 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     public static class CardViewHolder extends RecyclerView.ViewHolder {
         public final TextView label;
         public final TextView subscription;
+        public final MaterialCardView card;
 
         public CardViewHolder(@NonNull View itemView) {
             super(itemView);
             label = itemView.findViewById(R.id.label);
             subscription = itemView.findViewById(R.id.subscription);
+            card = itemView.findViewById(R.id.card);
         }
     }
 }
