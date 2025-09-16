@@ -128,4 +128,7 @@
     <string name="proxy_chain_help">Цепочка прокси позволяет использовать последовательность серверов.\n\nПервый сервер — входной, последний — выходной. Всё между ними — промежуточные узлы (как в Tor).</string>
     <string name="proxy_group">Группа прокси</string>
     <string name="proxy_group_help">ПОДСКАЗКА ПО ГРУППЕ ПРОКСИ</string>
+     <string name="proxy_group_cycle">Обнаружен цикл в группе прокси: </string>
+    <string name="proxy_group_empty">Группа прокси не может быть пустой: </string>
+    <string name="proxy_group_not_found">Группа прокси \"%s\": прокси \"%s\" не найден</string>
 </resources>
