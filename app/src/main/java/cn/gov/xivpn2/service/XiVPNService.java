@@ -607,10 +607,12 @@ public class XiVPNService extends VpnService implements SocketProtect {
         // check for cycles
         if (visited.contains(new Pair<>(label, subscription))) {
             StringBuilder sb = new StringBuilder(getString(R.string.proxy_group_cycle));
+            sb.append("\n");
             sb.append(visited.get(0).first).append(" (").append(visited.get(0).second).append(")");
             for (int i = 1; i < visited.size(); i++) {
                 sb.append(" -> ").append(visited.get(i).first).append(" (").append(visited.get(i).second).append(")");
             }
+            sb.append(" -> ").append(label).append(" (").append(subscription).append(")");
             throw new IllegalStateException(sb.toString());
         }
 
