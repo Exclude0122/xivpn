@@ -532,7 +532,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
 
         try {
-            if (!libxivpnProcess.waitFor(1, TimeUnit.SECONDS)) {
+            if (!libxivpnProcess.waitFor(5, TimeUnit.SECONDS)) {
                 sendMessage("error: timeout when waiting for libxivpn exit");
 
                 libxivpnProcess.destroyForcibly();
