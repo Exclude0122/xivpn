@@ -121,24 +121,29 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
             viewHolder.card.setCheckable(true);
 
-            Pair<List<LabelSubscription>, LabelSubscription> selected = groups.get(activeTab);
+            Pair<List<LabelSubscription>, LabelSubscription> selectedTab = groups.get(activeTab);
 
-            if (selected != null) {
+            if (selectedTab != null) {
 
-                LabelSubscription proxy = selected.first.get(holder.getBindingAdapterPosition() - 2);
+                LabelSubscription proxy = selectedTab.first.get(holder.getBindingAdapterPosition() - 2);
 
-                viewHolder.card.setChecked(selected.second.equals(proxy));
+                viewHolder.card.setChecked(selectedTab.second.equals(proxy));
 
                 viewHolder.subscription.setText(proxy.subscription);
                 viewHolder.label.setText(proxy.label);
 
                 viewHolder.card.setOnClickListener(v -> {
-                    listener.onServerSelected(this.activeTab, proxy);
+                    Pair<List<LabelSubscription>, LabelSubscription> current = groups.get(activeTab); // find the latest selected server
 
-                    int oldPosition = selected.first.indexOf(selected.second);
-                    if (oldPosition >= 0) notifyItemChanged(oldPosition + 2); // unselect the old server
-                    groups.put(activeTab, Pair.create(selected.first, proxy));
-                    notifyItemChanged(holder.getBindingAdapterPosition());
+                    if (current != null) {
+                        listener.onServerSelected(this.activeTab, proxy);
+
+                        int oldPosition = current.first.indexOf(current.second);
+                        groups.put(activeTab, Pair.create(current.first, proxy));
+                        if (oldPosition >= 0) notifyItemChanged(oldPosition + 2); // unselect the old server
+                        notifyItemChanged(holder.getBindingAdapterPosition());
+                    }
+
                 });
 
             }else {
