@@ -1,26 +1,11 @@
-XiVPN is a GUI client for XTLS/Xray-Core, which provides anti-censorship proxy protocols.
+XiVPN is a GUI wrapper for Xray that utilizes Android's built-in VPN feature to route internet traffic through the Xray core.
+It aims to provide an intuitive user interface for all common Xray configurations, allowing non-technical users to take advantage of powerful features without writing complex JSON files.
 
-Features:
-- Fetch proxies from subscription links
-- Easy to use GUI
-- Configurable proxy settings
-- Routing
-- Proxy chain
-- Fully open source
+What is Xray?
+Xray is a high-performance network proxy tool that supports multiple protocols including VLESS, VMess, Trojan, Shadowsocks, and more. Unlike traditional VPNs that route all traffic through a single server with standard protocols, Xray offers more flexibility and stealth capabilities. This makes Xray widely used in regions with high internet censorship where traditional VPNs (like WireGuard and openvpn) blocked.
 
-Supported protocols:
-- VLESS
-- VMESS
-- Shadowsocks
-- Trojan
-- Wireguard
-
-Supported transport protocols:
-- Websocket
-- QUIC
-- Httpupgrade
-- XHTTP
-
-Supported security protocols:
-- TLS / uTLS
-- REALITY
+What unique does XiVPN offer?
+- Proxy Chains: Connect multiple proxy servers in sequence to create layered tunnels for better privacy
+- Proxy Group: Organize servers into groups and easily switch between different servers
+- Routing Rules: Routes internet traffic to different servers or groups based on IP address, port number, and domain name
+- Separate process for Xray core: Runs the Xray core as a separate process, preventing memory leaks during restarts and avoiding app-wide crashes caused by core panics

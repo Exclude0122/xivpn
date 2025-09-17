@@ -1,25 +1,11 @@
-XiVPN 是 XTLS/Xray-Core 的 GUI 客户端，它提供反审查代理协议。
+XiVPN 是 Xray 的图形界面，利用 Android 内置的 VPN 功能将流量路由到 Xray 核心。
+它旨在为所有常见的 Xray 配置提供直观的用户界面，让非技术用户无需编写复杂的 JSON 文件即可利用 Xray 强大的功能。
 
-功能:
-- 从订阅连接获取代理服务器
-- 简单易用的界面
-- 可配置的代理服务器
-- 路由规则
-- 完全开源
+什么是 Xray？
+Xray 是一个高性能的网络代理工具，支持多种协议，包括 VLESS、VMess、Trojan、Shadowsocks 等。与传统 VPN 使用标准协议将所有流量路由到单一服务器不同，Xray 提供更多灵活性和隐秘能力。这使得 Xray 在互联网审查严格的地区得到广泛使用，特别是在传统 VPN（如 WireGuard 和 OpenVPN）被封锁的地方。
 
-支持的协议:
-- VLESS
-- VMESS
-- Shadowsocks
-- Trojan
-- Wireguard
-
-支持的传输协议:
-- Websocket
-- QUIC
-- Httpupgrade
-- XHTTP
-
-支持的加密协议:
-- TLS / uTLS
-- REALITY
+XiVPN 提供哪些独特功能？
+- 链式代理：将多个代理服务器按顺序连接，创建分层隧道以获得更好的隐私保护
+- 代理组：将代理服务器划分成组，轻松在不同服务器之间切换
+- 路由规则：根据 IP 地址、端口号和域名将流量路由到不同的服务器或代理组
+- Xray 核心独立进程：将 Xray 核心作为独立进程运行，防止重启时的内存泄漏，并且避免因核心崩溃导致的应用程序崩溃
