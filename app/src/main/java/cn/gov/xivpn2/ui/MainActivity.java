@@ -297,31 +297,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-
-        // adjust top margin to account for action bar height
-        if (hasFocus) {
-            FrameLayout frameLayout = findViewById(R.id.frame_layout);
-            ActionBar actionBar = getSupportActionBar();
-
-            if (actionBar != null) {
-                int height = actionBar.getHeight();
-                Log.d("MainActivity", "action bar height " + height);
-
-                DrawerLayout.LayoutParams layoutParams = new DrawerLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                );
-                layoutParams.setMargins(0, height, 0, 0);
-                frameLayout.setLayoutParams(layoutParams);
-            }
-        }
-
-
-    }
-
-    @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
 
         // drawer
