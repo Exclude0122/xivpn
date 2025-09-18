@@ -26,7 +26,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
@@ -175,10 +178,12 @@ public class ProxyGroupActivity extends AppCompatActivity {
                 return true;
             }
 
-            Outbound<ProxyChainSettings> outbound = new Outbound<>();
+            List<LabelSubscription> proxiesDeduplicated = List.copyOf(new LinkedHashSet<>(this.proxies));
+
+            Outbound<ProxyGroupSettings> outbound = new Outbound<>();
             outbound.protocol = "proxy-group";
-            outbound.settings = new ProxyChainSettings();
-            outbound.settings.proxies = proxies;
+            outbound.settings = new ProxyGroupSettings();
+            outbound.settings.proxies = proxiesDeduplicated;
 
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             String json = gson.toJson(outbound);
