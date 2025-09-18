@@ -116,12 +116,18 @@ public class XiVPNService extends VpnService implements SocketProtect {
         vpnState = newState;
     }
 
+    /**
+     * Call setState in a synchronized vpnStateLock block
+     */
     private void setState(VPNState newState) {
         synchronized (vpnStateLock) {
             setStateRaw(newState);
         }
     }
 
+    /**
+     * Send message to listeners
+     */
     private void sendMessage(String msg) {
         new Handler(Looper.getMainLooper()).post(() -> {
             synchronized (listeners) {
