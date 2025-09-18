@@ -241,8 +241,8 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     public void setGroups(Map<LabelSubscription, Pair<List<LabelSubscription>, LabelSubscription>> groups) {
         int servers = 0;
-        if (groups.get(activeTab) != null) {
-            servers = Objects.requireNonNull(groups.get(activeTab)).first.size();
+        if (this.groups.get(activeTab) != null) {
+            servers = Objects.requireNonNull(this.groups.get(activeTab)).first.size();
         }
 
         this.groups = groups;
