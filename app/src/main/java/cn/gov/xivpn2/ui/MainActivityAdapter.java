@@ -88,12 +88,22 @@ public class MainActivityAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
             viewHolder.tabLayout.removeAllTabs();
 
+            TabLayout.Tab selected = null;
+
             for (LabelSubscription key : groups.keySet()) {
                 TabLayout.Tab tab = viewHolder.tabLayout.newTab();
                 tab.setText(key.label);
-                viewHolder.tabLayout.addTab(tab);
                 tab.setTag(key);
+                viewHolder.tabLayout.addTab(tab);
+                if (selected == null) {
+                    selected = tab;
+                }
+                if (key.equals(activeTab)) {
+                    selected = tab;
+                }
             }
+
+            viewHolder.tabLayout.selectTab(selected);
 
 
             viewHolder.tabLayout.setOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
