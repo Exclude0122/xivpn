@@ -324,7 +324,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         try {
             config = buildXrayConfig();
         } catch (RuntimeException e) {
-            Log.e(TAG, "build xray config");
+            Log.e(TAG, "build xray config", e);
             sendMessage("Error: Could not build xray config: " + e.getClass().getName() + ": " + e.getMessage());
             return false;
         }
