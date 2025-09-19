@@ -23,6 +23,10 @@
         android:theme="@style/Theme.XiVPN"
         tools:targetApi="31">
         <activity
+            android:name=".ui.BackupActivity"
+            android:configChanges="orientation|screenLayout|screenSize"
+            android:exported="false" />
+        <activity
             android:name=".ui.DNSServerActivity"
             android:exported="false" />
         <activity
@@ -68,31 +72,31 @@
             android:name=".ui.SubscriptionsActivity"
             android:exported="false" />
         <activity
-            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.ShadowsocksActivity"
+            android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.VmessActivity"
+            android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.VlessActivity"
+            android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
             android:name=".ui.ProxiesActivity"
             android:exported="false" />
         <activity
-            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.TrojanActivity"
+            android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.WireguardActivity"
+            android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:configChanges="orientation|screenLayout|screenSize"
             android:name=".ui.XHttpStreamActivity"
+            android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
 
         <provider

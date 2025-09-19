@@ -65,6 +65,17 @@
 
     <PreferenceCategory
         app:iconSpaceReserved="false"
+        android:title="@string/app">
+
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="backup_or_restore"
+            app:title="@string/backup_or_restore" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
         app:title="@string/appearance">
         <CheckBoxPreference
             android:title="@string/black_background"

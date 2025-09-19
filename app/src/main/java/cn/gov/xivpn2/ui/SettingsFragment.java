@@ -8,7 +8,9 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 
 import cn.gov.xivpn2.BuildConfig;
@@ -53,6 +55,11 @@ public class SettingsFragment extends PreferenceFragmentCompat {
 
         findPreference("split_tunnel_apps").setOnPreferenceClickListener(preference -> {
             startActivity(new Intent(getContext(), SplitTunnelActivity.class));
+            return true;
+        });
+
+        findPreference("backup_or_restore").setOnPreferenceClickListener(preference -> {
+            startActivity(new Intent(getContext(), BackupActivity.class));
             return true;
         });
     }
