@@ -122,4 +122,19 @@
     <string name="invalid_port">无效端口</string>
     <string name="security_option_unsupported">暂不支持 Security 选项 "%1$s"</string>
     <string name="protocol_unsupported">暂不支持协议 "%1$s"</string>
+    <string name="proxy_chain_help">链式代理允许你将多个代理服务器串联起来。列表中的第一个服务器是入口服务器，最后一个服务器是出口服务器。之间的所有服务器都是中继服务器（类似 Tor 的多跳）。</string>
+    <string name="proxy_group">代理组</string>
+    <string name="proxy_group_cycle">代理组中出现回环：</string>
+    <string name="proxy_group_empty">代理组不能为空：</string>
+    <string name="proxy_group_not_found">代理组 \"%s\": 代理 \"%s\" 不存在</string>
+    <string name="backup">备份</string>
+    <string name="app">应用</string>
+    <string name="backup_or_restore">备份 / 还原</string>
+    <string name="restore">还原</string>
+    <string name="backup_help">备份内容包括:\n- 所有代理服务器\n- 所有路由设置\n- 所有 DNS 设置\n- 所有订阅连接</string>
+    <string name="restore_help">警告：还原会覆盖所有当前配置</string>
+    <string name="backup_finished">备份完成</string>
+    <string name="backup_error">备份失败：</string>
+    <string name="restore_error">还原失败：</string>
+    <string name="restore_finished">还原完成</string>
 </resources>

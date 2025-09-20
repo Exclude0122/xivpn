@@ -104,8 +104,6 @@
     <string name="dns_requires_api_29">Эта функция требует Android 9 или новее.</string>
     <string name="system_network_info">Информация о системе и сети</string>
     <string name="dns">DNS</string>
-    <string name="hosts" translatable="false">Hosts</string>
-    <string name="hosts_placeholder" translatable="false">one.one.one.one 1.1.1.1\nexample.com example.org</string>
     <string name="hosts_format_error">Неправильный формат строки hosts:</string>
     <string name="dns_help">Здесь вы можете настроить встроенный DNS-сервер Xray.\n\nОбратите внимание, что DNS-запросы не обрабатываются Xray, если вы не задали соответствующее правило маршрутизации на DNS outbound.</string>
     <string name="dns_servers">DNS-серверы</string>
@@ -113,7 +111,6 @@
     <string name="could_not_save_dns">Не удалось сохранить настройки DNS</string>
     <string name="at_least_one_dns_server">Вы должны оставить хотя бы один DNS-сервер</string>
     <string name="address">Адрес</string>
-    <string name="tag" translatable="false">Тег</string>
     <string name="new_dns_server">Новый DNS-сервер</string>
     <string name="edit_dns_server">Редактировать DNS-сервер</string>
     <string name="could_not_read_dns">Не удалось прочитать настройки DNS</string>

@@ -135,7 +135,7 @@
     <string name="app">App</string>
     <string name="backup_or_restore">Backup / Restore</string>
     <string name="restore">Restore</string>
-    <string name="backup_help">Included in backup:\n- All proxies\n- All routing rules\n- All DNS settings\n- Split tunneling settings</string>
+    <string name="backup_help">Included in backup:\n- All proxies\n- All routing rules\n- All DNS settings\n- All subscription links</string>
     <string name="restore_help">Warning: all current configuration will be lost when restoring</string>
     <string name="backup_finished">Backup finished</string>
     <string name="backup_error">"Backup error: "</string>
