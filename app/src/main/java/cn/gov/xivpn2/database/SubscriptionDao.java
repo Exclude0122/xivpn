@@ -22,4 +22,7 @@ public interface SubscriptionDao {
 
     @Query("UPDATE subscription SET url = :url WHERE label = :label")
     void updateUrl(String label, String url);
+
+    @Query("DELETE FROM subscription")
+    void deleteAll();
 }

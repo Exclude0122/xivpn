@@ -42,6 +42,7 @@ import java.util.zip.ZipOutputStream;
 
 import cn.gov.xivpn2.BuildConfig;
 import cn.gov.xivpn2.R;
+import cn.gov.xivpn2.Utils;
 import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Subscription;
@@ -123,37 +124,25 @@ public class BackupActivity extends AppCompatActivity {
                 // zip content
                 ZipOutputStream zip = new ZipOutputStream(fileOutputStream);
                 zip.setComment("XiVPN - https://github.com/Exclude0122/xivpn");
-                zip.setLevel(9);
-
+                zip.setMethod(ZipOutputStream.STORED);
 
                 // app version
-                zip.putNextEntry(new ZipEntry("version.txt"));
-                zip.write(String.valueOf(BuildConfig.VERSION_CODE).getBytes(StandardCharsets.UTF_8));
-                zip.closeEntry();
+                Utils.addFileToZip(zip, "version.txt", String.valueOf(BuildConfig.VERSION_CODE).getBytes(StandardCharsets.UTF_8));
 
                 // proxies
-                zip.putNextEntry(new ZipEntry("proxies.json"));
                 List<Proxy> proxies = AppDatabase.getInstance().proxyDao().findAll();
-                zip.write(gson.toJson(proxies).getBytes(StandardCharsets.UTF_8));
-                zip.closeEntry();
+                Utils.addFileToZip(zip, "proxies.json", gson.toJson(proxies).getBytes(StandardCharsets.UTF_8));
 
                 // subscriptions
-                zip.putNextEntry(new ZipEntry("subscriptions.json"));
                 List<Subscription> subscriptions = AppDatabase.getInstance().subscriptionDao().findAll();
-                zip.write(gson.toJson(subscriptions).getBytes(StandardCharsets.UTF_8));
-                zip.closeEntry();
+                Utils.addFileToZip(zip, "subscriptions.json", gson.toJson(subscriptions).getBytes(StandardCharsets.UTF_8));
 
                 // rules
-                zip.putNextEntry(new ZipEntry("rules.json"));
-                FileUtils.copyFile(new File(getFilesDir(), "rules.json"), zip);
-                zip.closeEntry();
+                Utils.addFileToZip(zip, "rules.json", new File(getFilesDir(), "rules.json"));
 
                 // dns
-                zip.putNextEntry(new ZipEntry("dns.json"));
-                FileUtils.copyFile(new File(getFilesDir(), "dns.json"), zip);
-                zip.closeEntry();
+                Utils.addFileToZip(zip, "dns.json", new File(getFilesDir(), "dns.json"));
 
-                Toast.makeText(this, R.string.backup_finished, Toast.LENGTH_SHORT).show();
 
                 zip.close();
                 fileOutputStream.close();
@@ -166,6 +155,8 @@ public class BackupActivity extends AppCompatActivity {
                         .setPositiveButton(R.string.ok, null)
                         .show();
             }
+
+            Toast.makeText(this, R.string.backup_finished, Toast.LENGTH_SHORT).show();
         }
 
         if (requestCode == 2 && resultCode == RESULT_OK) {
@@ -185,7 +176,6 @@ public class BackupActivity extends AppCompatActivity {
 
                         ZipEntry nextEntry = zipInputStream.getNextEntry();
                         while (nextEntry != null) {
-                            nextEntry = zipInputStream.getNextEntry();
 
                             byte[] bytes = new byte[Math.toIntExact(nextEntry.getSize())]; // TODO: getSize returns -1
                             IOUtils.readFully(zipInputStream, bytes);
@@ -211,7 +201,7 @@ public class BackupActivity extends AppCompatActivity {
 
                                     List<Subscription> proxies = gson.fromJson(content, new TypeToken<>() {
                                     });
-                                    AppDatabase.getInstance().proxyDao().deleteAll();
+                                    AppDatabase.getInstance().subscriptionDao().deleteAll();
                                     for (Subscription sub : proxies) {
                                         AppDatabase.getInstance().subscriptionDao().insert(sub);
                                     }
@@ -229,7 +219,12 @@ public class BackupActivity extends AppCompatActivity {
 
                                     break;
                             }
+
+
+                            nextEntry = zipInputStream.getNextEntry();
                         }
+
+                        zipInputStream.close();
 
                     } catch (Exception e) {
                         Log.d(TAG, "restore in transaction", e);
@@ -246,6 +241,8 @@ public class BackupActivity extends AppCompatActivity {
                         .setPositiveButton(R.string.ok, null)
                         .show();
             }
+
+            Toast.makeText(this, R.string.restore_finished, Toast.LENGTH_SHORT).show();
         }
     }
 
