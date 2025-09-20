@@ -466,7 +466,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
     }
 
     /**
-     * Handles IPC commands from libxivpn. Called in ipcTread.
+     * Handles IPC commands from libxivpn. Called in ipcThread.
      */
     private void ipcLoop(LocalSocket socket) {
         try {

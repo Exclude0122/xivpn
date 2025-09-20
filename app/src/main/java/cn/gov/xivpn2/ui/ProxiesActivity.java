@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.core.graphics.Insets;
@@ -250,6 +251,14 @@ public class ProxiesActivity extends AppCompatActivity {
                     }).show();
 
             return true;
+        } else if (item.getItemId() == R.id.help) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.help)
+                    .setMessage(R.string.proxies_help)
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+            return true;
+
         }
 
         return super.onOptionsItemSelected(item);

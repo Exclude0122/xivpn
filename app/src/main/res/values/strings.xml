@@ -141,4 +141,5 @@
     <string name="backup_error">"Backup error: "</string>
     <string name="restore_error">"Restore error: "</string>
     <string name="restore_finished">Restore finished</string>
+    <string name="proxies_help">Select the default outbound, which handles all traffic not captured by rules.</string>
 </resources>

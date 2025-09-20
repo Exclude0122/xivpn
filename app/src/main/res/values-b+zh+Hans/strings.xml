@@ -137,4 +137,5 @@
     <string name="backup_error">备份失败：</string>
     <string name="restore_error">还原失败：</string>
     <string name="restore_finished">还原完成</string>
+    <string name="proxies_help">选择默认出站。会处理所有未匹配规则的流量。</string>
 </resources>

@@ -3,6 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/help"
+        android:icon="@drawable/help"
+        android:title="@string/help"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/add"
         android:icon="@drawable/baseline_add_24"
         android:title="@string/add"
