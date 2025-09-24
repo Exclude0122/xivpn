@@ -648,17 +648,14 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 continue;
             }
             if (proxyChain.label.equals(selected.label) && proxyChain.subscription.equals(selected.subscription)) {
-                found = new LabelSubscription();
-                found.label = proxyChain.label;
-                found.subscription = proxyChain.subscription;
+                found = new LabelSubscription(proxyChain.label, proxyChain.subscription);
                 break;
             }
         }
 
-        List<Pair<String, String>> newVisited = new ArrayList<>(visited);
-        newVisited.add(new Pair<>(label, subscription));
+        visited.add(new Pair<>(label, subscription));
 
-        return resolveProxyGroup(found.label, found.subscription, newVisited);
+        return resolveProxyGroup(found.label, found.subscription, visited);
     }
 
     private Config buildXrayConfig() {

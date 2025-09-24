@@ -155,9 +155,7 @@ public class ProxyGroupActivity extends AppCompatActivity {
                         if (selected[0].isEmpty() && selected[1].isEmpty()) return;
 
                         // add proxy to proxy chain
-                        LabelSubscription pc = new LabelSubscription();
-                        pc.label = selected[0];
-                        pc.subscription = selected[1];
+                        LabelSubscription pc = new LabelSubscription(selected[0], selected[1]);
                         this.proxies.add(pc);
                         adapter.notifyItemInserted(this.proxies.size() - 1);
                     })

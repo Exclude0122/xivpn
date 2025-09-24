@@ -6,6 +6,11 @@ public class LabelSubscription {
     public String label;
     public String subscription;
 
+    public LabelSubscription(String label, String subscription) {
+        this.label = label;
+        this.subscription = subscription;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof LabelSubscription)) return false;

@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,9 +13,7 @@ import android.os.IBinder;
 import android.util.Log;
 import android.util.Pair;
 import android.view.MenuItem;
-import android.view.ViewGroup;
 import android.widget.CompoundButton;
-import android.widget.FrameLayout;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -37,7 +36,9 @@ import com.google.gson.GsonBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -48,11 +49,12 @@ import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.LabelSubscription;
+import cn.gov.xivpn2.xrayconfig.ProxyChainSettings;
 import cn.gov.xivpn2.xrayconfig.ProxyGroupSettings;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
 
 public class MainActivity extends AppCompatActivity {
-
+    private final String TAG = "MainActivity";
     private DrawerLayout drawerLayout;
     private XiVPNService.XiVPNBinder binder;
     private XiVPNService.VPNStateListener vpnStatusListener;
@@ -273,12 +275,10 @@ public class MainActivity extends AppCompatActivity {
 
         // update proxy groups
 
-        List<Proxy> proxies = AppDatabase.getInstance().proxyDao().findByProtocol("proxy-group");
+        List<Proxy> proxies = findUsedProxyGroups();
         Map<LabelSubscription, Pair<List<LabelSubscription>, LabelSubscription>> map = new HashMap<>();
         for (Proxy proxy : proxies) {
-            LabelSubscription key = new LabelSubscription();
-            key.label = proxy.label;
-            key.subscription = proxy.subscription;
+            LabelSubscription key = new LabelSubscription(proxy.label, proxy.subscription);
 
             Gson gson = new Gson();
             Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() {
@@ -294,6 +294,66 @@ public class MainActivity extends AppCompatActivity {
         }
 
         adapter.setGroups(map);
+    }
+
+    private ArrayList<Proxy> findUsedProxyGroups() {
+        ArrayList<Proxy> proxies = new ArrayList<>();
+        HashSet<LabelSubscription> visited = new HashSet<>();
+
+        // catch all
+        SharedPreferences sp = getSharedPreferences("XIVPN", Context.MODE_PRIVATE);
+        String selectedLabel = sp.getString("SELECTED_LABEL", "No Proxy (Bypass Mode)");
+        String selectedSubscription = sp.getString("SELECTED_SUBSCRIPTION", "none");
+        recurseUsedProxyGroups(new LabelSubscription(selectedLabel, selectedSubscription), proxies, visited);
+
+        // routing
+        try {
+            List<RoutingRule> rules = Rules.readRules(getFilesDir());
+
+            for (RoutingRule rule : rules) {
+                recurseUsedProxyGroups(new LabelSubscription(rule.outboundLabel, rule.outboundSubscription), proxies, visited);
+            }
+        } catch (IOException e) {
+            Log.wtf(TAG, "build xray config", e);
+        }
+
+        return proxies;
+    }
+
+    /**
+     * Recursively find proxy groups used by newProxy.
+     * @param proxies proxy groups
+     */
+    private void recurseUsedProxyGroups(LabelSubscription labelSub, ArrayList<Proxy> proxies, HashSet<LabelSubscription> visited) {
+        if (visited.contains(labelSub)) {
+            return;
+        }
+        visited.add(labelSub);
+
+        Proxy newProxy = AppDatabase.getInstance().proxyDao().find(labelSub.label, labelSub.subscription);
+
+        if (newProxy.protocol.equals("proxy-group")) {
+            // add the new proxy group to proxies
+            proxies.add(newProxy);
+
+            // recursively find its dependencies
+            Gson gson = new Gson();
+            Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(newProxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() {
+            }.getType());
+
+            for (LabelSubscription newLabelSub: proxyGroupSettings.settings.proxies) {
+                recurseUsedProxyGroups(newLabelSub, proxies, visited);
+            }
+        } else if (newProxy.protocol.equals("proxy-chain")) {
+            // recursively find its dependencies
+            Gson gson = new Gson();
+            Outbound<ProxyChainSettings> proxyChainSettings = gson.fromJson(newProxy.config, new TypeToken<Outbound<ProxyChainSettings>>() {
+            }.getType());
+
+            for (LabelSubscription newLabelSub: proxyChainSettings.settings.proxies) {
+                recurseUsedProxyGroups(newLabelSub, proxies, visited);
+            }
+        }
     }
 
     @Override
