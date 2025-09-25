@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -27,7 +28,7 @@ public class CrashActivity extends AppCompatActivity {
     private static @NonNull String getMessage(String exception) {
 
 
-        return "Please report this issue to the developers.\n" +
+        return "Please report this issue to developers.\n" +
                 "Android Release: " + Build.VERSION.RELEASE + "\n" +
                 "Android SDK: " + Build.VERSION.SDK_INT + "\n" +
                 "Device: " + Build.MANUFACTURER + " " + Build.MODEL + "\n" +
@@ -73,6 +74,11 @@ public class CrashActivity extends AppCompatActivity {
             } catch (ActivityNotFoundException | UnsupportedEncodingException e) {
                 Log.e("CrashActivity", "open browser", e);
             }
+        });
+
+        Button btn2 = findViewById(R.id.btn_backup);
+        btn2.setOnClickListener(v -> {
+            startActivity(new Intent(this, BackupActivity.class));
         });
     }
 }
