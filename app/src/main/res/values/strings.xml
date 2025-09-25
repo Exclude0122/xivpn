@@ -127,7 +127,7 @@
     <string name="protocol_unsupported">Protocol "%1$s" is unsupported</string>
     <string name="proxy_chain_help">Proxy chain allows you to use a series of servers.\n\nThe first server in the list is the entry server and the last server is the exit server. Everything in between is intermediate hops (just like tor).</string>
     <string name="proxy_group">Proxy group</string>
-    <string name="proxy_group_help">PROXY GROUP HELP</string>
+    <string name="proxy_group_help">You can group servers into proxy groups and use those groups as placeholders in configurations (e.g. outbound for rules, catch-all outbound or proxy chains).\n\nWhen building Xray config, proxy groups will be replaced by the currently selected server in each group. You may change the selected server on the main screen.\n\nGroups can also include other groups, but circular references (a group containing itself indirectly) are not allowed.</string>
     <string name="proxy_group_cycle">A cycle is found in proxy group: </string>
     <string name="proxy_group_empty">"Proxy group cannot be empty: "</string>
     <string name="proxy_group_not_found">Proxy group \"%s\": proxy \"%s\" not found</string>
@@ -141,5 +141,5 @@
     <string name="backup_error">"Backup error: "</string>
     <string name="restore_error">"Restore error: "</string>
     <string name="restore_finished">Restore finished</string>
-    <string name="proxies_help">Select the default outbound, which handles all traffic not captured by rules.</string>
+    <string name="proxies_help">The highlighted proxy is the catch-all proxy. By default, all traffic is routed through it unless overridden by specific routing rules.</string>
 </resources>
