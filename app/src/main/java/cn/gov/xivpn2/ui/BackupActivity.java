@@ -45,6 +45,7 @@ import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.Utils;
 import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
+import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.database.Subscription;
 
 public class BackupActivity extends AppCompatActivity {
@@ -233,6 +234,9 @@ public class BackupActivity extends AppCompatActivity {
                 });
 
                 inputStream.close();
+
+                Rules.resetDeletedProxies(getSharedPreferences("XIVPN", MODE_PRIVATE), getApplicationContext().getFilesDir());
+
             } catch (Exception e) {
                 Log.e(TAG, "restore error", e);
                 new AlertDialog.Builder(this)

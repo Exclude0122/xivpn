@@ -38,7 +38,8 @@ public class Rules {
     }
 
     /**
-     * Reset outbound to freedom for delete outbound proxy
+     * Reset outbound to freedom for delete outbound proxy, and set catch all to freedom if the
+     * currently selected catch all does not exist.
      */
     public static void resetDeletedProxies(SharedPreferences sp, File filesDir) throws IOException {
         List<RoutingRule> rules = readRules(filesDir);
