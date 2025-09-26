@@ -9,6 +9,7 @@ public class StreamSettings {
     public TLSSettings tlsSettings;
     public RealitySettings realitySettings;
     public XHttpSettings xHttpSettings;
+    public RawSettings rawSettings;
     public Sockopt sockopt;
 
     // used by xhttp

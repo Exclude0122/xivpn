@@ -39,6 +39,9 @@ import cn.gov.xivpn2.xrayconfig.HttpUpgradeSettings;
 import cn.gov.xivpn2.xrayconfig.MuxSettings;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.QuicSettings;
+import cn.gov.xivpn2.xrayconfig.RawHeader;
+import cn.gov.xivpn2.xrayconfig.RawHttpHeaderRequest;
+import cn.gov.xivpn2.xrayconfig.RawSettings;
 import cn.gov.xivpn2.xrayconfig.RealitySettings;
 import cn.gov.xivpn2.xrayconfig.StreamSettings;
 import cn.gov.xivpn2.xrayconfig.TLSSettings;
@@ -94,6 +97,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
         if (hasStreamSettings()) {
             adapter.addGroupTitle("GROUP_NETWORK", "Transport");
             adapter.addInput("NETWORK", "Network", Arrays.asList("tcp", "ws", "quic", "httpupgrade", "xhttp"));
+            adapter.addInputAfter("NETWORK", "NETWORK_TCP_HEADER", "TCP Header", Arrays.asList("none", "http"));
             adapter.addGroupTitle("GROUP_SECURITY", "Security");
             adapter.addInput("SECURITY", "Security", Arrays.asList("none", "tls", "reality"));
         }
@@ -247,6 +251,19 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
         String network = this.adapter.getValue("NETWORK");
         outbound.streamSettings.network = network;
         switch (network) {
+            case "tcp":
+                outbound.streamSettings.rawSettings = new RawSettings();
+                if (adapter.getValue("NETWORK_TCP_HEADER").equals("http")) {
+                    outbound.streamSettings.rawSettings.header = new RawHeader();
+                    outbound.streamSettings.rawSettings.header.type = "http";
+                    outbound.streamSettings.rawSettings.header.request = new RawHttpHeaderRequest();
+                    if (!adapter.getValue("NETWORK_TCP_HEADER_HTTP_HOST").isBlank()) {
+                        outbound.streamSettings.rawSettings.header.request.headers.put("Host", adapter.getValue("NETWORK_TCP_HEADER_HTTP_HOST"));
+                    }
+                } else {
+                    outbound.streamSettings.rawSettings.header = null;
+                }
+                break;
             case "ws":
                 outbound.streamSettings.wsSettings = new WsSettings();
                 outbound.streamSettings.wsSettings.path = adapter.getValue("NETWORK_WS_PATH");
@@ -339,6 +356,18 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
 
         initials.put("NETWORK", outbound.streamSettings.network);
         switch (outbound.streamSettings.network) {
+            case "tcp":
+                if (outbound.streamSettings.rawSettings != null && outbound.streamSettings.rawSettings.header != null && "http".equals(outbound.streamSettings.rawSettings.header.type)) {
+                    initials.put("NETWORK_TCP_HEADER", "http");
+                    if (outbound.streamSettings.rawSettings.header.request != null && outbound.streamSettings.rawSettings.header.request.headers != null && outbound.streamSettings.rawSettings.header.request.headers.containsKey("Host")) {
+                        initials.put("NETWORK_TCP_HEADER_HTTP_HOST", outbound.streamSettings.rawSettings.header.request.headers.get("Host"));
+                    } else {
+                        initials.put("NETWORK_TCP_HEADER_HTTP_HOST", "");
+                    }
+                } else {
+                    initials.put("NETWORK_TCP_HEADER", "none");
+                }
+                break;
             case "ws":
                 initials.put("NETWORK_WS_PATH", outbound.streamSettings.wsSettings.path);
                 initials.put("NETWORK_WS_HOST", outbound.streamSettings.wsSettings.host);
@@ -432,6 +461,9 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             case "NETWORK":
                 adapter.removeInputByPrefix("NETWORK_");
                 switch (value) {
+                    case "tcp":
+                        adapter.addInputAfter("NETWORK", "NETWORK_TCP_HEADER", "TCP Header", Arrays.asList("none", "http"));
+                        break;
                     case "ws":
                         adapter.addInputAfter("NETWORK", "NETWORK_WS_PATH", "Websocket Path", "/");
                         adapter.addInputAfter("NETWORK", "NETWORK_WS_HOST", "Websocket Host");
@@ -448,6 +480,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                         adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_HOST", "XHTTP Host", "");
                         adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_PATH", "XHTTP Path", "/");
                         adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_MODE", "XHTTP Mode", List.of("packet-up", "stream-up", "auto", "stream-one"));
+                        break;
                 }
                 break;
             case "NETWORK_QUIC_SECURITY":
@@ -509,6 +542,12 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                     adapter.addInputAfter("MUX_ENABLED", "MUX_XUDP_PROXY_UDP443", "XUDP Proxy UDP 443", List.of("reject", "skip"));
                     adapter.addInputAfter("MUX_ENABLED", "MUX_XUDP_CONCURRENCY", "XUDP Concurrency", "16");
                     adapter.addInputAfter("MUX_ENABLED", "MUX_CONCURRENCY", "Mux Concurrency", "4");
+                }
+                break;
+            case "NETWORK_TCP_HEADER":
+                adapter.removeInputByPrefix("NETWORK_TCP_HEADER_");
+                if (value.equals("http")) {
+                    adapter.addInputAfter("NETWORK_TCP_HEADER", "NETWORK_TCP_HEADER_HTTP_HOST", "TCP Header HTTP Host");
                 }
                 break;
         }
