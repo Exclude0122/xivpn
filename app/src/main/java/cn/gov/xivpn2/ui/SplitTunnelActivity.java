@@ -1,5 +1,6 @@
 package cn.gov.xivpn2.ui;
 
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -11,7 +12,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.core.graphics.Insets;
@@ -36,6 +39,7 @@ public class SplitTunnelActivity extends AppCompatActivity {
     private Thread thread = null;
     private InstalledAppsAdapter adapter;
     private String searchKeyword = "";
+    private boolean unsavedChanges = false;
 
     private List<InstalledAppsAdapter.App> filter() {
         ArrayList<InstalledAppsAdapter.App> newList = new ArrayList<>();
@@ -70,6 +74,7 @@ public class SplitTunnelActivity extends AppCompatActivity {
         adapter = new InstalledAppsAdapter();
 
         adapter.onCheckListener = (packageName, isChecked) -> {
+            unsavedChanges = true;
             for (int i = 0; i < allApps.size(); i++) {
                 InstalledAppsAdapter.App oldApp = allApps.get(i);
                 if (oldApp.packageName.equals(packageName)) {
@@ -84,6 +89,7 @@ public class SplitTunnelActivity extends AppCompatActivity {
         // selected apps
         SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
         Set<String> selectedPackageNames = sp.getStringSet("APP_LIST", new HashSet<>());
+        unsavedChanges = false;
 
         // get app list
         thread = new Thread(() -> {
@@ -126,6 +132,19 @@ public class SplitTunnelActivity extends AppCompatActivity {
         });
         thread.start();
 
+        // prevent back button
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (unsavedChanges) {
+                    showUnsavedChangesWarning();
+                } else {
+                    finish();
+                }
+            }
+        });
+
 
     }
 
@@ -167,27 +186,50 @@ public class SplitTunnelActivity extends AppCompatActivity {
         return super.onCreateOptionsMenu(menu);
     }
 
+    private void saveAndExit() {
+        unsavedChanges = false;
+
+        SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sp.edit();
+
+        HashSet<String> apps = new HashSet<>();
+        for (int i = 0; i < allApps.size(); i++) {
+            if (!allApps.get(i).checked) continue;
+            apps.add(allApps.get(i).packageName);
+        }
+        editor.putStringSet("APP_LIST", apps);
+
+        editor.apply();
+
+        finish();
+    }
+
+    private void showUnsavedChangesWarning() {
+        new AlertDialog.Builder(SplitTunnelActivity.this)
+            .setTitle(R.string.warning)
+            .setMessage(R.string.unsaved_changes)
+            .setPositiveButton(R.string.save, (dialog, which) -> {
+                saveAndExit();
+            })
+            .setNegativeButton(R.string.cancel, null)
+            .setNeutralButton(R.string.discard_changes, (dialog, which) -> {
+                finish();
+            })
+            .show();
+    }
+
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            finish();
+            if (unsavedChanges) {
+                showUnsavedChangesWarning();
+            } else {
+                finish();
+            }
             return true;
         }
         if (item.getItemId() == R.id.save) {
-
-            SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
-            SharedPreferences.Editor editor = sp.edit();
-
-            HashSet<String> apps = new HashSet<>();
-            for (int i = 0; i < allApps.size(); i++) {
-                if (!allApps.get(i).checked) continue;
-                apps.add(allApps.get(i).packageName);
-            }
-            editor.putStringSet("APP_LIST", apps);
-
-            editor.apply();
-
-            finish();
+            saveAndExit();
             return true;
         }
         return super.onOptionsItemSelected(item);
