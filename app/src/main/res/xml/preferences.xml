@@ -39,7 +39,16 @@
         <Preference
             android:title="@string/geoip_geosite"
             app:iconSpaceReserved="false"
+            app:summary="@string/geoip_geosite_summary"
             app:key="geoip_geosite" />
+
+
+        <CheckBoxPreference
+            android:title="@string/ipv6"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false"
+            app:key="ipv6"
+            app:summary="@string/ipv6_summary" />
 
     </PreferenceCategory>
 

@@ -297,10 +297,15 @@ public class XiVPNService extends VpnService implements SocketProtect {
         // establish vpn
         Builder vpnBuilder = new Builder();
         vpnBuilder.addRoute("0.0.0.0", 0);
-        vpnBuilder.addRoute("[::]", 0);
         vpnBuilder.addAddress("10.89.64.1", 32);
         vpnBuilder.addDnsServer("8.8.8.8");
         vpnBuilder.addDnsServer("8.8.4.4");
+
+        if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("ipv6", false)) {
+            Log.d(TAG, "ipv6 enabled");
+            vpnBuilder.addAddress("fc00:8964::", 128);
+            vpnBuilder.addRoute("[::]", 0);
+        }
 
         Set<String> apps = getSharedPreferences("XIVPN", MODE_PRIVATE).getStringSet("APP_LIST", new HashSet<>());
         boolean blacklist = PreferenceManager.getDefaultSharedPreferences(this).getString("split_tunnel_mode", "Blacklist").equals("Blacklist");

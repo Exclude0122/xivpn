@@ -145,4 +145,7 @@
     <string name="unsaved_changes">You have unsaved changes</string>
     <string name="cancel">Cancel</string>
     <string name="discard_changes">Discard changes</string>
+    <string name="ipv6">IPv6</string>
+    <string name="ipv6_summary">Add IPv6 address and route to VPN network interface.</string>
+    <string name="geoip_geosite_summary">Download GEOIP / GEOSITE database</string>
 </resources>
