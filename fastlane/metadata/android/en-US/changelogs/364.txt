@@ -1,0 +1,8 @@
+- fix fdroid building
+
+From v1.7.0:
+- xray v25.9.11
+- russian translation
+- proxy groups
+- backup / restore configuration
+- minor bug fixes
