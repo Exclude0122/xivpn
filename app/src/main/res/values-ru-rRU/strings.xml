@@ -105,7 +105,7 @@
     <string name="system_network_info">Информация о системе и сети</string>
     <string name="dns">DNS</string>
     <string name="hosts" translatable="false">Hosts</string>
-    <string name="hosts_placeholder" translatable="false">one.one.one.one 1.1.1.1\nexample.com example.org</string>
+    <string name="hosts_placeholder">one.one.one.one 1.1.1.1\nexample.com example.org</string>
     <string name="hosts_format_error">Неправильный формат строки hosts:</string>
     <string name="dns_help">Здесь вы можете настроить встроенный DNS-сервер Xray.\n\nОбратите внимание, что DNS-запросы не обрабатываются Xray, если вы не задали соответствующее правило маршрутизации на DNS outbound.</string>
     <string name="dns_servers">DNS-серверы</string>
@@ -131,4 +131,21 @@
      <string name="proxy_group_cycle">Обнаружен цикл в группе прокси: </string>
     <string name="proxy_group_empty">Группа прокси не может быть пустой: </string>
     <string name="proxy_group_not_found">Группа прокси \"%s\": прокси \"%s\" не найден</string>
+    <string name="backup">Резервная копия</string>
+    <string name="app">Приложение</string>
+    <string name="backup_or_restore">Резервное копирование / Восстановление</string>
+    <string name="restore">Восстановить</string>
+    <string name="backup_help">Включено в резервную копию:\n- Все прокси\n- Все правила маршрутизации\n- Все настройки DNS\n- Все подписки</string>
+    <string name="restore_help">Внимание: при восстановлении будут потеряны все текущие настройки</string>
+    <string name="backup_finished">Резервное копирование завершено</string>
+    <string name="backup_error">Ошибка резервного копирования: </string>
+    <string name="restore_error">Ошибка восстановления: </string>
+    <string name="restore_finished">Восстановление завершено</string>
+    <string name="proxies_help">Выделенный прокси — прокси по умолчанию. По умолчанию весь трафик направляется через него, если нет других правил маршрутизации.</string>
+    <string name="unsaved_changes">Есть несохранённые изменения</string>
+    <string name="cancel">Отмена</string>
+    <string name="discard_changes">Отменить изменения</string>
+    <string name="ipv6">IPv6</string>
+    <string name="ipv6_summary">Добавить IPv6-адрес и маршрут к VPN-интерфейсу.</string>
+    <string name="geoip_geosite_summary">Скачать базу данных GEOIP / GEOSITE</string>
 </resources>
