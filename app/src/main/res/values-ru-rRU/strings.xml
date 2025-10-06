@@ -105,7 +105,7 @@
     <string name="system_network_info">Информация о системе и сети</string>
     <string name="dns">DNS</string>
     <string name="hosts" translatable="false">Hosts</string>
-    <string name="hosts_placeholder">one.one.one.one 1.1.1.1\nexample.com example.org</string>
+    <string name="hosts_placeholder" translatable="false">one.one.one.one 1.1.1.1\nexample.com example.org</string>
     <string name="hosts_format_error">Неправильный формат строки hosts:</string>
     <string name="dns_help">Здесь вы можете настроить встроенный DNS-сервер Xray.\n\nОбратите внимание, что DNS-запросы не обрабатываются Xray, если вы не задали соответствующее правило маршрутизации на DNS outbound.</string>
     <string name="dns_servers">DNS-серверы</string>
