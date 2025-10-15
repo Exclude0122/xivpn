@@ -332,6 +332,10 @@ public class MainActivity extends AppCompatActivity {
 
         Proxy newProxy = AppDatabase.getInstance().proxyDao().find(labelSub.label, labelSub.subscription);
 
+        if (newProxy == null) {
+            return;
+        }
+
         if (newProxy.protocol.equals("proxy-group")) {
             // add the new proxy group to proxies
             proxies.add(newProxy);
