@@ -15,35 +15,33 @@
         <menu>
             <item
                 android:id="@+id/shadowsocks"
-                android:icon="@drawable/paper_plane_regular"
                 android:title="Shadowsocks" />
             <item
                 android:id="@+id/vmess"
-                android:icon="@drawable/alpha_v_circle_outline"
                 android:title="VMESS" />
             <item
                 android:id="@+id/vless"
-                android:icon="@drawable/alpha_v_circle_outline"
                 android:title="VLESS" />
             <item
                 android:id="@+id/trojan"
-                android:icon="@drawable/lock_check_outline"
                 android:title="Trojan" />
             <item
                 android:id="@+id/wireguard"
-                android:icon="@drawable/baseline_vpn_key_24"
                 android:title="Wireguard" />
             <item
+                android:id="@+id/http"
+                android:title="HTTP" />
+            <item
+                android:id="@+id/socks5"
+                android:title="Socks5" />
+            <item
                 android:id="@+id/proxy_group"
-                android:icon="@drawable/list_with_checkmark"
                 android:title="@string/proxy_group" />
             <item
                 android:id="@+id/proxy_chain"
-                android:icon="@drawable/baseline_sync_alt_24"
                 android:title="@string/proxy_chain" />
             <item
                 android:id="@+id/from_clipboard"
-                android:icon="@drawable/baseline_content_paste_24"
                 android:title="@string/import_form_clipboard" />
         </menu>
     </item>

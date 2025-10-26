@@ -72,6 +72,14 @@
             android:name=".ui.SubscriptionsActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.HttpActivity"
+            android:configChanges="orientation|screenLayout|screenSize"
+            android:exported="false" />
+        <activity
+            android:name=".ui.Socks5Activity"
+            android:configChanges="orientation|screenLayout|screenSize"
+            android:exported="false" />
+        <activity
             android:name=".ui.ShadowsocksActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />

@@ -115,6 +115,12 @@ public class ProxiesActivity extends AppCompatActivity {
                         case "proxy-group":
                             cls = ProxyGroupActivity.class;
                             break;
+                        case "http":
+                            cls = HttpActivity.class;
+                            break;
+                        case "socks":
+                            cls = Socks5Activity.class;
+                            break;
                     }
 
                     if (cls != null) {
@@ -134,9 +140,8 @@ public class ProxiesActivity extends AppCompatActivity {
                         return true;
                     }
 
-                    ClipboardManager clipman = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
-                    ClipData sharelink = ClipData.newPlainText("", link);
-                    clipman.setPrimaryClip(sharelink);
+                    ClipboardManager clipboardManager = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
+                    clipboardManager.setPrimaryClip(ClipData.newPlainText("", link));
                 }
 
                 return true;
@@ -208,7 +213,7 @@ public class ProxiesActivity extends AppCompatActivity {
             view.requestFocus();
 
             return true;
-        } else if (item.getItemId() == R.id.shadowsocks || item.getItemId() == R.id.vmess || item.getItemId() == R.id.vless || item.getItemId() == R.id.trojan || item.getItemId() == R.id.wireguard || item.getItemId() == R.id.proxy_chain || item.getItemId() == R.id.proxy_group) {
+        } else if (item.getItemId() == R.id.shadowsocks || item.getItemId() == R.id.vmess || item.getItemId() == R.id.socks5 || item.getItemId() == R.id.vless || item.getItemId() == R.id.trojan || item.getItemId() == R.id.wireguard || item.getItemId() == R.id.proxy_chain || item.getItemId() == R.id.proxy_group || item.getItemId() == R.id.http) {
 
             // add
 
@@ -241,6 +246,10 @@ public class ProxiesActivity extends AppCompatActivity {
                             cls = ProxyChainActivity.class;
                         } else if (item.getItemId() == R.id.proxy_group) {
                             cls = ProxyGroupActivity.class;
+                        } else if (item.getItemId() == R.id.http) {
+                            cls = HttpActivity.class;
+                        } else if (item.getItemId() == R.id.socks5) {
+                            cls = Socks5Activity.class;
                         }
 
                         Intent intent = new Intent(this, cls);
