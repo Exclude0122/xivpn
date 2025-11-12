@@ -22,6 +22,9 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.apache.commons.io.FileUtils;
@@ -33,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -175,10 +179,15 @@ public class BackupActivity extends AppCompatActivity {
 
                         ZipInputStream zipInputStream = new ZipInputStream(inputStream);
 
+                        // backward compatibility
+                        int versionCode = -1;
+                        String proxiesJson = null;
+                        String subscriptionsJson = null;
+
                         ZipEntry nextEntry = zipInputStream.getNextEntry();
                         while (nextEntry != null) {
 
-                            byte[] bytes = new byte[Math.toIntExact(nextEntry.getSize())]; // TODO: getSize returns -1
+                            byte[] bytes = new byte[Math.toIntExact(nextEntry.getSize())];
                             IOUtils.readFully(zipInputStream, bytes);
                             String content = new String(bytes, StandardCharsets.UTF_8);
 
@@ -188,25 +197,11 @@ public class BackupActivity extends AppCompatActivity {
 
                             switch (fileName) {
                                 case "proxies.json": {
-
-                                    List<Proxy> proxies = gson.fromJson(content, new TypeToken<>() {
-                                    });
-                                    AppDatabase.getInstance().proxyDao().deleteAll();
-                                    for (Proxy proxy : proxies) {
-                                        AppDatabase.getInstance().proxyDao().add(proxy);
-                                    }
-
+                                    proxiesJson = content;
                                     break;
                                 }
                                 case "subscriptions.json": {
-
-                                    List<Subscription> proxies = gson.fromJson(content, new TypeToken<>() {
-                                    });
-                                    AppDatabase.getInstance().subscriptionDao().deleteAll();
-                                    for (Subscription sub : proxies) {
-                                        AppDatabase.getInstance().subscriptionDao().insert(sub);
-                                    }
-
+                                    subscriptionsJson = content;
                                     break;
                                 }
                                 case "rules.json":
@@ -219,11 +214,94 @@ public class BackupActivity extends AppCompatActivity {
                                     FileUtils.writeStringToFile(new File(getFilesDir(), "dns.json"), content, StandardCharsets.UTF_8);
 
                                     break;
-                            }
 
+                                case "version.txt":
+
+                                    versionCode = Integer.parseInt(content.trim());
+
+                                    break;
+                            }
 
                             nextEntry = zipInputStream.getNextEntry();
                         }
+
+                        if (proxiesJson != null) {
+                            List<Proxy> proxies = null;
+
+                            if (versionCode > 0 && versionCode < 390) {
+
+                                // Backward compatibility: in older versions, we accidentally
+                                // obfuscated cn.gov.xivpn2.database.Proxy
+
+                                JsonArray jsonArray = gson.fromJson(proxiesJson, JsonArray.class);
+                                proxies = new ArrayList<>(jsonArray.size());
+                                for (JsonElement jsonElement : jsonArray) {
+
+                                    // mapping:
+                                    // cn.gov.xivpn2.database.Proxy -> cn.gov.xivpn2.database.c:
+                                    //    long id -> a
+                                    //    java.lang.String subscription -> b
+                                    //    java.lang.String protocol -> c
+                                    //    java.lang.String label -> d
+                                    //    java.lang.String config -> e
+
+                                    JsonObject jsonObject = jsonElement.getAsJsonObject();
+                                    Proxy p = new Proxy();
+                                    p.subscription = jsonObject.get("b").getAsString();
+                                    p.protocol = jsonObject.get("c").getAsString();
+                                    p.label = jsonObject.get("d").getAsString();
+                                    p.config = jsonObject.get("e").getAsString();
+                                    proxies.add(p);
+                                }
+
+                            } else {
+
+                                proxies = gson.fromJson(proxiesJson, new TypeToken<>() {
+                                });
+
+                            }
+                            AppDatabase.getInstance().proxyDao().deleteAll();
+                            for (Proxy proxy : proxies) {
+                                AppDatabase.getInstance().proxyDao().add(proxy);
+                            }
+                        }
+
+                        if (subscriptionsJson != null) {
+                            List<Subscription> subscriptions = null;
+
+                            if (versionCode > 0 && versionCode < 390) {
+
+                                JsonArray jsonArray = gson.fromJson(subscriptionsJson, JsonArray.class);
+                                subscriptions = new ArrayList<>(jsonArray.size());
+                                for (JsonElement jsonElement : jsonArray) {
+
+                                    // mapping:
+                                    // cn.gov.xivpn2.database.Subscription -> cn.gov.xivpn2.database.k:
+                                    //    long id -> a
+                                    //    java.lang.String label -> b
+                                    //    java.lang.String url -> c
+                                    //    int autoUpdate -> d
+
+                                    JsonObject jsonObject = jsonElement.getAsJsonObject();
+                                    Subscription p = new Subscription();
+                                    p.label = jsonObject.get("b").getAsString();
+                                    p.url = jsonObject.get("c").getAsString();
+                                    subscriptions.add(p);
+                                }
+
+                            } else {
+                                subscriptions = gson.fromJson(subscriptionsJson, new TypeToken<>() {
+                                });
+                            }
+
+                            AppDatabase.getInstance().subscriptionDao().deleteAll();
+                            for (Subscription sub : subscriptions) {
+                                AppDatabase.getInstance().subscriptionDao().insert(sub);
+                            }
+
+                        }
+
+
 
                         zipInputStream.close();
 
