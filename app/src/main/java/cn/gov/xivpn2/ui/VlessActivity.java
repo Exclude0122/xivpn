@@ -19,6 +19,7 @@ public class VlessActivity extends ProxyActivity<VlessSettings> {
         switch (key) {
             case "ADDRESS":
             case "UUID":
+            case "VLESS_ENCRYPTION":
                 return !value.isEmpty();
             case "PORT":
                 return Utils.isValidPort(value);
@@ -48,6 +49,7 @@ public class VlessActivity extends ProxyActivity<VlessSettings> {
         } else {
             user.flow = "";
         }
+        user.encryption = adapter.getValue("VLESS_ENCRYPTION");
         vnext.users.add(user);
 
         vlessSettings.vnext.add(vnext);
@@ -67,6 +69,7 @@ public class VlessActivity extends ProxyActivity<VlessSettings> {
         } else {
             hashMap.put("FLOW", flow);
         }
+        hashMap.put("VLESS_ENCRYPTION", vnext.users.get(0).encryption);
         hashMap.put("UUID", vnext.users.get(0).id);
         return hashMap;
     }
@@ -82,5 +85,6 @@ public class VlessActivity extends ProxyActivity<VlessSettings> {
         adapter.addInput("PORT", "Port");
         adapter.addInput("FLOW", "Flow", List.of("none", "xtls-rprx-vision", "xtls-rprx-vision-udp443"));
         adapter.addInput("UUID", "UUID");
+        adapter.addInput("VLESS_ENCRYPTION", "VLESS Encryption");
     }
 }
