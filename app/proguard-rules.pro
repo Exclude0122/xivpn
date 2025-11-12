@@ -21,12 +21,8 @@
 #-renamesourcefileattribute SourceFile
 
 -keep class cn.gov.xivpn2.xrayconfig.** { *; }
--keep class cn.gov.xivpn2.service.SocketProtect {
-    public protectFd(int);
-}
--keep class cn.gov.xivpn2.service.XiVPNService {
-    public protectFd(int);
-}
+-keep class cn.gov.xivpn2.database.Proxy { *; }
+-keep class cn.gov.xivpn2.database.Subscription { *; }
 
 -keep class com.google.gson.reflect.TypeToken
 -keep class * extends com.google.gson.reflect.TypeToken
