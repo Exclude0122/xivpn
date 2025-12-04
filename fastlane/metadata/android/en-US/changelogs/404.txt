@@ -1,0 +1,5 @@
+- xray v25.12.2
+- add vless encryption
+- add option to disable ssl certificate verification
+- fix wireguard disconnects after switching wifi
+- bug fixes
