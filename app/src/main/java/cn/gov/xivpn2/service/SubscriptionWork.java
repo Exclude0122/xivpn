@@ -4,13 +4,16 @@ import static android.content.Context.MODE_PRIVATE;
 
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.util.Base64;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.preference.PreferenceManager;
 import androidx.work.ForegroundInfo;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -20,6 +23,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -31,13 +36,20 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509TrustManager;
 
 import cn.gov.xivpn2.NotificationID;
 import cn.gov.xivpn2.R;
+import cn.gov.xivpn2.Utils;
 import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.database.Subscription;
+import cn.gov.xivpn2.ui.CrashLogActivity;
 import cn.gov.xivpn2.xrayconfig.HttpUpgradeSettings;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.RealitySettings;
@@ -145,7 +157,15 @@ public class SubscriptionWork extends Worker {
             return Result.success();
         }
 
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient.Builder builder = new OkHttpClient.Builder();
+
+        if (PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getBoolean("subscription_no_verify", false)) {
+            Log.w(TAG, "subscription no verify");
+            builder.sslSocketFactory(Utils.trustAllSslSocketFactory, ((X509TrustManager) Utils.trustAllCerts[0]));
+            builder.hostnameVerifier((hostname, session) -> true);
+        }
+
+        OkHttpClient client = builder.build();
         for (Subscription subscription : AppDatabase.getInstance().subscriptionDao().findAll()) {
 
             // update subscription
@@ -153,6 +173,8 @@ public class SubscriptionWork extends Worker {
             Log.i(TAG, "begin update: " + subscription.label + ", " + subscription.url);
 
             Response response = null;
+            String body = null;
+            int statusCode = -1;
             try {
 
                 Request request = new Request.Builder()
@@ -162,13 +184,12 @@ public class SubscriptionWork extends Worker {
                 response = client.newCall(request).execute();
 
 
-                if (response.body() == null) continue;
-
                 // delete old proxies
                 AppDatabase.getInstance().proxyDao().deleteBySubscription(subscription.label);
 
                 // parse subscription and add proxies
-                String body = response.body().string();
+                statusCode = response.code();
+                body = response.body().string();
                 parse(body, subscription.label);
 
                 Notification notification = new Notification.Builder(getApplicationContext(), "XiVPNSubscriptions")
@@ -181,12 +202,41 @@ public class SubscriptionWork extends Worker {
 
                 Log.e(TAG, "update " + subscription.label, e);
 
+                // save error message to a file
+                String fileName = "subscription_" + UUID.randomUUID() + ".txt";
+                File file = new File(getApplicationContext().getCacheDir(), fileName);
+
+                try {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Could not update subscription: ").append(subscription.label).append("\n\n");
+
+                    sb.append(e.getClass().getSimpleName()).append(": ").append(e.getMessage()).append("\n\n");
+
+                    if (statusCode > 0) {
+                        sb.append("Response status code: ").append(statusCode).append("\n\n");
+                        if (body != null) {
+                            sb.append("Response Body:\n").append(body).append("\n\n");
+                        }
+                    }
+                    FileOutputStream outputStream = new FileOutputStream(file);
+                    outputStream.write(sb.toString().getBytes(StandardCharsets.UTF_8));
+                    outputStream.close();
+                } catch (IOException e2) {
+                    Log.e(TAG, "write crash log", e2);
+                }
+
+                Intent intent = new Intent(getApplicationContext(), CrashLogActivity.class);
+                intent.putExtra("FILE", fileName);
+
                 // post error message
                 Notification notification = new Notification.Builder(getApplicationContext(), "XiVPNSubscriptions")
                         .setContentTitle(getApplicationContext().getString(R.string.subscription_error) + subscription.label)
-                        .setContentText(e.getClass().getSimpleName() + ": " + e.getMessage())
+                        .setContentText(getApplicationContext().getString(R.string.click_for_details))
                         .setSmallIcon(R.drawable.baseline_error_24)
+                        .setContentIntent(PendingIntent.getActivity(getApplicationContext(), NotificationID.getID(), intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
                         .build();
+
+
                 getApplicationContext().getSystemService(NotificationManager.class).notify(NotificationID.getID(), notification);
 
             } finally {

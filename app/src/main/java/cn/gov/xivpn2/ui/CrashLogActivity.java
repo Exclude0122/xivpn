@@ -33,7 +33,7 @@ public class CrashLogActivity extends AppCompatActivity {
             return insets;
         });
 
-        setTitle(R.string.vpn_process_crashed);
+        setTitle(R.string.error);
 
         String fileName = getIntent().getStringExtra("FILE");
         if (fileName != null) {

@@ -81,6 +81,13 @@
             app:key="backup_or_restore"
             app:title="@string/backup_or_restore" />
 
+        <CheckBoxPreference
+            app:iconSpaceReserved="false"
+            android:summary="@string/subscription_no_verify_summary"
+            app:key="subscription_no_verify"
+            app:title="@string/subscription_no_verify" />
+
+
     </PreferenceCategory>
 
     <PreferenceCategory

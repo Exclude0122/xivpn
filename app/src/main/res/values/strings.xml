@@ -148,4 +148,7 @@
     <string name="ipv6">IPv6</string>
     <string name="ipv6_summary">Add IPv6 address and route to VPN network interface.</string>
     <string name="geoip_geosite_summary">Download GEOIP / GEOSITE database</string>
+    <string name="subscription_no_verify">Ignore certificate verification</string>
+    <string name="subscription_no_verify_summary">Disable SSL certificate verification when updating subscriptions (insecure!)</string>
+    <string name="click_for_details">Click for details</string>
 </resources>
