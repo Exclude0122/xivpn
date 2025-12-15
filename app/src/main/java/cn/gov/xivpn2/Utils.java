@@ -5,6 +5,7 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.zip.CRC32;
@@ -14,6 +15,7 @@ import java.util.zip.ZipOutputStream;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 public class Utils {
@@ -61,31 +63,35 @@ public class Utils {
         zip.closeEntry();
     }
 
-    public static final TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
-        @Override
-        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-        }
+    public static final X509TrustManager defaultTrustManager = initDefaultTrustManager();
 
-        @Override
-        public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-        }
+    private static X509TrustManager initDefaultTrustManager() {
+        try {
+            TrustManagerFactory tmf =
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init((KeyStore) null); // use system CA store
 
-        @Override
-        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-            return new java.security.cert.X509Certificate[]{};
+            for (TrustManager tm : tmf.getTrustManagers()) {
+                if (tm instanceof X509TrustManager) {
+                    return (X509TrustManager) tm;
+                }
+            }
+            throw new IllegalStateException("No X509TrustManager available");
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to initialize default trust manager", e);
         }
-    }};
+    }
 
-    private static final SSLContext trustAllSslContext;
+    private static final SSLContext sslContext;
 
     static {
         try {
-            trustAllSslContext = SSLContext.getInstance("SSL");
-            trustAllSslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[]{defaultTrustManager}, new java.security.SecureRandom());
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static final SSLSocketFactory trustAllSslSocketFactory = trustAllSslContext.getSocketFactory();
+    public static final SSLSocketFactory secureSocketFactory = sslContext.getSocketFactory();
 }
