@@ -46,6 +46,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -63,12 +64,14 @@ import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.ui.CrashLogActivity;
 import cn.gov.xivpn2.ui.MainActivity;
 import cn.gov.xivpn2.xrayconfig.Config;
+import cn.gov.xivpn2.xrayconfig.Inbound;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.LabelSubscription;
 import cn.gov.xivpn2.xrayconfig.ProxyChainSettings;
 import cn.gov.xivpn2.xrayconfig.ProxyGroupSettings;
 import cn.gov.xivpn2.xrayconfig.Routing;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
+import cn.gov.xivpn2.xrayconfig.Sniffing;
 import cn.gov.xivpn2.xrayconfig.Sockopt;
 import cn.gov.xivpn2.xrayconfig.StreamSettings;
 
@@ -364,9 +367,6 @@ public class XiVPNService extends VpnService implements SocketProtect {
         Map<String, String> env = builder.environment();
         env.put("IPC_PATH", ipcPath);
         env.put("XRAY_LOCATION_ASSET", getFilesDir().getAbsolutePath());
-        env.put("LOG_LEVEL", config.log.loglevel);
-        env.put("XRAY_SNIFFING", Boolean.valueOf(preferences.getBoolean("sniffing", true)).toString());
-        env.put("XRAY_SNIFFING_ROUTE_ONLY", Boolean.valueOf(preferences.getBoolean("sniffing_route_only", true)).toString());
 
         // ipc socket listen
         LocalSocket socket = new LocalSocket(LocalSocket.SOCKET_STREAM);
@@ -556,7 +556,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
 
         int exitValue = libxivpnProcess.exitValue();
-        if (exitValue != 0) {
+        if (exitValue != 0 && exitValue != 143) { // Exit code 143 means the process was forcibly killed
             // process crashed
             // save last 30 lines of output and send a notification to user
 
@@ -674,6 +674,20 @@ public class XiVPNService extends VpnService implements SocketProtect {
         config.log.loglevel = preferences.getString("log_level", "warning");
 
         try {
+
+            // tun inbound
+            Inbound inbound = new Inbound();
+            inbound.listen = "127.0.0.1";
+            inbound.port = 18964;
+            inbound.protocol = "tun";
+            inbound.sniffing = new Sniffing();
+            inbound.sniffing.enabled = preferences.getBoolean("sniffing", true);
+            inbound.sniffing.destOverride = List.of("http", "tls");
+            inbound.sniffing.routeOnly = preferences.getBoolean("sniffing_route_only", true);
+            inbound.settings = new HashMap<>();
+            inbound.settings.put("name", "xray0");
+            inbound.settings.put("MTU", 1400);
+            config.inbounds.add(inbound);
 
             // dns
             config.dns = DNS.readDNSSettings(getFilesDir());
