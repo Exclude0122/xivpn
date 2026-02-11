@@ -35,6 +35,9 @@
                 android:id="@+id/socks5"
                 android:title="Socks5" />
             <item
+                android:id="@+id/hysteria"
+                android:title="Hysteria" />
+            <item
                 android:id="@+id/proxy_group"
                 android:title="@string/proxy_group" />
             <item

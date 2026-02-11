@@ -121,6 +121,9 @@ public class ProxiesActivity extends AppCompatActivity {
                         case "socks":
                             cls = Socks5Activity.class;
                             break;
+                        case "hysteria":
+                            cls = HysteriaActivity.class;
+                            break;
                     }
 
                     if (cls != null) {
@@ -213,7 +216,7 @@ public class ProxiesActivity extends AppCompatActivity {
             view.requestFocus();
 
             return true;
-        } else if (item.getItemId() == R.id.shadowsocks || item.getItemId() == R.id.vmess || item.getItemId() == R.id.socks5 || item.getItemId() == R.id.vless || item.getItemId() == R.id.trojan || item.getItemId() == R.id.wireguard || item.getItemId() == R.id.proxy_chain || item.getItemId() == R.id.proxy_group || item.getItemId() == R.id.http) {
+        } else if (item.getItemId() == R.id.shadowsocks || item.getItemId() == R.id.vmess || item.getItemId() == R.id.socks5 || item.getItemId() == R.id.vless || item.getItemId() == R.id.trojan || item.getItemId() == R.id.wireguard || item.getItemId() == R.id.proxy_chain || item.getItemId() == R.id.proxy_group || item.getItemId() == R.id.http || item.getItemId() == R.id.hysteria) {
 
             // add
 
@@ -250,6 +253,8 @@ public class ProxiesActivity extends AppCompatActivity {
                             cls = HttpActivity.class;
                         } else if (item.getItemId() == R.id.socks5) {
                             cls = Socks5Activity.class;
+                        } else if (item.getItemId() == R.id.hysteria) {
+                            cls = HysteriaActivity.class;
                         }
 
                         Intent intent = new Intent(this, cls);

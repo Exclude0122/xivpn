@@ -102,6 +102,10 @@
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
+            android:name=".ui.HysteriaActivity"
+            android:configChanges="orientation|screenLayout|screenSize"
+            android:exported="false" />
+        <activity
             android:name=".ui.XHttpStreamActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
