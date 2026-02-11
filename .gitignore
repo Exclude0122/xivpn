@@ -10,3 +10,4 @@
 local.properties
 *.jks
 /sign
+opencode.json

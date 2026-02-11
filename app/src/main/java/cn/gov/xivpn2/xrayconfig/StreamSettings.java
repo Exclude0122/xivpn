@@ -5,14 +5,12 @@ public class StreamSettings {
     public String security;
     public WsSettings wsSettings;
     public HttpUpgradeSettings httpupgradeSettings;
-    public QuicSettings quicSettings;
     public TLSSettings tlsSettings;
     public RealitySettings realitySettings;
     public XHttpSettings xHttpSettings;
     public RawSettings rawSettings;
     public Sockopt sockopt;
-
-    // used by xhttp
-    public String address;
-    public int port;
+    public KcpSettings kcpSettings;
+    public GRPCSettings grpcSettings;
+    public HysteriaTransportSettings hysteriaSettings;
 }

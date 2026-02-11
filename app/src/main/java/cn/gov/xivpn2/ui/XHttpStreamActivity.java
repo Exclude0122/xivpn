@@ -40,6 +40,7 @@ public class XHttpStreamActivity extends ProxyActivity<XHttpSettings> {
     protected void afterInitializeInputs(IProxyEditor adapter) {
         adapter.removeInputByPrefix("NETWORK");
         adapter.removeInputByPrefix("GROUP");
+        adapter.removeInputByPrefix("MUX_");
     }
 
     @Override

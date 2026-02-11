@@ -403,7 +403,6 @@ public class SubscriptionWork extends Worker {
                 }
 
                 Map<String, String> queries = new LinkedHashMap<>();
-                queries.put("allowInsecure", tlsSettings.allowInsecure ? "1" : "");
                 queries.put("sni", tlsSettings.serverName);
                 queries.put("alpn", String.join(",", tlsSettings.alpn));
                 queries.put("fp", tlsSettings.fingerprint);
@@ -444,7 +443,6 @@ public class SubscriptionWork extends Worker {
                         queries.put("sni", streamSettings.tlsSettings.serverName);
                         queries.put("fp", streamSettings.tlsSettings.fingerprint);
                         queries.put("alpn", String.join(",", streamSettings.tlsSettings.alpn));
-                        queries.put("allowInsecure", streamSettings.tlsSettings.allowInsecure ? "1" : "");
                     } else if (streamSettings.security.equals("reality")) {
                         queries.put("sni", streamSettings.realitySettings.serverName);
                         queries.put("fp", streamSettings.realitySettings.fingerprint);
@@ -571,7 +569,6 @@ public class SubscriptionWork extends Worker {
         outbound.streamSettings.security = vmessShare.tls;
         if (outbound.streamSettings.security.equals("tls")) {
             outbound.streamSettings.tlsSettings = new TLSSettings();
-            outbound.streamSettings.tlsSettings.allowInsecure = false;
             outbound.streamSettings.tlsSettings.serverName = vmessShare.sni;
             outbound.streamSettings.tlsSettings.alpn = vmessShare.alpn.split(",");
             outbound.streamSettings.tlsSettings.fingerprint = vmessShare.fingerprint;
@@ -608,11 +605,6 @@ public class SubscriptionWork extends Worker {
         outbound.streamSettings.network = "tcp";
         outbound.streamSettings.security = "tls";
         outbound.streamSettings.tlsSettings = new TLSSettings();
-        if (query.containsKey("allowInsecure")) {
-            outbound.streamSettings.tlsSettings.allowInsecure = query.get("allowInsecure").equals("1") || query.get("allowInsecure").equals("true");
-        } else {
-            outbound.streamSettings.tlsSettings.allowInsecure = false;
-        }
         outbound.streamSettings.tlsSettings.serverName = query.getOrDefault("sni", uri.getHost());
         outbound.streamSettings.tlsSettings.alpn = !query.containsKey("alpn") ? new String[]{"h2", "http/1.1"} : query.get("alpn").split(",");
         outbound.streamSettings.tlsSettings.fingerprint = query.getOrDefault("fp", "chrome");
@@ -684,11 +676,6 @@ public class SubscriptionWork extends Worker {
                 outbound.streamSettings.tlsSettings.alpn = query.get("alpn").split(":");
             } else {
                 outbound.streamSettings.tlsSettings.alpn = new String[]{"h2", "http/1.1"};
-            }
-            if (query.containsKey("allowInsecure")) {
-                outbound.streamSettings.tlsSettings.allowInsecure = query.get("allowInsecure").equals("1") || query.get("allowInsecure").equals("true");
-            } else {
-                outbound.streamSettings.tlsSettings.allowInsecure = false;
             }
         } else if (query.getOrDefault("security", "").equals("reality")) {
             outbound.streamSettings.security = "reality";

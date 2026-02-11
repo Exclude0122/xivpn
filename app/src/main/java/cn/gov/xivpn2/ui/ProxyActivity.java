@@ -35,10 +35,13 @@ import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.ProxyDao;
 import cn.gov.xivpn2.service.XiVPNService;
+import cn.gov.xivpn2.xrayconfig.GRPCSettings;
 import cn.gov.xivpn2.xrayconfig.HttpUpgradeSettings;
+import cn.gov.xivpn2.xrayconfig.HysteriaHop;
+import cn.gov.xivpn2.xrayconfig.HysteriaTransportSettings;
+import cn.gov.xivpn2.xrayconfig.KcpSettings;
 import cn.gov.xivpn2.xrayconfig.MuxSettings;
 import cn.gov.xivpn2.xrayconfig.Outbound;
-import cn.gov.xivpn2.xrayconfig.QuicSettings;
 import cn.gov.xivpn2.xrayconfig.RawHeader;
 import cn.gov.xivpn2.xrayconfig.RawHttpHeaderRequest;
 import cn.gov.xivpn2.xrayconfig.RawSettings;
@@ -96,7 +99,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
         initializeInputs(adapter);
         if (hasStreamSettings()) {
             adapter.addGroupTitle("GROUP_NETWORK", "Transport");
-            adapter.addInput("NETWORK", "Network", Arrays.asList("tcp", "ws", "quic", "httpupgrade", "xhttp"));
+            adapter.addInput("NETWORK", "Network", Arrays.asList("tcp", "ws", "httpupgrade", "xhttp", "hysteria", "grpc", "kcp"));
             adapter.addInputAfter("NETWORK", "NETWORK_TCP_HEADER", "TCP Header", Arrays.asList("none", "http"));
             adapter.addGroupTitle("GROUP_SECURITY", "Security");
             adapter.addInput("SECURITY", "Security", Arrays.asList("none", "tls", "reality"));
@@ -219,6 +222,12 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 return Utils.isValidPort(value);
             case "MUX_XUDP_CONCURRENCY":
             case "MUX_CONCURRENCY":
+            case "NETWORK_HYSTERIA_HOP_INTERVAL":
+            case "NETWORK_KCP_UPLINK":
+            case "NETWORK_KCP_DOWNLINK":
+            case "NETWORK_KCP_TTI":
+            case "NETWORK_KCP_MTU":
+
                 try {
                     Integer.parseInt(value);
                 } catch (NumberFormatException e) {
@@ -269,14 +278,6 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 outbound.streamSettings.wsSettings.path = adapter.getValue("NETWORK_WS_PATH");
                 outbound.streamSettings.wsSettings.host = adapter.getValue("NETWORK_WS_HOST");
                 break;
-            case "quic":
-                outbound.streamSettings.quicSettings = new QuicSettings();
-                outbound.streamSettings.quicSettings.header.type = adapter.getValue("NETWORK_QUIC_HEADER");
-                outbound.streamSettings.quicSettings.security = adapter.getValue("NETWORK_QUIC_SECURITY");
-                if (!outbound.streamSettings.quicSettings.security.equals("none")) {
-                    outbound.streamSettings.quicSettings.key = adapter.getValue("NETWORK_QUIC_KEY");
-                }
-                break;
             case "httpupgrade":
                 outbound.streamSettings.httpupgradeSettings = new HttpUpgradeSettings();
                 outbound.streamSettings.httpupgradeSettings.path = adapter.getValue("NETWORK_HTTPUPGRADE_PATH");
@@ -302,13 +303,39 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                         outbound.streamSettings.xHttpSettings.downloadSettings.put("xhttpSettings", downloadXhttpSettings);
                     }
                 }
+                break;
+            case "kcp":
+                outbound.streamSettings.kcpSettings = new KcpSettings();
+                outbound.streamSettings.kcpSettings.congestion = "True".equals(adapter.getValue("NETWORK_KCP_CONGESTION"));
+                outbound.streamSettings.kcpSettings.mtu = Integer.parseInt(adapter.getValue("NETWORK_KCP_MTU"));
+                outbound.streamSettings.kcpSettings.tti = Integer.parseInt(adapter.getValue("NETWORK_KCP_TTI"));
+                outbound.streamSettings.kcpSettings.uplinkCapacity = Integer.parseInt(adapter.getValue("NETWORK_KCP_UPLINK"));
+                outbound.streamSettings.kcpSettings.downlinkCapacity = Integer.parseInt(adapter.getValue("NETWORK_KCP_DOWNLINK"));
+                break;
+            case "grpc":
+                outbound.streamSettings.grpcSettings = new GRPCSettings();
+                outbound.streamSettings.grpcSettings.authority = adapter.getValue("NETWORK_GRPC_AUTHORITY");
+                outbound.streamSettings.grpcSettings.multiMode = "multi".equals(adapter.getValue("NETWORK_GRPC_MODE"));
+                outbound.streamSettings.grpcSettings.serviceName = adapter.getValue("NETWORK_GRPC_SERVICE_NAME");
+                break;
+            case "hysteria":
+                outbound.streamSettings.hysteriaSettings = new HysteriaTransportSettings();
+                outbound.streamSettings.hysteriaSettings.auth = adapter.getValue("NETWORK_HYSTERIA_AUTH");
+                outbound.streamSettings.hysteriaSettings.down = adapter.getValue("NETWORK_HYSTERIA_DOWN");
+                outbound.streamSettings.hysteriaSettings.up = adapter.getValue("NETWORK_HYSTERIA_UP");
+                if ("True".equals(adapter.getValue("NETWORK_HYSTERIA_HOP"))) {
+                    outbound.streamSettings.hysteriaSettings.udphop = new HysteriaHop();
+                    outbound.streamSettings.hysteriaSettings.udphop.port = adapter.getValue("NETWORK_HYSTERIA_HOP_PORTS");
+                    outbound.streamSettings.hysteriaSettings.udphop.interval = Integer.parseInt(adapter.getValue("NETWORK_HYSTERIA_HOP_INTERVAL"));
+
+                }
+
         }
 
         String security = this.adapter.getValue("SECURITY");
         if (security.equals("tls")) {
             outbound.streamSettings.security = "tls";
             outbound.streamSettings.tlsSettings = new TLSSettings();
-            outbound.streamSettings.tlsSettings.allowInsecure = adapter.getValue("SECURITY_TLS_INSECURE").equals("True");
             if (adapter.getValue("SECURITY_TLS_FINGERPRINT").equals("None")) {
                 outbound.streamSettings.tlsSettings.fingerprint = "";
             } else {
@@ -316,6 +343,12 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             }
             outbound.streamSettings.tlsSettings.serverName = adapter.getValue("SECURITY_TLS_SNI");
             outbound.streamSettings.tlsSettings.alpn = adapter.getValue("SECURITY_TLS_ALPN").split(",");
+            if (!adapter.getValue("SECURITY_TLS_VERIFY_PEER_CERT_BY_NAME").isBlank()) {
+                outbound.streamSettings.tlsSettings.verifyPeerCertByName = adapter.getValue("SECURITY_TLS_VERIFY_PEER_CERT_BY_NAME");
+            }
+            if (!adapter.getValue("SECURITY_TLS_PINNED_PEER_CERT_SHA256").isBlank()) {
+                outbound.streamSettings.tlsSettings.pinnedPeerCertSha256 = adapter.getValue("SECURITY_TLS_PINNED_PEER_CERT_SHA256");
+            }
         } else if (security.equals("reality")) {
             outbound.streamSettings.security = "reality";
             outbound.streamSettings.realitySettings = new RealitySettings();
@@ -335,7 +368,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             }
         }
 
-        if (this.adapter.getValue("MUX_ENABLED").equals("enabled")) {
+        if ("enabled".equals(this.adapter.getValue("MUX_ENABLED"))) {
             outbound.mux = new MuxSettings();
             outbound.mux.enabled = true;
             outbound.mux.concurrency = Integer.parseInt(adapter.getValue("MUX_CONCURRENCY"));
@@ -372,13 +405,6 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 initials.put("NETWORK_WS_PATH", outbound.streamSettings.wsSettings.path);
                 initials.put("NETWORK_WS_HOST", outbound.streamSettings.wsSettings.host);
                 break;
-            case "quic":
-                initials.put("NETWORK_QUIC_HEADER", outbound.streamSettings.quicSettings.header.type);
-                initials.put("NETWORK_QUIC_SECURITY", outbound.streamSettings.quicSettings.security);
-                if (!outbound.streamSettings.quicSettings.security.equals("none")) {
-                    initials.put("NETWORK_QUIC_KEY", outbound.streamSettings.quicSettings.key);
-                }
-                break;
             case "httpupgrade":
                 initials.put("NETWORK_HTTPUPGRADE_PATH", outbound.streamSettings.httpupgradeSettings.path);
                 initials.put("NETWORK_HTTPUPGRADE_HOST", outbound.streamSettings.httpupgradeSettings.host);
@@ -403,6 +429,30 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                     Log.i(TAG, "decode xhttp: " + xhttpDownload);
                 }
                 break;
+            case "hysteria":
+                initials.put("NETWORK_HYSTERIA_AUTH", outbound.streamSettings.hysteriaSettings.auth);
+                initials.put("NETWORK_HYSTERIA_DOWN", outbound.streamSettings.hysteriaSettings.down);
+                initials.put("NETWORK_HYSTERIA_UP", outbound.streamSettings.hysteriaSettings.up);
+                if (outbound.streamSettings.hysteriaSettings.udphop != null) {
+                    initials.put("NETWORK_HYSTERIA_HOP", "True");
+                    initials.put("NETWORK_HYSTERIA_HOP_PORTS", Objects.requireNonNullElse(outbound.streamSettings.hysteriaSettings.udphop.port, "443"));
+                    initials.put("NETWORK_HYSTERIA_HOP_INTERVAL", String.valueOf(outbound.streamSettings.hysteriaSettings.udphop.interval));
+                } else {
+                    initials.put("NETWORK_HYSTERIA_HOP", "False");
+                }
+                break;
+            case "grpc":
+                initials.put("NETWORK_GRPC_AUTHORITY", outbound.streamSettings.grpcSettings.authority);
+                initials.put("NETWORK_GRPC_SERVICE_NAME", outbound.streamSettings.grpcSettings.serviceName);
+                initials.put("NETWORK_GRPC_MODE", outbound.streamSettings.grpcSettings.multiMode ? "multi" : "gun");
+                break;
+            case "kcp":
+                initials.put("NETWORK_KCP_MTU", String.valueOf(outbound.streamSettings.kcpSettings.mtu));
+                initials.put("NETWORK_KCP_TTI", String.valueOf(outbound.streamSettings.kcpSettings.tti));
+                initials.put("NETWORK_KCP_UPLINK", String.valueOf(outbound.streamSettings.kcpSettings.uplinkCapacity));
+                initials.put("NETWORK_KCP_DOWNLINK", String.valueOf(outbound.streamSettings.kcpSettings.downlinkCapacity));
+                initials.put("NETWORK_KCP_CONGESTION", outbound.streamSettings.kcpSettings.congestion ? "True" : "False");
+                break;
         }
 
         if (outbound.streamSettings.security == null || outbound.streamSettings.security.isEmpty()) {
@@ -411,12 +461,13 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             initials.put("SECURITY", "tls");
             initials.put("SECURITY_TLS_SNI", outbound.streamSettings.tlsSettings.serverName);
             initials.put("SECURITY_TLS_ALPN", String.join(",", outbound.streamSettings.tlsSettings.alpn));
-            initials.put("SECURITY_TLS_INSECURE", outbound.streamSettings.tlsSettings.allowInsecure ? "True" : "False");
             if (outbound.streamSettings.tlsSettings.fingerprint.isEmpty()) {
                 initials.put("SECURITY_TLS_FINGERPRINT", "None");
             } else {
                 initials.put("SECURITY_TLS_FINGERPRINT", outbound.streamSettings.tlsSettings.fingerprint);
             }
+            initials.put("SECURITY_TLS_VERIFY_PEER_CERT_BY_NAME", Objects.requireNonNullElse(outbound.streamSettings.tlsSettings.verifyPeerCertByName, ""));
+            initials.put("SECURITY_TLS_PINNED_PEER_CERT_SHA256", Objects.requireNonNullElse(outbound.streamSettings.tlsSettings.pinnedPeerCertSha256, ""));
         } else if (outbound.streamSettings.security.equals("reality")) {
             initials.put("SECURITY", "reality");
             initials.put("SECURITY_REALITY_SNI", outbound.streamSettings.realitySettings.serverName);
@@ -468,10 +519,6 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                         adapter.addInputAfter("NETWORK", "NETWORK_WS_PATH", "Websocket Path", "/");
                         adapter.addInputAfter("NETWORK", "NETWORK_WS_HOST", "Websocket Host");
                         break;
-                    case "quic":
-                        adapter.addInputAfter("NETWORK", "NETWORK_QUIC_HEADER", "QUIC Header", Arrays.asList("none", "srtp", "utp", "wechat-video", "dtls", "wireguard"));
-                        adapter.addInputAfter("NETWORK", "NETWORK_QUIC_SECURITY", "QUIC Security", Arrays.asList("none", "aes-128-gcm", "chacha20-poly1305"));
-                        break;
                     case "httpupgrade":
                         adapter.addInputAfter("NETWORK", "NETWORK_HTTPUPGRADE_PATH", "HttpUpgrade Path", "/");
                         adapter.addInputAfter("NETWORK", "NETWORK_HTTPUPGRADE_HOST", "HttpUpgrade Host");
@@ -481,22 +528,35 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                         adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_PATH", "XHTTP Path", "/");
                         adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_MODE", "XHTTP Mode", List.of("packet-up", "stream-up", "auto", "stream-one"));
                         break;
+                    case "kcp":
+                        adapter.addInputAfter("NETWORK", "NETWORK_KCP_MTU", "KCP MTU", "1350");
+                        adapter.addInputAfter("NETWORK", "NETWORK_KCP_TTI", "KCP TTI", "50", "Transmission time interval (ms)");
+                        adapter.addInputAfter("NETWORK", "NETWORK_KCP_DOWNLINK", "KCP Downlink", "100", "MB/s");
+                        adapter.addInputAfter("NETWORK", "NETWORK_KCP_UPLINK", "KCP Uplink", "5", "MB/s");
+                        adapter.addInputAfter("NETWORK", "NETWORK_KCP_CONGESTION", "KCP Congestion Control", List.of("True", "False"));
+                        break;
+                    case "grpc":
+                        adapter.addInputAfter("NETWORK", "NETWORK_GRPC_SERVICE_NAME", "gRPC Service Name", "");
+                        adapter.addInputAfter("NETWORK", "NETWORK_GRPC_MODE", "gRPC Mode", List.of("gun", "multi"));
+                        adapter.addInputAfter("NETWORK", "NETWORK_GRPC_AUTHORITY", "gRPC Authority", "");
+                        break;
+                    case "hysteria":
+                        adapter.addInputAfter("NETWORK", "NETWORK_HYSTERIA_AUTH", "Hysteria Auth", "");
+                        adapter.addInputAfter("NETWORK", "NETWORK_HYSTERIA_DOWN", "Hysteria Downlink Bandwidth", "10 mb");
+                        adapter.addInputAfter("NETWORK", "NETWORK_HYSTERIA_UP", "Hysteria Uplink Bandwidth", "5 mb");
+                        adapter.addInputAfter("NETWORK", "NETWORK_HYSTERIA_HOP", "Hysteria UDP Hop", List.of("False", "True"));
+                        break;
                 }
                 break;
-            case "NETWORK_QUIC_SECURITY":
-                if (value.equals("none")) {
-                    adapter.removeInput("NETWORK_QUIC_KEY");
-                } else if (!adapter.exists("NETWORK_QUIC_KEY")) {
-                    adapter.addInputAfter("NETWORK", "NETWORK_QUIC_KEY", "QUIC Encryption Key");
-                }
-                break;
+
             case "SECURITY":
                 adapter.removeInputByPrefix("SECURITY_");
                 if (value.equals("tls")) {
                     adapter.addInputAfter("SECURITY", "SECURITY_TLS_SNI", "TLS Server Name");
                     adapter.addInputAfter("SECURITY", "SECURITY_TLS_ALPN", "TLS ALPN", "h2,http/1.1");
-                    adapter.addInputAfter("SECURITY", "SECURITY_TLS_INSECURE", "TLS Allow Insecure", List.of("False", "True"));
                     adapter.addInputAfter("SECURITY", "SECURITY_TLS_FINGERPRINT", "TLS Fingerprint", List.of("None", "chrome", "firefox", "random", "randomized"));
+                    adapter.addInputAfter("SECURITY", "SECURITY_TLS_VERIFY_PEER_CERT_BY_NAME", "TLS Verify Peer Cert By Name", "", "Comma separated list");
+                    adapter.addInputAfter("SECURITY", "SECURITY_TLS_PINNED_PEER_CERT_SHA256", "TLS Pinned Peer Cert SHA256", "","Comma separated list of SHA256 sums in hex");
                 } else if (value.equals("reality")) {
                     adapter.addInputAfter("SECURITY", "SECURITY_REALITY_MLDSA65VERIFY", "REALITY MLDSA65 Public Key");
                     adapter.addInputAfter("SECURITY", "SECURITY_REALITY_SNI", "REALITY Server Name");
@@ -548,6 +608,13 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 adapter.removeInputByPrefix("NETWORK_TCP_HEADER_");
                 if (value.equals("http")) {
                     adapter.addInputAfter("NETWORK_TCP_HEADER", "NETWORK_TCP_HEADER_HTTP_HOST", "TCP Header HTTP Host");
+                }
+                break;
+            case "NETWORK_HYSTERIA_HOP":
+                adapter.removeInputByPrefix("NETWORK_HYSTERIA_HOP_");
+                if (value.equals("True")) {
+                    adapter.addInputAfter("NETWORK_HYSTERIA_HOP", "NETWORK_HYSTERIA_HOP_PORTS", "Hysteria UDP Hop Ports", "2000-2100");
+                    adapter.addInputAfter("NETWORK_HYSTERIA_HOP", "NETWORK_HYSTERIA_HOP_INTERVAL", "Hysteria UDP Hop Interval", "30", "Seconds");
                 }
                 break;
         }
