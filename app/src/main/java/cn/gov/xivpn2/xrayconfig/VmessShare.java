@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName;
 
 public class VmessShare {
     public String v = "2";
-    public String ps = "";
+    public String ps = "vmess";
     public String add = "";
     public String port = "";
     public String id = "";

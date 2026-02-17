@@ -34,6 +34,7 @@ import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.service.SubscriptionWork;
 import cn.gov.xivpn2.service.XiVPNService;
+import cn.gov.xivpn2.service.sharelink.MarshalProxyException;
 
 public class ProxiesActivity extends AppCompatActivity {
 
@@ -138,8 +139,8 @@ public class ProxiesActivity extends AppCompatActivity {
                     String link;
                     try {
                         link = SubscriptionWork.marshalProxy(proxy);
-                    } catch (SubscriptionWork.MarshalProxyException e) {
-                        Toast.makeText(this, String.format(getString(e.resId), e.getMessage()), Toast.LENGTH_SHORT).show();
+                    } catch (MarshalProxyException e) {
+                        Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
                         return true;
                     }
 
