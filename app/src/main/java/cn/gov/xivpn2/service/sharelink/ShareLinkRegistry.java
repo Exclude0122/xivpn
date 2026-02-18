@@ -14,6 +14,7 @@ public class ShareLinkRegistry {
     private static final LegacyVmessShareLinkParser legacyVmess = new LegacyVmessShareLinkParser();
     private static final VMessShareLinkParser vmess = new VMessShareLinkParser();
     private static final VLessShareLinkParser vless = new VLessShareLinkParser();
+    private static final ShadowsocksShareLinkParser shadowsocks = new ShadowsocksShareLinkParser();
 
 
     /**
@@ -36,6 +37,8 @@ public class ShareLinkRegistry {
             }
         } else if (uri.startsWith("vless://")) {
             return vless.parse(uri);
+        } else if (uri.startsWith("ss://")) {
+            return shadowsocks.parse(uri);
         }
 
         throw new Exception("share link not supported");
@@ -54,6 +57,8 @@ public class ShareLinkRegistry {
             return vmess.marshal(proxy);
         } else if ("vless".equals(proxy.protocol)) {
             return vless.marshal(proxy);
+        } else if ("shadowsocks".equals(proxy.protocol)) {
+            return shadowsocks.marshal(proxy);
         }
         throw new MarshalProxyException("unsupported proxy protocol: " + proxy.protocol);
     }
