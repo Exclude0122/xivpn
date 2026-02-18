@@ -25,6 +25,9 @@ public class ShareLinkRegistry {
      */
     public static Proxy parse(String uri) throws Exception {
 
+        // fix illegal url from v2rayng
+        uri = uri.replace(" ", "%20").replace("|", "%7C");
+
         if (uri.startsWith("vmess://")) {
             if (uri.lastIndexOf(':') > 6) {
                 return vmess.parse(uri);
