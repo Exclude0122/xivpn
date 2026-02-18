@@ -1,6 +1,8 @@
 package cn.gov.xivpn2.service.sharelink;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.UnsupportedEncodingException;
@@ -119,9 +121,6 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
     protected StreamSettings parseStreamSettings(Map<String, String> query, String remoteHost) {
         StreamSettings streamSettings = new StreamSettings();
 
-        // reject unsupported params
-        rejectUnsupportedParams(query, "fm");
-
         // transport
         String type = query.getOrDefault("type", "tcp");
         assert type != null;
@@ -129,6 +128,11 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
 
         // security
         parseSecuritySettings(streamSettings, query, remoteHost);
+
+        // finalmask
+        if (query.containsKey("fm")) {
+            streamSettings.finalmask = new GsonBuilder().setPrettyPrinting().create().fromJson(query.get("fm"), JsonObject.class);
+        }
 
         return streamSettings;
     }

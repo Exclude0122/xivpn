@@ -19,7 +19,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
@@ -106,6 +108,10 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
         }
         adapter.addGroupTitle("GROUP_MUX", "Multiplex");
         adapter.addInput("MUX_ENABLED", "Multiplex", Arrays.asList("disabled", "enabled"));
+
+        adapter.addGroupTitle("GROUP_FINALMASK", "Finalmask");
+        adapter.addTextAreaInput("FINALMASK", "Finalmask JSON", "Input finalmask JSON object here. Read Xray document for more information.");
+
 
         afterInitializeInputs(adapter);
 
@@ -198,6 +204,8 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 input.validated = validateField(input.key, ((ProxyEditTextAdapter.TextInput) input).value);
             } else if (input instanceof ProxyEditTextAdapter.ButtonInput) {
                 input.validated = validateField(input.key, "");
+            } else if (input instanceof ProxyEditTextAdapter.TextAreaInput) {
+                input.validated = validateField(input.key, ((ProxyEditTextAdapter.TextAreaInput) input).value);
             }
             if (!input.validated) {
                 valid = false;
@@ -235,6 +243,18 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 }
 
                 return true;
+
+            case "FINALMASK":
+                if (!value.isBlank()) {
+                    try {
+                        new Gson().fromJson(value, JsonObject.class);
+                        return true;
+                    } catch (JsonSyntaxException e) {
+                        Log.e(TAG,"validate finalmask", e);
+                        return false;
+                    }
+                }
+                return true;
         }
 
 
@@ -254,9 +274,23 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
         outbound.protocol = getProtocolName();
         outbound.settings = buildProtocolSettings(adapter);
 
-        if (!hasStreamSettings()) return outbound;
 
         outbound.streamSettings = new StreamSettings();
+
+        String finalmaskString = Objects.requireNonNullElse(this.adapter.getValue("FINALMASK"), "");
+        if (!finalmaskString.isBlank()) {
+            try {
+                outbound.streamSettings.finalmask = new Gson().fromJson(finalmaskString, JsonObject.class);
+            } catch (JsonSyntaxException e) {
+                Log.e(TAG,"parse finalmask", e);
+            }
+        }
+
+
+
+
+        if (!hasStreamSettings()) return outbound;
+
         String network = this.adapter.getValue("NETWORK");
         outbound.streamSettings.network = network;
         switch (network) {
@@ -385,6 +419,13 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
     protected LinkedHashMap<String, String> decodeOutboundConfig(Outbound<T> outbound) {
         LinkedHashMap<String, String> initials = new LinkedHashMap<>();
 
+
+        if (outbound.streamSettings != null && outbound.streamSettings.finalmask != null) {
+            initials.put("FINALMASK", new GsonBuilder().setPrettyPrinting().create().toJson(outbound.streamSettings.finalmask));
+        } else {
+            initials.put("FINALMASK", "");
+        }
+
         if (!hasStreamSettings()) return initials;
 
         initials.put("NETWORK", outbound.streamSettings.network);
@@ -485,6 +526,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             initials.put("MUX_XUDP_CONCURRENCY", String.valueOf(outbound.mux.xudpConcurrency));
             initials.put("MUX_XUDP_PROXY_UDP443", outbound.mux.xudpProxyUDP443);
         }
+
 
         return initials;
     }
