@@ -183,12 +183,14 @@ public class XiVPNService extends VpnService implements SocketProtect {
                         setStateRaw(VPNState.ESTABLISHING_VPN);
                         work = () -> {
                             if (!startVPN()) {
+                                Log.e(TAG, "start vpn failed");
                                 setState(VPNState.DISCONNECTED);
                                 return;
                             }
 
                             setState(VPNState.STARTING_LIBXI);
                             if (!startLibxi()) {
+                                Log.e(TAG, "start libxi failed");
                                 stopVPN();
                                 setState(VPNState.DISCONNECTED);
                                 return;
@@ -297,6 +299,13 @@ public class XiVPNService extends VpnService implements SocketProtect {
         builder.setContentIntent(PendingIntent.getActivity(this, 20, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         startForeground(NotificationID.getID(), builder.build());
 
+        // prepare
+        Intent intent = prepare(this);
+        if (intent != null) {
+            Log.e(TAG, "vpn not prepared");
+            return false;
+        }
+
         // establish vpn
         Builder vpnBuilder = new Builder();
         vpnBuilder.addRoute("0.0.0.0", 0);
@@ -333,7 +342,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
     private boolean startLibxi() {
         // start libxivpn
-        Config config = null;
+        Config config;
 
         try {
             config = buildXrayConfig();
@@ -361,8 +370,6 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         String ipcPath = new File(getCacheDir(), "ipcsock").getAbsolutePath();
 
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-
         ProcessBuilder builder = new ProcessBuilder().redirectErrorStream(true).directory(getFilesDir()).command(getApplicationInfo().nativeLibraryDir + "/libxivpn.so");
         Map<String, String> env = builder.environment();
         env.put("IPC_PATH", ipcPath);
@@ -379,7 +386,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
         Log.i(TAG, "ipc sock bound");
 
-        LocalServerSocket serverSocket = null;
+        LocalServerSocket serverSocket;
         try {
             serverSocket = new LocalServerSocket(socket.getFileDescriptor());
 

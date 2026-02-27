@@ -1,12 +1,6 @@
 package cn.gov.xivpn2.service.sharelink;
 
-import android.net.Uri;
-
-import java.net.URI;
-
-import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.Proxy;
-import cn.gov.xivpn2.service.SubscriptionWork;
 
 
 public class ShareLinkRegistry {
@@ -22,9 +16,9 @@ public class ShareLinkRegistry {
      *
      * @param uri the full share link (e.g. "vless://uuid@host:port?params#label")
      * @return the parsed Proxy, or null if no parser handles this scheme
-     * @throws Exception if parsing fails
+     * @throws BadShareLinkException if parsing fails
      */
-    public static Proxy parse(String uri) throws Exception {
+    public static Proxy parse(String uri) throws BadShareLinkException {
 
         // fix illegal url from v2rayng
         uri = uri.replace(" ", "%20").replace("|", "%7C");
@@ -41,7 +35,7 @@ public class ShareLinkRegistry {
             return shadowsocks.parse(uri);
         }
 
-        throw new Exception("share link not supported");
+        throw new BadShareLinkException("share link not supported");
     }
 
     /**

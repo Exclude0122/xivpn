@@ -6,20 +6,15 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import cn.gov.xivpn2.R;
-import cn.gov.xivpn2.database.Proxy;
-import cn.gov.xivpn2.service.SubscriptionWork;
 import cn.gov.xivpn2.xrayconfig.GRPCSettings;
 import cn.gov.xivpn2.xrayconfig.HttpUpgradeSettings;
 import cn.gov.xivpn2.xrayconfig.KcpSettings;
-import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.RealitySettings;
 import cn.gov.xivpn2.xrayconfig.StreamSettings;
 import cn.gov.xivpn2.xrayconfig.TLSSettings;
@@ -305,6 +300,11 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
         // security-specific params
         marshalSecurityQueries(queries, streamSettings);
 
+        // finalmask
+        if (streamSettings.finalmask != null) {
+            queries.put("fm", new GsonBuilder().setPrettyPrinting().create().toJson(streamSettings.finalmask));
+        }
+
         return queries;
     }
 
@@ -313,6 +313,7 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
 
         switch (network) {
             case "tcp":
+            case "kcp":
                 break;
 
             case "ws":

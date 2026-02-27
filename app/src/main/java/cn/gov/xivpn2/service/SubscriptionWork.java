@@ -184,7 +184,7 @@ public class SubscriptionWork extends Worker {
      *
      * @param text base64 encoded, one line per proxy
      */
-    private void parse(String text, String label) {
+    public static void parse(String text, String label) {
         // decode base64
         String textDecoded = new String(Base64.decode(text, Base64.DEFAULT), StandardCharsets.UTF_8);
 
@@ -199,7 +199,7 @@ public class SubscriptionWork extends Worker {
     }
 
     public static boolean parseLine(String line, String subscription) {
-        Proxy proxy = null;
+        Proxy proxy;
 
         try {
             proxy = ShareLinkRegistry.parse(line);
