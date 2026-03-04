@@ -1,0 +1,3 @@
+- xray v26.2.6
+- improved share link parsing
+- add hysteria
