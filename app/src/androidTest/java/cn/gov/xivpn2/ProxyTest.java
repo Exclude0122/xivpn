@@ -65,16 +65,16 @@ public class ProxyTest {
 
         // list all proxies
         for (Proxy proxy : AppDatabase.getInstance().proxyDao().findAll()) {
+            if (proxy.label.equals("Block") || proxy.label.equals("Built-in DNS Server")) {
+                continue;
+            }
+
             // set default proxy
             Rules.setCatchAll(sp, proxy.label, proxy.subscription);
             // reload config
             XiVPNService.markConfigStale(appContext);
 
             Log.i(TAG, "testing " + proxy.label + " @ " + proxy.subscription);
-
-            if (proxy.label.equals("Block") || proxy.label.equals("Built-in DNS Server")) {
-                continue;
-            }
 
             Thread.sleep(500);
 

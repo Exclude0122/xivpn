@@ -2,6 +2,8 @@ package cn.gov.xivpn2.service.sharelink;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
@@ -12,6 +14,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import cn.gov.xivpn2.xrayconfig.FinalMask;
+import cn.gov.xivpn2.xrayconfig.FinalMaskDNS;
+import cn.gov.xivpn2.xrayconfig.FinalMaskMkcpAES;
+import cn.gov.xivpn2.xrayconfig.FinalMaskUDP;
 import cn.gov.xivpn2.xrayconfig.GRPCSettings;
 import cn.gov.xivpn2.xrayconfig.HttpUpgradeSettings;
 import cn.gov.xivpn2.xrayconfig.KcpSettings;
@@ -185,11 +191,47 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
 
             case "kcp":
                 ss.kcpSettings = new KcpSettings();
-                ss.kcpSettings.mtu = 1350;
+                ss.kcpSettings.mtu = 1300;
                 ss.kcpSettings.tti = 50;
                 ss.kcpSettings.uplinkCapacity = 5;
                 ss.kcpSettings.downlinkCapacity = 20;
                 ss.kcpSettings.congestion = true;
+
+                FinalMask fm = new FinalMask();
+
+                // v2rayng logic
+                // https://github.com/2dust/v2rayNG/blob/d0265265f3cd913992ed9fe4b2731d23d70d76a9/V2rayNG/app/src/main/java/com/v2ray/ang/handler/V2rayConfigManager.kt#L1186
+
+                String headerTypeQuery = query.getOrDefault("headerType", "none");
+                if (!"none".equals(headerTypeQuery)) {
+                    FinalMaskUDP e = new FinalMaskUDP();
+                    if ("wechat-video".equals(headerTypeQuery)) {
+                        e.type = "header-wechat";
+                    } else if ("dns".equals(headerTypeQuery)) {
+                        e.type = "header-dns";
+                        FinalMaskDNS settings = new FinalMaskDNS();
+                        settings.domain = query.getOrDefault("host", "example.com");
+                        e.settings = settings;
+                    } else {
+                        e.type = "header-" + headerTypeQuery;
+                    }
+                    fm.udp.add(e);
+                }
+                if (Objects.requireNonNull(query.getOrDefault("seed", "")).isEmpty()) {
+                    FinalMaskUDP e = new FinalMaskUDP();
+                    e.type = "mkcp-original";
+                    fm.udp.add(e);
+                } else {
+                    FinalMaskUDP e = new FinalMaskUDP();
+                    e.type = "mkcp-aes128gcm";
+                    FinalMaskMkcpAES settings = new FinalMaskMkcpAES();
+                    settings.password = query.getOrDefault("seed", "");
+                    e.settings = settings;
+                    fm.udp.add(e);
+                }
+
+                ss.finalmask = new Gson().toJsonTree(fm).getAsJsonObject();
+
                 break;
 
             case "http":
