@@ -156,6 +156,11 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
         this.addInputAfter(after, new SelectInput(key, label, "", selections));
     }
 
+    @Override
+    public void addTextAreaInputAfter(String after, String key, String label, String helperText) {
+        this.addInputAfter(after, new TextAreaInput(key, label, helperText));
+    }
+
     /**
      * Remove input with the key. Does nothing if the key does not exist.
      */

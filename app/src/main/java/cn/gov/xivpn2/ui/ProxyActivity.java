@@ -16,7 +16,6 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -28,8 +27,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.StringJoiner;
+import java.util.function.BiConsumer;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.Utils;
@@ -51,7 +51,10 @@ import cn.gov.xivpn2.xrayconfig.RealitySettings;
 import cn.gov.xivpn2.xrayconfig.StreamSettings;
 import cn.gov.xivpn2.xrayconfig.TLSSettings;
 import cn.gov.xivpn2.xrayconfig.WsSettings;
+import cn.gov.xivpn2.xrayconfig.XHttpExtraSettings;
 import cn.gov.xivpn2.xrayconfig.XHttpSettings;
+import cn.gov.xivpn2.xrayconfig.XHttpStreamSettings;
+import cn.gov.xivpn2.xrayconfig.XMuxSettings;
 
 public abstract class ProxyActivity<T> extends AppCompatActivity {
 
@@ -219,14 +222,14 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
     }
 
     protected boolean validateField(String key, String value) {
-        if (key.equals("NETWORK_XHTTP_DOWNLOAD_BTN") && adapter.getValue("NETWORK_XHTTP_SEPARATE_DOWNLOAD").equals("True")) {
+        if (key.equals("NETWORK_XHTTP_EXTRA_DOWNLOAD_BTN") && adapter.getValue("NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD").equals("True")) {
             return !xhttpDownload.isEmpty();
         }
         switch (key) {
             case "SECURITY_REALITY_PUBLIC_KEY":
-            case "NETWORK_XHTTP_DOWNLOAD_ADDRESS":
+            case "NETWORK_XHTTP_EXTRA_DOWNLOAD_ADDRESS":
                 return !value.isEmpty();
-            case "NETWORK_XHTTP_DOWNLOAD_PORT":
+            case "NETWORK_XHTTP_EXTRA_DOWNLOAD_PORT":
                 return Utils.isValidPort(value);
             case "MUX_XUDP_CONCURRENCY":
             case "MUX_CONCURRENCY":
@@ -235,6 +238,11 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             case "NETWORK_KCP_DOWNLINK":
             case "NETWORK_KCP_TTI":
             case "NETWORK_KCP_MTU":
+            case "NETWORK_XHTTP_EXTRA_SC_MAX_EACH_POST_BYTES":
+            case "NETWORK_XHTTP_EXTRA_SC_MIN_POSTS_INTERVAL_MS":
+            case "NETWORK_XHTTP_EXTRA_XMUX_MAX_CONNECTIONS":
+            case "NETWORK_XHTTP_EXTRA_XMUX_H_KEEPALIVE_PEROID":
+            case "NETWORK_XHTTP_EXTRA_XMUX_C_MAX_REUSE_TIMES":
 
                 try {
                     Integer.parseInt(value);
@@ -245,12 +253,13 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 return true;
 
             case "FINALMASK":
+            case "NETWORK_XHTTP_EXTRA_JSON":
                 if (!value.isBlank()) {
                     try {
                         new Gson().fromJson(value, JsonObject.class);
                         return true;
                     } catch (JsonSyntaxException e) {
-                        Log.e(TAG,"validate finalmask", e);
+                        Log.e(TAG, "validate" + key, e);
                         return false;
                     }
                 }
@@ -282,11 +291,9 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             try {
                 outbound.streamSettings.finalmask = new Gson().fromJson(finalmaskString, JsonObject.class);
             } catch (JsonSyntaxException e) {
-                Log.e(TAG,"parse finalmask", e);
+                Log.e(TAG, "parse finalmask", e);
             }
         }
-
-
 
 
         if (!hasStreamSettings()) return outbound;
@@ -322,20 +329,53 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 outbound.streamSettings.xHttpSettings.mode = adapter.getValue("NETWORK_XHTTP_MODE");
                 outbound.streamSettings.xHttpSettings.path = adapter.getValue("NETWORK_XHTTP_PATH");
                 outbound.streamSettings.xHttpSettings.host = adapter.getValue("NETWORK_XHTTP_HOST");
-                if (xhttpDownload != null && !xhttpDownload.isEmpty() && adapter.getValue("NETWORK_XHTTP_SEPARATE_DOWNLOAD").equals("True")) {
-                    Type type = new TypeToken<Map<String, Object>>() {
-                    }.getType();
-                    Gson gson = new GsonBuilder().create();
-                    Map<String, Object> downloadConfig = gson.fromJson(xhttpDownload, type);
-                    if (downloadConfig.get("streamSettings") instanceof Map) {
-                        outbound.streamSettings.xHttpSettings.downloadSettings = ((Map<String, Object>) downloadConfig.get("streamSettings"));
-                        outbound.streamSettings.xHttpSettings.downloadSettings.put("network", "xhttp");
-                        outbound.streamSettings.xHttpSettings.downloadSettings.put("address", adapter.getValue("NETWORK_XHTTP_DOWNLOAD_ADDRESS"));
-                        outbound.streamSettings.xHttpSettings.downloadSettings.put("port", Integer.parseInt(adapter.getValue("NETWORK_XHTTP_DOWNLOAD_PORT")));
-                        Map<String, String> downloadXhttpSettings = new HashMap<>();
-                        downloadXhttpSettings.put("path", adapter.getValue("NETWORK_XHTTP_PATH"));
-                        outbound.streamSettings.xHttpSettings.downloadSettings.put("xhttpSettings", downloadXhttpSettings);
+
+                if (adapter.getValue("NETWORK_XHTTP_EXTRA").equals("Manual Input")) {
+                    XHttpExtraSettings extra = new XHttpExtraSettings();
+
+                    extra.headers = new HashMap<>();
+                    for (String line : adapter.getValue("NETWORK_XHTTP_EXTRA_HEADERS").split("\\n")) {
+                        String[] h = line.split(":", 2);
+                        if (h.length < 2) {
+                            continue;
+                        }
+
+                        extra.headers.put(h[0].strip(), h[1].strip());
                     }
+
+                    extra.xPaddingBytes = adapter.getValue("NETWORK_XHTTP_EXTRA_X_PADDING_BYTES");
+                    extra.noGRPCHeader = Boolean.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_NO_GRPC_HEADER"));
+                    extra.scMaxEachPostBytes = Integer.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_SC_MAX_EACH_POST_BYTES"));
+                    extra.scMinPostsIntervalMs = Integer.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_SC_MIN_POSTS_INTERVAL_MS"));
+
+                    if (adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX").equals("Enabled")) {
+                        extra.xmux = new XMuxSettings();
+                        extra.xmux.maxConcurrency = adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_MAX_CONCURRENCY");
+                        extra.xmux.maxConnections = Integer.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_MAX_CONNECTIONS"));
+                        extra.xmux.cMaxReuseTimes = Integer.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_C_MAX_REUSE_TIMES"));
+                        extra.xmux.hMaxRequestTimes = adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_H_MAX_REQUEST_TIMES");
+                        extra.xmux.hMaxReusableSecs = adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_H_MAX_REUSABLE_SECS");
+                        extra.xmux.hKeepAlivePeriod = Integer.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_H_KEEPALIVE_PEROID"));
+                    }
+
+                    if (adapter.getValue("NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD").equals("True") && xhttpDownload != null && !xhttpDownload.isEmpty()) {
+                        Gson gson = new Gson();
+                        JsonElement downloadSettings = gson.fromJson(xhttpDownload, JsonObject.class).get("streamSettings");
+                        if (downloadSettings != null) {
+                            extra.downloadSettings = gson.fromJson(downloadSettings, XHttpStreamSettings.class);
+
+                            extra.downloadSettings.network = "xhttp";
+                            extra.downloadSettings.address = adapter.getValue("NETWORK_XHTTP_EXTRA_DOWNLOAD_ADDRESS");
+                            extra.downloadSettings.port = Integer.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_DOWNLOAD_PORT"));
+
+                            extra.downloadSettings.xHttpSettings = new XHttpSettings();
+                            extra.downloadSettings.xHttpSettings.path = adapter.getValue("NETWORK_XHTTP_PATH");
+                        }
+                    }
+
+                    outbound.streamSettings.xHttpSettings.extra = new Gson().toJsonTree(extra).getAsJsonObject();
+                } else if (!adapter.getValue("NETWORK_XHTTP_EXTRA_JSON").isEmpty()) {
+                    outbound.streamSettings.xHttpSettings.extra = new Gson().fromJson(adapter.getValue("NETWORK_XHTTP_EXTRA_JSON"), JsonObject.class);
                 }
                 break;
             case "kcp":
@@ -418,7 +458,15 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
      */
     protected LinkedHashMap<String, String> decodeOutboundConfig(Outbound<T> outbound) {
         LinkedHashMap<String, String> initials = new LinkedHashMap<>();
-
+        BiConsumer<String, Object> putNonNull = (k, v) -> {
+            if (v != null) {
+                if (v instanceof Boolean) {
+                    initials.put(k, (Boolean) v ? "True" : "False");
+                } else {
+                    initials.put(k, v.toString());
+                }
+            }
+        };
 
         if (outbound.streamSettings != null && outbound.streamSettings.finalmask != null) {
             initials.put("FINALMASK", new GsonBuilder().setPrettyPrinting().create().toJson(outbound.streamSettings.finalmask));
@@ -455,19 +503,51 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 initials.put("NETWORK_XHTTP_MODE", outbound.streamSettings.xHttpSettings.mode);
                 initials.put("NETWORK_XHTTP_PATH", outbound.streamSettings.xHttpSettings.path);
                 initials.put("NETWORK_XHTTP_HOST", outbound.streamSettings.xHttpSettings.host);
-                if (outbound.streamSettings.xHttpSettings.downloadSettings != null) {
-                    initials.put("NETWORK_XHTTP_SEPARATE_DOWNLOAD", "True");
-                    initials.put("NETWORK_XHTTP_DOWNLOAD_ADDRESS", ((String) outbound.streamSettings.xHttpSettings.downloadSettings.get("address")));
-                    initials.put("NETWORK_XHTTP_DOWNLOAD_PORT", (String.valueOf(((Double) outbound.streamSettings.xHttpSettings.downloadSettings.get("port")).intValue())));
 
-                    JsonObject downloadOutbound = new JsonObject();
-                    downloadOutbound.addProperty("protocol", "xhttpstream");
-                    downloadOutbound.add("settings", new JsonObject());
-                    JsonObject downloadStream = new Gson().toJsonTree(outbound.streamSettings.xHttpSettings.downloadSettings).getAsJsonObject();
-                    downloadOutbound.add("streamSettings", downloadStream);
-                    xhttpDownload = new Gson().toJson(downloadOutbound);
+                try {
+                    Gson gson = new Gson();
+                    XHttpExtraSettings extra = gson.fromJson(outbound.streamSettings.xHttpSettings.extra, XHttpExtraSettings.class);
 
-                    Log.i(TAG, "decode xhttp: " + xhttpDownload);
+                    if (extra.headers != null) {
+                        StringJoiner joiner = new StringJoiner("\n");
+                        extra.headers.forEach((k, v) -> {
+                            joiner.add(k + ": " + v);
+                        });
+                        initials.put("NETWORK_XHTTP_EXTRA_HEADERS", joiner.toString());
+                    }
+
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_X_PADDING_BYTES", extra.xPaddingBytes);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_NO_GRPC_HEADER", extra.noGRPCHeader);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_SC_MAX_EACH_POST_BYTES", extra.scMaxEachPostBytes);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_SC_MIN_POSTS_INTERVAL_MS", extra.scMinPostsIntervalMs);
+
+                    if (extra.xmux != null) {
+                        initials.put("NETWORK_XHTTP_EXTRA_XMUX", "Enabled");
+                        putNonNull.accept("NETWORK_XHTTP_EXTRA_XMUX_MAX_CONCURRENCY", extra.xmux.maxConcurrency);
+                        putNonNull.accept("NETWORK_XHTTP_EXTRA_XMUX_MAX_CONNECTIONS", extra.xmux.maxConnections);
+                        putNonNull.accept("NETWORK_XHTTP_EXTRA_XMUX_C_MAX_REUSE_TIMES", extra.xmux.cMaxReuseTimes);
+                        putNonNull.accept("NETWORK_XHTTP_EXTRA_XMUX_H_MAX_REQUEST_TIMES", extra.xmux.hMaxRequestTimes);
+                        putNonNull.accept("NETWORK_XHTTP_EXTRA_XMUX_H_MAX_REUSABLE_SECS", extra.xmux.hMaxReusableSecs);
+                        putNonNull.accept("NETWORK_XHTTP_EXTRA_XMUX_H_KEEPALIVE_PEROID", extra.xmux.hKeepAlivePeriod);
+                    }
+
+                    if (extra.downloadSettings != null) {
+                        initials.put("NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD", "True");
+                        putNonNull.accept("NETWORK_XHTTP_EXTRA_DOWNLOAD_ADDRESS", extra.downloadSettings.address);
+                        putNonNull.accept("NETWORK_XHTTP_EXTRA_DOWNLOAD_PORT", extra.downloadSettings.port);
+
+                        JsonObject downloadOutbound = new JsonObject();
+                        downloadOutbound.addProperty("protocol", "xhttpstream");
+                        downloadOutbound.add("settings", new JsonObject());
+                        JsonObject downloadStream = new Gson().toJsonTree(extra.downloadSettings).getAsJsonObject();
+                        downloadOutbound.add("streamSettings", downloadStream);
+                        xhttpDownload = new Gson().toJson(downloadOutbound);
+
+                        Log.i(TAG, "decode xhttp: " + xhttpDownload);
+                    }
+                } catch (JsonSyntaxException ignored) {
+                } catch (NullPointerException ignored) {
+                    Log.i(TAG, "ぬるぽ");
                 }
                 break;
             case "hysteria":
@@ -569,6 +649,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                         adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_HOST", "XHTTP Host", "");
                         adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_PATH", "XHTTP Path", "/");
                         adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_MODE", "XHTTP Mode", List.of("packet-up", "stream-up", "auto", "stream-one"));
+                        adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_EXTRA", "XHTTP Extra", List.of("Manual Input", "Edit JSON"));
                         break;
                     case "kcp":
                         adapter.addInputAfter("NETWORK", "NETWORK_KCP_MTU", "KCP MTU", "1350");
@@ -598,7 +679,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                     adapter.addInputAfter("SECURITY", "SECURITY_TLS_ALPN", "TLS ALPN", "h2,http/1.1");
                     adapter.addInputAfter("SECURITY", "SECURITY_TLS_FINGERPRINT", "TLS Fingerprint", List.of("None", "chrome", "firefox", "random", "randomized"));
                     adapter.addInputAfter("SECURITY", "SECURITY_TLS_VERIFY_PEER_CERT_BY_NAME", "TLS Verify Peer Cert By Name", "", "Comma separated list");
-                    adapter.addInputAfter("SECURITY", "SECURITY_TLS_PINNED_PEER_CERT_SHA256", "TLS Pinned Peer Cert SHA256", "","Comma separated list of SHA256 sums in hex");
+                    adapter.addInputAfter("SECURITY", "SECURITY_TLS_PINNED_PEER_CERT_SHA256", "TLS Pinned Peer Cert SHA256", "", "Comma separated list of SHA256 sums in hex");
                 } else if (value.equals("reality")) {
                     adapter.addInputAfter("SECURITY", "SECURITY_REALITY_MLDSA65VERIFY", "REALITY MLDSA65 Public Key");
                     adapter.addInputAfter("SECURITY", "SECURITY_REALITY_SNI", "REALITY Server Name");
@@ -608,34 +689,49 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 }
                 break;
 
-            case "NETWORK_XHTTP_MODE":
-                if (!value.equals("stream-one")) {
-                    if (!adapter.exists("NETWORK_XHTTP_SEPARATE_DOWNLOAD")) {
-                        adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_SEPARATE_DOWNLOAD", "XHTTP Separate Download", List.of("False", "True"));
-                    }
+            case "NETWORK_XHTTP_EXTRA":
+                adapter.removeInputByPrefix("NETWORK_XHTTP_EXTRA_");
+                if (value.equals("Manual Input")) {
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD", "XHTTP Separate Download", List.of("False", "True"));
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_XMUX", "XHTTP XMux Settings", List.of("Disable", "Enabled"));
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SC_MIN_POSTS_INTERVAL_MS", "XHTTP scMinPostsIntervalMs", "30");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SC_MAX_EACH_POST_BYTES", "XHTTP scMaxEachPostBytes", "1000000");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_NO_GRPC_HEADER", "XHTTP Disable GRPC header", List.of("False", "True"));
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_X_PADDING_BYTES", "XHTTP xPaddingBytes", "100-1000");
+                    adapter.addTextAreaInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_HEADERS", "XHTTP Headers", "Each line in the format \"Header-Name: header-value\".");
                 } else {
-                    adapter.removeInput("NETWORK_XHTTP_SEPARATE_DOWNLOAD");
-                    adapter.removeInputByPrefix("NETWORK_XHTTP_DOWNLOAD_");
+                    adapter.addTextAreaInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_JSON", "XHTTP Extra", "XHTTP extra parameters in JSON format.");
                 }
                 break;
 
-            case "NETWORK_XHTTP_SEPARATE_DOWNLOAD":
-                adapter.removeInputByPrefix("NETWORK_XHTTP_DOWNLOAD_BTN");
-                adapter.removeInputByPrefix("NETWORK_XHTTP_DOWNLOAD_ADDRESS");
-                adapter.removeInputByPrefix("NETWORK_XHTTP_DOWNLOAD_PORT");
+            case "NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD":
+                adapter.removeInputByPrefix("NETWORK_XHTTP_EXTRA_DOWNLOAD_");
                 if (value.equals("True")) {
-                    adapter.addInputAfter("NETWORK_XHTTP_SEPARATE_DOWNLOAD", "NETWORK_XHTTP_DOWNLOAD_PORT", "XHTTP Download Port");
-                    adapter.addInputAfter("NETWORK_XHTTP_SEPARATE_DOWNLOAD", "NETWORK_XHTTP_DOWNLOAD_ADDRESS", "XHTTP Download Address");
-                    adapter.addInputAfter("NETWORK_XHTTP_SEPARATE_DOWNLOAD", "NETWORK_XHTTP_DOWNLOAD_BTN", "XHTTP download stream settings", () -> {
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD", "NETWORK_XHTTP_EXTRA_DOWNLOAD_PORT", "XHTTP Download Port");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD", "NETWORK_XHTTP_EXTRA_DOWNLOAD_ADDRESS", "XHTTP Download Address");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD", "NETWORK_XHTTP_EXTRA_DOWNLOAD_BTN", "XHTTP download stream settings", () -> {
                         Intent intent = new Intent(this, XHttpStreamActivity.class);
                         intent.putExtra("LABEL", "Download stream settings");
                         intent.putExtra("INLINE", true);
-                        if (adapter.getValue("NETWORK_XHTTP_SEPARATE_DOWNLOAD").equals("True") && !xhttpDownload.isEmpty())
+                        if (adapter.getValue("NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD").equals("True") && !xhttpDownload.isEmpty())
                             intent.putExtra("CONFIG", xhttpDownload);
                         startActivityForResult(intent, 2);
                     });
                 }
                 break;
+
+            case "NETWORK_XHTTP_EXTRA_XMUX":
+                adapter.removeInputByPrefix("NETWORK_XHTTP_EXTRA_XMUX_");
+                if (value.equals("Enabled")) {
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA_XMUX", "NETWORK_XHTTP_EXTRA_XMUX_H_KEEPALIVE_PEROID", "XMUX hKeepAlivePeriod", "0");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA_XMUX", "NETWORK_XHTTP_EXTRA_XMUX_H_MAX_REUSABLE_SECS", "XMUX hMaxReusableSecs", "1800-3000");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA_XMUX", "NETWORK_XHTTP_EXTRA_XMUX_H_MAX_REQUEST_TIMES", "XMUX hMaxRequestTimes", "600-900");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA_XMUX", "NETWORK_XHTTP_EXTRA_XMUX_C_MAX_REUSE_TIMES", "XMUX cMaxReuseTimes", "0");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA_XMUX", "NETWORK_XHTTP_EXTRA_XMUX_MAX_CONNECTIONS", "XMUX maxConnections", "0");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA_XMUX", "NETWORK_XHTTP_EXTRA_XMUX_MAX_CONCURRENCY", "XMUX maxConcurrency", "16-32");
+                }
+                break;
+
             case "MUX_ENABLED":
                 adapter.removeInput("MUX_CONCURRENCY");
                 adapter.removeInput("MUX_XUDP_CONCURRENCY");

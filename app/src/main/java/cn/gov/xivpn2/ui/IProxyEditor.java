@@ -57,6 +57,9 @@ public interface IProxyEditor {
      */
     void addInputAfter(String after, String key, String label, List<String> selections);
 
+
+    void addTextAreaInputAfter(String after, String key, String label, String helperText);
+
     /**
      * Remove input by name
      */

@@ -7,7 +7,6 @@ import java.util.LinkedHashMap;
 
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.XHttpSettings;
-import cn.gov.xivpn2.xrayconfig.XHttpStream;
 
 public class XHttpStreamActivity extends ProxyActivity<XHttpSettings> {
 
@@ -23,7 +22,7 @@ public class XHttpStreamActivity extends ProxyActivity<XHttpSettings> {
 
     @Override
     protected Type getType() {
-        return new TypeToken<Outbound<XHttpStream>>() {
+        return new TypeToken<Outbound<Object>>() {
         }.getType();
     }
 

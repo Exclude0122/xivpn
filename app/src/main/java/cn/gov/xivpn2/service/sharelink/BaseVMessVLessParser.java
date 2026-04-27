@@ -55,10 +55,7 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
         for (String pair : pairs) {
             int idx = pair.indexOf("=");
             if (idx < 0) continue;
-            queryPairs.put(
-                    URLDecoder.decode(pair.substring(0, idx), "UTF-8"),
-                    URLDecoder.decode(pair.substring(idx + 1).replace("+", "%2B"), "UTF-8")
-            );
+            queryPairs.put(URLDecoder.decode(pair.substring(0, idx), "UTF-8"), URLDecoder.decode(pair.substring(idx + 1).replace("+", "%2B"), "UTF-8"));
         }
         return queryPairs;
     }
@@ -184,7 +181,8 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
                 // parse extra JSON if present
                 String extra = query.get("extra");
                 if (extra != null && !extra.isEmpty()) {
-                    parseXHttpExtra(ss.xHttpSettings, extra);
+                    ss.xHttpSettings.extra = new Gson().fromJson(extra, new TypeToken<>() {
+                    });
                 }
                 break;
 
@@ -238,28 +236,6 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
 
             default:
                 throw new IllegalArgumentException("unknown transport type: " + type);
-        }
-    }
-
-    /**
-     * Parse the XHTTP extra JSON and populate XHttpSettings fields.
-     * <p>
-     * The extra JSON is a free-form object that may contain downloadSettings and other fields.
-     */
-    @SuppressWarnings("unchecked")
-    private void parseXHttpExtra(XHttpSettings xHttpSettings, String extraJson) {
-        Gson gson = new Gson();
-        Map<String, Object> extra = gson.fromJson(extraJson, new TypeToken<>() {
-        });
-
-        if (extra == null) return;
-
-        // downloadSettings
-        if (extra.containsKey("downloadSettings")) {
-            Object ds = extra.get("downloadSettings");
-            if (ds instanceof Map) {
-                xHttpSettings.downloadSettings = (Map<String, Object>) ds;
-            }
         }
     }
 
@@ -403,14 +379,11 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
      * Returns null if there are no extra fields to marshal.
      */
     private String marshalXHttpExtra(XHttpSettings xHttpSettings) {
-        if (xHttpSettings.downloadSettings == null) {
-            return null;
+        if (xHttpSettings.extra != null) {
+            return xHttpSettings.extra.toString();
         }
 
-        Map<String, Object> extra = new LinkedHashMap<>();
-        extra.put("downloadSettings", xHttpSettings.downloadSettings);
-
-        return new Gson().toJson(extra);
+        return null;
     }
 
     private void marshalSecurityQueries(Map<String, String> queries, StreamSettings ss) throws MarshalProxyException {
