@@ -9,6 +9,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -18,10 +19,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.OutOfQuotaPolicy;
+import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
 import com.google.android.material.checkbox.MaterialCheckBox;
@@ -30,6 +33,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -187,12 +191,26 @@ public class SubscriptionsActivity extends AppCompatActivity {
             finish();
         }
         if (item.getItemId() == R.id.refresh) {
+            ProgressBar progressBar = findViewById(R.id.progress);
+
             WorkManager workManager = WorkManager.getInstance(this);
-            workManager.enqueue(
-                    new OneTimeWorkRequest.Builder(SubscriptionWork.class)
-                            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                            .build()
-            );
+
+            OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(SubscriptionWork.class)
+                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                    .addTag("MANUAL_SUBSCRIPTION_REFRESH")
+                    .build();
+            workManager.enqueue(workRequest);
+            workManager.getWorkInfoByIdLiveData(workRequest.getId()).observe(this, workInfo -> {
+                if (workInfo == null) return;
+                if (workInfo.getState().isFinished()) {
+                    progressBar.setVisibility(View.GONE);
+                } else if (workInfo.getState() == WorkInfo.State.RUNNING) {
+                    progressBar.setVisibility(View.VISIBLE);
+                    progressBar.setIndeterminate(true);
+                }
+            });
+
+
         }
         return super.onOptionsItemSelected(item);
     }
