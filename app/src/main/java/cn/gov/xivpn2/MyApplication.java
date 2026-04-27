@@ -88,6 +88,7 @@ public class MyApplication extends Application {
 
         // background work
         WorkManager workManager = WorkManager.getInstance(this);
+        workManager.cancelUniqueWork("SUBSCRIPTION");
         workManager.enqueueUniquePeriodicWork(
                 "SUBSCRIPTION",
                 ExistingPeriodicWorkPolicy.UPDATE,
