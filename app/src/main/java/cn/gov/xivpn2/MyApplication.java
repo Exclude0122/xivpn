@@ -73,6 +73,11 @@ public class MyApplication extends Application {
                         db.execSQL("ALTER TABLE subscription ADD COLUMN type TEXT;");
                         db.execSQL("UPDATE subscription SET type = 'v2rayng';");
                     }
+                }, new Migration(2, 3) {
+                    @Override
+                    public void migrate(@NonNull SupportSQLiteDatabase db) {
+                        db.execSQL("ALTER TABLE subscription ADD COLUMN ignoreRoutingDns INTEGER NOT NULL DEFAULT 0;");
+                    }
                 })
                 .build();
         AppDatabase.setInstance(db);

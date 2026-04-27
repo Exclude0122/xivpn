@@ -23,4 +23,7 @@ public class Subscription {
     public int autoUpdate;
     @Expose
     public String type;
+    @ColumnInfo(defaultValue = "0")
+    @Expose
+    public boolean ignoreRoutingDns;
 }

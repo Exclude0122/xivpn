@@ -24,6 +24,7 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkManager;
 
+import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -79,9 +80,15 @@ public class SubscriptionsActivity extends AppCompatActivity {
             TextInputEditText labelEditText = view.findViewById(R.id.label);
             TextInputEditText urlEditText = view.findViewById(R.id.url);
             AutoCompleteTextView type = view.findViewById(R.id.type);
+            MaterialCheckBox ignoreRoutingDns = view.findViewById(R.id.ignore_routing_dns);
 
             type.setAdapter(new NonFilterableArrayAdapter(this, R.layout.list_item, List.of(getResources().getStringArray(R.array.subscription_types))));
             type.setText(getResources().getStringArray(R.array.subscription_types)[0]);
+            ignoreRoutingDns.setVisibility(View.GONE);
+            type.setOnItemClickListener((parent, itemView, position, id) -> {
+                ignoreRoutingDns.setVisibility(position != 0 ? View.VISIBLE : View.GONE);
+                if (position == 0) ignoreRoutingDns.setChecked(false);
+            });
 
             new AlertDialog.Builder(this)
                     .setTitle(R.string.subscription)
@@ -102,6 +109,7 @@ public class SubscriptionsActivity extends AppCompatActivity {
                         subscription.url = urlEditText.getText().toString();
                         subscription.autoUpdate = 180;
                         subscription.type = type.getText().toString().equals(getResources().getStringArray(R.array.subscription_types)[0]) ? "v2rayng" : "xray-json";
+                        subscription.ignoreRoutingDns = ignoreRoutingDns.isChecked();
                         AppDatabase.getInstance().subscriptionDao().insert(subscription);
 
                         refresh();
@@ -127,14 +135,17 @@ public class SubscriptionsActivity extends AppCompatActivity {
         adapter.setOnClickListener(subscription -> {
             View view = LayoutInflater.from(this).inflate(R.layout.edit_subscription, null);
             TextInputEditText urlEditText = view.findViewById(R.id.url);
+            MaterialCheckBox ignoreRoutingDns = view.findViewById(R.id.ignore_routing_dns);
             urlEditText.setText(subscription.url);
+            ignoreRoutingDns.setChecked(subscription.ignoreRoutingDns);
+            ignoreRoutingDns.setVisibility("xray-json".equals(subscription.type) ? View.VISIBLE : View.GONE);
 
-            new MaterialAlertDialogBuilder(this)
+            new AlertDialog.Builder(this)
                     .setTitle(subscription.label)
                     .setView(view)
                     .setPositiveButton(R.string.save, (dialog, which) -> {
-                        // edit
                         AppDatabase.getInstance().subscriptionDao().updateUrl(subscription.label, urlEditText.getText().toString());
+                        AppDatabase.getInstance().subscriptionDao().updateIgnoreRoutingDns(subscription.label, ignoreRoutingDns.isChecked());
                         refresh();
                     })
                     .setNegativeButton(R.string.delete, (dialog, which) -> {

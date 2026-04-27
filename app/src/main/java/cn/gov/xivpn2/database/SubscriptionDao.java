@@ -23,6 +23,9 @@ public interface SubscriptionDao {
     @Query("UPDATE subscription SET url = :url WHERE label = :label")
     void updateUrl(String label, String url);
 
+    @Query("UPDATE subscription SET ignoreRoutingDns = :ignoreRoutingDns WHERE label = :label")
+    void updateIgnoreRoutingDns(String label, boolean ignoreRoutingDns);
+
     @Query("DELETE FROM subscription")
     void deleteAll();
 }
