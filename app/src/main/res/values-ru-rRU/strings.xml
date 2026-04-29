@@ -30,7 +30,7 @@
     <string name="settings">Настройки</string>
     <string name="about">О приложении</string>
     <string name="black_background">Чёрный фон</string>
-    <string name="appearance">Облик</string>
+    <string name="appearance">Оформление</string>
     <string name="restart_to_apply">Перезапустите приложение для применения настроек</string>
     <string name="black_background_summary">Использовать чисто чёрный фон в тёмной теме</string>
     <string name="app_version">Версия приложения</string>
@@ -66,7 +66,7 @@
     <string name="geoip">Geoip</string>
     <string name="geosite">Geosite</string>
     <string name="v2fly_dlc">v2fly/domain-list-community</string>
-    <string name="custom_geosite_hint">Введите ссылку на файл Geoip</string>
+    <string name="custom_geosite_hint">Введите ссылку на файл Geosite</string>
     <string name="downloading_geo_assets">Загрузка геоданных…</string>
     <string name="downloading_error">Ошибка загрузки</string>
     <string name="warning">Внимание</string>
@@ -104,6 +104,8 @@
     <string name="dns_requires_api_29">Эта функция требует Android 9 или новее.</string>
     <string name="system_network_info">Информация о системе и сети</string>
     <string name="dns">DNS</string>
+    <string name="hosts">Hosts</string>
+    <string name="hosts_placeholder" translatable="false">one.one.one.one 1.1.1.1\nexample.com example.org</string>
     <string name="hosts_format_error">Неправильный формат строки hosts:</string>
     <string name="dns_help">Здесь вы можете настроить встроенный DNS-сервер Xray.\n\nОбратите внимание, что DNS-запросы не обрабатываются Xray, если вы не задали соответствующее правило маршрутизации на DNS outbound.</string>
     <string name="dns_servers">DNS-серверы</string>
@@ -111,8 +113,9 @@
     <string name="could_not_save_dns">Не удалось сохранить настройки DNS</string>
     <string name="at_least_one_dns_server">Вы должны оставить хотя бы один DNS-сервер</string>
     <string name="address">Адрес</string>
+    <string name="tag" translatable="false">Тег</string>
     <string name="new_dns_server">Новый DNS-сервер</string>
-    <string name="edit_dns_server">Редактировать DNS-сервер</string>
+    <string name="edit_dns_server">Изменить DNS-сервер</string>
     <string name="could_not_read_dns">Не удалось прочитать настройки DNS</string>
     <string name="dns_server_help">Поддерживаемые форматы адреса:\n  - DNS по UDP: IP-адрес (например, 1.1.1.1)\n  - DNS по TCP: tcp://host (например, tcp://8.8.8.8)\n  - DNS по HTTPS: https://host:port/dns-query (например, https://dns.google/dns-query)\n\nПорт:\n  Номер порта для DNS. По умолчанию 53. Не применяется для DNS по HTTPS.\n\nДомены:\n  Список доменов, для которых предпочтительно использовать этот DNS-сервер.</string>
     <string name="inbound">Входящее соединение</string>
@@ -124,17 +127,17 @@
     <string name="protocol_unsupported">Протокол "%1$s" не поддерживается</string>
     <string name="proxy_chain_help">Цепочка прокси позволяет использовать последовательность серверов.\n\nПервый сервер — входной, последний — выходной. Всё между ними — промежуточные узлы (как в Tor).</string>
     <string name="proxy_group">Группа прокси</string>
-    <string name="proxy_group_help">ПОДСКАЗКА ПО ГРУППЕ ПРОКСИ</string>
-     <string name="proxy_group_cycle">Обнаружен цикл в группе прокси: </string>
+    <string name="proxy_group_help">Вы можете группировать серверы в группы прокси и использовать эти группы как заполнители в конфигурациях (например, исходящее соединение для правил, универсальное исходящее или цепочки прокси).\n\nПри формировании конфигурации Xray группы прокси заменяются на текущий выбранный сервер в каждой группе. Вы можете менять выбранный сервер на главном экране.\n\nГруппы также могут включать другие группы, но циклические ссылки (когда группа косвенно содержит себя) не допускаются.</string>
+    <string name="proxy_group_cycle">Обнаружен цикл в группе прокси: </string>
     <string name="proxy_group_empty">Группа прокси не может быть пустой: </string>
     <string name="proxy_group_not_found">Группа прокси \"%s\": прокси \"%s\" не найден</string>
     <string name="backup">Резервная копия</string>
     <string name="app">Приложение</string>
-    <string name="backup_or_restore">Резервное копирование / Восстановление</string>
+    <string name="backup_or_restore">Резервная копия / Восстановление</string>
     <string name="restore">Восстановить</string>
     <string name="backup_help">Включено в резервную копию:\n- Все прокси\n- Все правила маршрутизации\n- Все настройки DNS\n- Все подписки</string>
     <string name="restore_help">Внимание: при восстановлении будут потеряны все текущие настройки</string>
-    <string name="backup_finished">Резервное копирование завершено</string>
+    <string name="backup_finished">Резервная копия завершена</string>
     <string name="backup_error">Ошибка резервного копирования: </string>
     <string name="restore_error">Ошибка восстановления: </string>
     <string name="restore_finished">Восстановление завершено</string>
@@ -145,4 +148,26 @@
     <string name="ipv6">IPv6</string>
     <string name="ipv6_summary">Добавить IPv6-адрес и маршрут к VPN-интерфейсу.</string>
     <string name="geoip_geosite_summary">Скачать базу данных GEOIP / GEOSITE</string>
+    <string name="subscription_no_verify">Игнорировать проверку сертификата</string>
+    <string name="subscription_no_verify_summary">Отключить проверку SSL-сертификата при обновлении подписок (небезопасно!)</string>
+    <string name="click_for_details">Нажать для подробностей</string>
+    <string name="delete_confirm">Вы уверены, что хотите удалить?</string>
+    <string name="qrcode_scan">Сканирование QR-кода</string>
+    <string name="import_from_qrcode">Импорт из QR-кода</string>
+    <string name="no_camera_permission">Разрешение камеры не предоставлено</string>
+    <string name="share">Поделиться</string>
+    <string name="applications">Приложения</string>
+    <string name="rule_app_help">Сопоставление трафика по исходному приложению</string>
+    <string name="already_updating_geo_assets">Задача загрузки геобаз выполняется в фоновом режиме.</string>
+    <string name="not_found">Не найдено</string>
+    <string name="downloading">Загружается</string>
+    <string name="download_success">Загружено успешно</string>
+    <string name="leak_protection">Защита от утечек</string>
+    <string name="leak_protection_summary">Предотвращает привязку приложений, исключённых из Split Tunnel или из других профилей, к VPN-интерфейсу. (Требует Android 10+, экспериментально)</string>
+    <string name="select_all">Выбрать все</string>
+    <string name="none_subscription">Нет</string>
+    <string name="donation">Пожертвование</string>
+    <string name="donation_summary">Я бедный студент. Пожалуйста, поддержите меня &#x2764;&#xfe0f;</string>
+    <string name="wallet_address">Адрес кошелька</string>
+    <string name="copy">Копировать</string>
 </resources>
