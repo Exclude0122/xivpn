@@ -1,15 +1,16 @@
 /*
- * Copyright © 2017-2023 WireGuard LLC. All Rights Reserved.
+ * Copyright © 2017-2025 WireGuard LLC. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package cn.gov.xivpn2.crypto;
+package com.wireguard.crypto;
+
+import com.wireguard.crypto.KeyFormatException.Type;
+import com.wireguard.util.NonNullForAll;
 
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
-
-import cn.gov.xivpn2.crypto.KeyFormatException.Type;
 
 /**
  * Represents a WireGuard public or private key. This class uses specialized constant-time base64
@@ -18,6 +19,7 @@ import cn.gov.xivpn2.crypto.KeyFormatException.Type;
  * Instances of this class are immutable.
  */
 @SuppressWarnings("MagicNumber")
+@NonNullForAll
 public final class Key {
     private final byte[] key;
 

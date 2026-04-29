@@ -60,7 +60,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
 
     private final static String TAG = "ProxyActivity";
 
-    private ProxyEditTextAdapter adapter;
+    protected ProxyEditTextAdapter adapter;
 
     private String label;
     private String subscription;

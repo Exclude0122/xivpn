@@ -1,15 +1,18 @@
 /*
- * Copyright © 2017-2023 WireGuard LLC. All Rights Reserved.
+ * Copyright © 2017-2025 WireGuard LLC. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package cn.gov.xivpn2.crypto;
+package com.wireguard.crypto;
+
+import com.wireguard.util.NonNullForAll;
 
 /**
  * An exception thrown when attempting to parse an invalid key (too short, too long, or byte
  * data inappropriate for the format). The format being parsed can be accessed with the
  * {@link #getFormat} method.
  */
+@NonNullForAll
 public final class KeyFormatException extends Exception {
     private final Key.Format format;
     private final Type type;

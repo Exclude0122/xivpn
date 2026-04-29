@@ -3,6 +3,7 @@ agp = "9.1.0"
 cameraCore = "1.6.0"
 commonsCollections4 = "4.5.0"
 commonsIo = "2.21.0"
+jsr305 = "3.0.2"
 zxingCore = "3.5.4"
 gson = "2.13.2"
 guavaVersion = "33.5.0-android"
@@ -26,6 +27,7 @@ androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "
 camera-core = { module = "androidx.camera:camera-core", version.ref = "cameraCore" }
 commons-collections4 = { module = "org.apache.commons:commons-collections4", version.ref = "commonsCollections4" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commonsIo" }
+jsr305 = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }
 zxingCore = { module = "com.google.zxing:core", version.ref = "zxingCore" }
 google-guava = { module = "com.google.guava:guava", version.ref = "guavaVersion" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }

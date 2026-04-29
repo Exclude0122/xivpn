@@ -1,13 +1,32 @@
 package cn.gov.xivpn2.ui;
 
-import com.google.common.reflect.TypeToken;
+import android.app.AlertDialog;
+import android.content.Intent;
+import android.net.Uri;
+import android.widget.Toast;
 
+import androidx.annotation.Nullable;
+
+import com.google.common.reflect.TypeToken;
+import com.wireguard.config.BadConfigException;
+import com.wireguard.config.Config;
+import com.wireguard.config.InetNetwork;
+import com.wireguard.config.Interface;
+import com.wireguard.config.Peer;
+import com.wireguard.crypto.Key;
+import com.wireguard.crypto.KeyFormatException;
+import com.wireguard.crypto.KeyPair;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Type;
+import java.net.Inet4Address;
 import java.util.LinkedHashMap;
+import java.util.Objects;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
-import cn.gov.xivpn2.crypto.Key;
-import cn.gov.xivpn2.crypto.KeyFormatException;
+import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.WireguardPeer;
 import cn.gov.xivpn2.xrayconfig.WireguardSettings;
@@ -97,9 +116,6 @@ public class WireguardActivity extends ProxyActivity<WireguardSettings> {
             Key privateKey = Key.generatePrivateKey();
             adapter.setValue("PRIVATE_KEY", privateKey.toBase64());
             adapter.notifyValueChanged("PRIVATE_KEY");
-
-            adapter.setValue("PUBLIC_KEY", Key.generatePublicKey(privateKey).toBase64());
-            adapter.notifyValueChanged("PUBLIC_KEY");
         }, () -> {
             String privateKey = adapter.getValue("PRIVATE_KEY");
             try {
@@ -114,6 +130,13 @@ public class WireguardActivity extends ProxyActivity<WireguardSettings> {
         adapter.addInput("PEER_PUBLIC_KEY", "Peer Public Key");
         adapter.addInput("PEER_PRE_SHARED_KEY", "Peer Pre Shared Key");
         adapter.addInput("PEER_ALLOWED_IPS", "Allowed IPs", "0.0.0.0/0,::/0");
+        adapter.addInput(new ProxyEditTextAdapter.ButtonInput("IMPORT_CONFIG", "Import Config File", "", () -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+
+            startActivityForResult(intent, 1);
+        }));
     }
 
     /**
@@ -122,5 +145,75 @@ public class WireguardActivity extends ProxyActivity<WireguardSettings> {
     @Override
     protected boolean hasStreamSettings() {
         return false;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        Uri uri;
+        if (data == null || (uri = data.getData()) == null) {
+            return;
+        }
+
+        if (requestCode == 1 && resultCode == RESULT_OK) {
+            // open config successful
+
+            try (InputStream in = getContentResolver().openInputStream(uri)) {
+                Config config = Config.parse(Objects.requireNonNull(in));
+
+                // import interface
+                Interface interfaze = config.getInterface();
+
+                for (InetNetwork net : interfaze.getAddresses()) {
+                    String field = net.getAddress() instanceof Inet4Address ? "ADDRESS1" : "ADDRESS2";
+                    adapter.setValue(field, net.toString());
+                    adapter.notifyValueChanged(field);
+                }
+
+                KeyPair keypair = interfaze.getKeyPair();
+                adapter.setValue("PRIVATE_KEY", keypair.getPrivateKey().toBase64());
+                adapter.notifyValueChanged("PRIVATE_KEY");
+
+                String warning = null;
+                // import peer
+                if (!config.getPeers().isEmpty()) {
+                    Peer peer = config.getPeers().get(0);
+
+                    // endpoint
+                    if (peer.getEndpoint().isEmpty()) {
+                        warning = "Warning: No peer endpoint provided";
+                    } else {
+                        adapter.setValue("PEER_ENDPOINT", peer.getEndpoint().get().toString());
+                        adapter.notifyValueChanged("PEER_ENDPOINT");
+                    }
+
+                    // public key
+                    adapter.setValue("PEER_PUBLIC_KEY", peer.getPublicKey().toBase64());
+                    adapter.notifyValueChanged("PEER_PUBLIC_KEY");
+
+                    // pre-shared key (optional)
+                    peer.getPreSharedKey().ifPresent((psk) -> {
+                        adapter.setValue("PEER_PRE_SHARED_KEY", psk.toBase64());
+                        adapter.notifyValueChanged("PEER_PRE_SHARED_KEY");
+                    });
+
+                    // allowed IPs
+                    StringJoiner joiner = new StringJoiner(",");
+                    for (InetNetwork net : peer.getAllowedIps()) {
+                        joiner.add(net.toString());
+                    }
+                    adapter.setValue("PEER_ALLOWED_IPS", joiner.toString());
+                    adapter.notifyValueChanged("PEER_ALLOWED_IPS");
+                }
+
+                Toast.makeText(this, warning != null ? warning : "Import successful", Toast.LENGTH_SHORT).show();
+            } catch (NullPointerException | IOException | BadConfigException e) {
+                new AlertDialog.Builder(this)
+                        .setTitle(R.string.error)
+                        .setMessage(getString(R.string.import_config_error) + e.getClass().getName() + ": " + e.getMessage())
+                        .setPositiveButton(R.string.ok, null).show();
+            }
+        }
     }
 }

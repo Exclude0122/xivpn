@@ -161,4 +161,5 @@
     <string name="download_success">下载成功</string>
     <string name="leak_protection">防泄漏</string>
     <string name="leak_protection_summary">阻止 Split Tunnel 排除的应用或来自不同配置文件的应用使用 VPN 接口。（需要 Android 10 及以上版本，实验性功能）</string>
+    <string name="import_config_error">"导入配置失败: "</string>
 </resources>

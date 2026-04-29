@@ -175,4 +175,5 @@
     <string name="xray_json_subscription_warning">Xray-JSON subscriptions allow VPN providers to distribute raw Xray configuration JSONs.\n\nHow Xray-JSON subscriptions are combined with settings defined in XiVPN GUI:\n- Xray-JSON must be set as the catch-all proxy. Using it in proxy groups, proxy chains or routing rules is not allowed.\n- GUI defined routing rules are inserted before the ones in the JSON.\n- Log level, DNS and sniffing settings from Xray-JSON are always ignored.</string>
     <string name="dont_show_again">Don\'t show again</string>
     <string name="ignore_routing_dns_configs">Ignore routing and DNS configs from this subscription</string>
+    <string name="import_config_error">"Import config error: "</string>
 </resources>

@@ -1,14 +1,16 @@
 /*
  * Copyright © 2016 Southern Storm Software, Pty Ltd.
- * Copyright © 2017-2023 WireGuard LLC. All Rights Reserved.
+ * Copyright © 2017-2025 WireGuard LLC. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package cn.gov.xivpn2.crypto;
+package com.wireguard.crypto;
 
-import androidx.annotation.Nullable;
+import com.wireguard.util.NonNullForAll;
 
 import java.util.Arrays;
+
+import androidx.annotation.Nullable;
 
 /**
  * Implementation of Curve25519 ECDH.
@@ -25,6 +27,7 @@ import java.util.Arrays;
  * References: http://cr.yp.to/ecdh.html, RFC 7748
  */
 @SuppressWarnings({"MagicNumber", "NonConstantFieldWithUpperCaseName", "SuspiciousNameCombination"})
+@NonNullForAll
 public final class Curve25519 {
     // Numbers modulo 2^255 - 19 are broken up into ten 26-bit words.
     private static final int NUM_LIMBS_255BIT = 10;
