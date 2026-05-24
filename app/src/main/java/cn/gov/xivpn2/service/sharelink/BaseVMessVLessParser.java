@@ -3,7 +3,6 @@ package cn.gov.xivpn2.service.sharelink;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -181,8 +180,7 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
                 // parse extra JSON if present
                 String extra = query.get("extra");
                 if (extra != null && !extra.isEmpty()) {
-                    ss.xHttpSettings.extra = new Gson().fromJson(extra, new TypeToken<>() {
-                    });
+                    ss.xHttpSettings.extra = new Gson().fromJson(extra, JsonObject.class);
                 }
                 break;
 

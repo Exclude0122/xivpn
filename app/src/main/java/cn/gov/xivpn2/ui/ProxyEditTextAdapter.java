@@ -117,6 +117,11 @@ public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.View
     }
 
     @Override
+    public void addGroupTitleAfter(String after, String key, String label) {
+        this.addInputAfter(after, new TitleInput(key, label));
+    }
+
+    @Override
     public void addInput(String key, String label, String defaultValue) {
         this.addInput(new TextInput(key, label, "", defaultValue));
     }

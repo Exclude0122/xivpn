@@ -238,11 +238,8 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             case "NETWORK_KCP_DOWNLINK":
             case "NETWORK_KCP_TTI":
             case "NETWORK_KCP_MTU":
-            case "NETWORK_XHTTP_EXTRA_SC_MAX_EACH_POST_BYTES":
-            case "NETWORK_XHTTP_EXTRA_SC_MIN_POSTS_INTERVAL_MS":
-            case "NETWORK_XHTTP_EXTRA_XMUX_MAX_CONNECTIONS":
-            case "NETWORK_XHTTP_EXTRA_XMUX_H_KEEPALIVE_PEROID":
-            case "NETWORK_XHTTP_EXTRA_XMUX_C_MAX_REUSE_TIMES":
+            case "NETWORK_XHTTP_EXTRA_SC_MAX_BUFFERED_POSTS":
+            case "NETWORK_XHTTP_EXTRA_SERVER_MAX_HEADER_BYTES":
 
                 try {
                     Integer.parseInt(value);
@@ -330,32 +327,57 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 outbound.streamSettings.xHttpSettings.path = adapter.getValue("NETWORK_XHTTP_PATH");
                 outbound.streamSettings.xHttpSettings.host = adapter.getValue("NETWORK_XHTTP_HOST");
 
-                if (adapter.getValue("NETWORK_XHTTP_EXTRA").equals("Manual Input")) {
+                if ("Manual Input".equals(adapter.getValue("NETWORK_XHTTP_EXTRA"))) {
                     XHttpExtraSettings extra = new XHttpExtraSettings();
 
                     extra.headers = new HashMap<>();
                     for (String line : adapter.getValue("NETWORK_XHTTP_EXTRA_HEADERS").split("\\n")) {
+                        if (line.isBlank()) continue;
                         String[] h = line.split(":", 2);
-                        if (h.length < 2) {
-                            continue;
-                        }
+                        if (h.length < 2) continue;
 
                         extra.headers.put(h[0].strip(), h[1].strip());
                     }
 
                     extra.xPaddingBytes = adapter.getValue("NETWORK_XHTTP_EXTRA_X_PADDING_BYTES");
-                    extra.noGRPCHeader = Boolean.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_NO_GRPC_HEADER"));
-                    extra.scMaxEachPostBytes = Integer.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_SC_MAX_EACH_POST_BYTES"));
-                    extra.scMinPostsIntervalMs = Integer.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_SC_MIN_POSTS_INTERVAL_MS"));
+                    extra.xPaddingObfsMode = "True".equals(adapter.getValue("NETWORK_XHTTP_EXTRA_X_PADDING_OBFS_MODE"));
+                    extra.xPaddingHeader = adapter.getValue("NETWORK_XHTTP_EXTRA_X_PADDING_HEADER");
+                    extra.xPaddingKey = adapter.getValue("NETWORK_XHTTP_EXTRA_X_PADDING_KEY");
+                    extra.xPaddingMethod = adapter.getValue("NETWORK_XHTTP_EXTRA_X_PADDING_METHOD");
+                    extra.xPaddingPlacement = adapter.getValue("NETWORK_XHTTP_EXTRA_X_PADDING_PLACEMENT");
+
+                    extra.uplinkHTTPMethod = adapter.getValue("NETWORK_XHTTP_EXTRA_UPLINK_HTTP_METHOD");
+                    extra.sessionPlacement = adapter.getValue("NETWORK_XHTTP_EXTRA_SESSION_PLACEMENT");
+                    extra.sessionKey = adapter.getValue("NETWORK_XHTTP_EXTRA_SESSION_KEY");
+                    extra.seqPlacement = adapter.getValue("NETWORK_XHTTP_EXTRA_SEQ_PLACEMENT");
+                    extra.seqKey = adapter.getValue("NETWORK_XHTTP_EXTRA_SEQ_KEY");
+                    extra.uplinkDataPlacement = adapter.getValue("NETWORK_XHTTP_EXTRA_UPLINK_DATA_PLACEMENT");
+                    extra.uplinkDataKey = adapter.getValue("NETWORK_XHTTP_EXTRA_UPLINK_DATA_KEY");
+                    extra.uplinkChunkSize = adapter.getValue("NETWORK_XHTTP_EXTRA_UPLINK_CHUNK_SIZE");
+
+                    extra.noGRPCHeader = "True".equals(adapter.getValue("NETWORK_XHTTP_EXTRA_NO_GRPC_HEADER")) ? true : null;
+                    extra.noSSEHeader = "True".equals(adapter.getValue("NETWORK_XHTTP_EXTRA_NO_SSE_HEADER")) ? true : null;
+                    extra.scMaxEachPostBytes = adapter.getValue("NETWORK_XHTTP_EXTRA_SC_MAX_EACH_POST_BYTES");
+                    extra.scMinPostsIntervalMs = adapter.getValue("NETWORK_XHTTP_EXTRA_SC_MIN_POSTS_INTERVAL_MS");
+                    extra.scStreamUpServerSecs = adapter.getValue("NETWORK_XHTTP_EXTRA_SC_STREAM_UP_SERVER_SECS");
+
+                    String scMaxBufferedPostsStr = adapter.getValue("NETWORK_XHTTP_EXTRA_SC_MAX_BUFFERED_POSTS");
+                    if (!scMaxBufferedPostsStr.isBlank()) {
+                        try { extra.scMaxBufferedPosts = Long.parseLong(scMaxBufferedPostsStr); } catch (NumberFormatException ignored) {}
+                    }
+                    String serverMaxHeaderBytesStr = adapter.getValue("NETWORK_XHTTP_EXTRA_SERVER_MAX_HEADER_BYTES");
+                    if (!serverMaxHeaderBytesStr.isBlank()) {
+                        try { extra.serverMaxHeaderBytes = Integer.parseInt(serverMaxHeaderBytesStr); } catch (NumberFormatException ignored) {}
+                    }
 
                     if (adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX").equals("Enabled")) {
                         extra.xmux = new XMuxSettings();
                         extra.xmux.maxConcurrency = adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_MAX_CONCURRENCY");
-                        extra.xmux.maxConnections = Integer.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_MAX_CONNECTIONS"));
-                        extra.xmux.cMaxReuseTimes = Integer.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_C_MAX_REUSE_TIMES"));
+                        extra.xmux.maxConnections = adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_MAX_CONNECTIONS");
+                        extra.xmux.cMaxReuseTimes = adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_C_MAX_REUSE_TIMES");
                         extra.xmux.hMaxRequestTimes = adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_H_MAX_REQUEST_TIMES");
                         extra.xmux.hMaxReusableSecs = adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_H_MAX_REUSABLE_SECS");
-                        extra.xmux.hKeepAlivePeriod = Integer.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_H_KEEPALIVE_PEROID"));
+                        extra.xmux.hKeepAlivePeriod = Long.valueOf(adapter.getValue("NETWORK_XHTTP_EXTRA_XMUX_H_KEEPALIVE_PEROID"));
                     }
 
                     if (adapter.getValue("NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD").equals("True") && xhttpDownload != null && !xhttpDownload.isEmpty()) {
@@ -458,7 +480,9 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
      */
     protected LinkedHashMap<String, String> decodeOutboundConfig(Outbound<T> outbound) {
         LinkedHashMap<String, String> initials = new LinkedHashMap<>();
+
         BiConsumer<String, Object> putNonNull = (k, v) -> {
+            // Add to initials if value is not null. For boolean value, convert to "True"/"False" string.
             if (v != null) {
                 if (v instanceof Boolean) {
                     initials.put(k, (Boolean) v ? "True" : "False");
@@ -508,6 +532,8 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                     Gson gson = new Gson();
                     XHttpExtraSettings extra = gson.fromJson(outbound.streamSettings.xHttpSettings.extra, XHttpExtraSettings.class);
 
+                    initials.put("NETWORK_XHTTP_EXTRA", "Manual Input");
+
                     if (extra.headers != null) {
                         StringJoiner joiner = new StringJoiner("\n");
                         extra.headers.forEach((k, v) -> {
@@ -517,9 +543,28 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                     }
 
                     putNonNull.accept("NETWORK_XHTTP_EXTRA_X_PADDING_BYTES", extra.xPaddingBytes);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_X_PADDING_OBFS_MODE", extra.xPaddingObfsMode);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_X_PADDING_HEADER", extra.xPaddingHeader);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_X_PADDING_KEY", extra.xPaddingKey);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_X_PADDING_METHOD", extra.xPaddingMethod);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_X_PADDING_PLACEMENT", extra.xPaddingPlacement);
+
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_UPLINK_HTTP_METHOD", extra.uplinkHTTPMethod);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_SESSION_PLACEMENT", extra.sessionPlacement);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_SESSION_KEY", extra.sessionKey);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_SEQ_PLACEMENT", extra.seqPlacement);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_SEQ_KEY", extra.seqKey);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_UPLINK_DATA_PLACEMENT", extra.uplinkDataPlacement);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_UPLINK_DATA_KEY", extra.uplinkDataKey);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_UPLINK_CHUNK_SIZE", extra.uplinkChunkSize);
+
                     putNonNull.accept("NETWORK_XHTTP_EXTRA_NO_GRPC_HEADER", extra.noGRPCHeader);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_NO_SSE_HEADER", extra.noSSEHeader);
                     putNonNull.accept("NETWORK_XHTTP_EXTRA_SC_MAX_EACH_POST_BYTES", extra.scMaxEachPostBytes);
                     putNonNull.accept("NETWORK_XHTTP_EXTRA_SC_MIN_POSTS_INTERVAL_MS", extra.scMinPostsIntervalMs);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_SC_STREAM_UP_SERVER_SECS", extra.scStreamUpServerSecs);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_SC_MAX_BUFFERED_POSTS", extra.scMaxBufferedPosts);
+                    putNonNull.accept("NETWORK_XHTTP_EXTRA_SERVER_MAX_HEADER_BYTES", extra.serverMaxHeaderBytes);
 
                     if (extra.xmux != null) {
                         initials.put("NETWORK_XHTTP_EXTRA_XMUX", "Enabled");
@@ -646,10 +691,11 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                         adapter.addInputAfter("NETWORK", "NETWORK_HTTPUPGRADE_HOST", "HttpUpgrade Host");
                         break;
                     case "xhttp":
+                        adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_EXTRA", "XHTTP Extra", List.of("Manual Input", "Edit JSON"));
+                        adapter.addGroupTitleAfter("NETWORK", "NETWORK_XHTTP_TITLE_EXTRA", "XHTTP Extra");
                         adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_HOST", "XHTTP Host", "");
                         adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_PATH", "XHTTP Path", "/");
                         adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_MODE", "XHTTP Mode", List.of("packet-up", "stream-up", "auto", "stream-one"));
-                        adapter.addInputAfter("NETWORK", "NETWORK_XHTTP_EXTRA", "XHTTP Extra", List.of("Manual Input", "Edit JSON"));
                         break;
                     case "kcp":
                         adapter.addInputAfter("NETWORK", "NETWORK_KCP_MTU", "KCP MTU", "1350");
@@ -691,17 +737,53 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
 
             case "NETWORK_XHTTP_EXTRA":
                 adapter.removeInputByPrefix("NETWORK_XHTTP_EXTRA_");
+
                 if (value.equals("Manual Input")) {
-                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD", "XHTTP Separate Download", List.of("False", "True"));
-                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_XMUX", "XHTTP XMux Settings", List.of("Disable", "Enabled"));
-                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SC_MIN_POSTS_INTERVAL_MS", "XHTTP scMinPostsIntervalMs", "30");
-                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SC_MAX_EACH_POST_BYTES", "XHTTP scMaxEachPostBytes", "1000000");
-                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_NO_GRPC_HEADER", "XHTTP Disable GRPC header", List.of("False", "True"));
-                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_X_PADDING_BYTES", "XHTTP xPaddingBytes", "100-1000");
-                    adapter.addTextAreaInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_HEADERS", "XHTTP Headers", "Each line in the format \"Header-Name: header-value\".");
+
+
+                    // Separate download
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD", "Separate Download", List.of("False", "True"));
+                    adapter.addGroupTitleAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_TITLE_DOWNLOAD", "XHTTP Separate Download");
+
+                    // Other settings
+
+                    adapter.addTextAreaInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_HEADERS", "Headers", "Each line in the format of \"Header-Name: header-value\".");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_XMUX", "XMux Settings", List.of("Disable", "Enabled"));
+
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SERVER_MAX_HEADER_BYTES", "serverMaxHeaderBytes", "0");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SC_STREAM_UP_SERVER_SECS", "scStreamUpServerSecs", "200-300");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SC_MAX_BUFFERED_POSTS", "scMaxBufferedPosts", "0");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SC_MIN_POSTS_INTERVAL_MS", "scMinPostsIntervalMs", "30");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SC_MAX_EACH_POST_BYTES", "scMaxEachPostBytes", "1000000");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_NO_SSE_HEADER", "Disable SSE header", List.of("False", "True"));
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_NO_GRPC_HEADER", "Disable GRPC header", List.of("False", "True"));
+                    adapter.addGroupTitleAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_OTHER_TITLE", "XHTTP Other Settings");
+
+                    // Obfs
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_UPLINK_CHUNK_SIZE", "uplinkChunkSize", "2048-3072");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_UPLINK_DATA_KEY", "uplinkDataKey", "");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_UPLINK_DATA_PLACEMENT", "uplinkDataPlacement", List.of("auto", "body", "cookie", "header"));
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_UPLINK_HTTP_METHOD", "uplinkHTTPMethod", List.of("POST", "PUT", "PATCH"));
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SESSION_KEY", "sessionKey", "");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SESSION_PLACEMENT", "sessionPlacement", List.of("path", "query", "cookie", "header"));
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SEQ_KEY", "seqKey", "");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_SEQ_PLACEMENT", "seqPlacement", List.of("path", "query", "cookie", "header"));
+
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_X_PADDING_KEY", "xPaddingKey", "");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_X_PADDING_HEADER", "xPaddingHeader", "");
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_X_PADDING_PLACEMENT", "xPaddingPlacement", List.of("queryInHeader", "cookie", "header", "query"));
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_X_PADDING_METHOD", "xPaddingMethod", List.of("repeat-x", "tokenish"));
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_X_PADDING_OBFS_MODE", "xPaddingObfsMode", List.of("False", "True"));
+                    adapter.addInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_X_PADDING_BYTES", "xPaddingBytes", "100-1000");
+                    adapter.addGroupTitleAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_OBFS_TITLE", "XHTTP Obfs");
+
                 } else {
+
                     adapter.addTextAreaInputAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_JSON", "XHTTP Extra", "XHTTP extra parameters in JSON format.");
+                    adapter.addGroupTitleAfter("NETWORK_XHTTP_EXTRA", "NETWORK_XHTTP_EXTRA_TITLE", "XHTTP Extras");
+
                 }
+
                 break;
 
             case "NETWORK_XHTTP_EXTRA_SEPARATE_DOWNLOAD":
