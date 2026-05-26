@@ -71,6 +71,7 @@ import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.DNS;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
+import cn.gov.xivpn2.database.Subscription;
 import cn.gov.xivpn2.ui.CrashLogActivity;
 import cn.gov.xivpn2.ui.MainActivity;
 import cn.gov.xivpn2.xrayconfig.Config;
@@ -913,34 +914,38 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
             // merge xray json
             if (catchAll.protocol.equals("xray-json")) {
-                JsonObject xrayJson = gson.fromJson(catchAll.config, JsonObject.class);
+                Subscription catchAllSubscription = AppDatabase.getInstance().subscriptionDao().findByLabel(catchAll.subscription);
 
-                JsonArray xOutbounds = xrayJson.getAsJsonArray("outbounds");
+                JsonObject xrayJsonObject = gson.fromJson(catchAll.config, JsonObject.class);
 
-                // insert xray-json outbounds before other outbounds
+                // outbounds
                 JsonArray newOutbounds = new JsonArray();
-                newOutbounds.addAll(xOutbounds);
-                newOutbounds.addAll(configJsonObject.getAsJsonArray("outbounds"));
+                newOutbounds.addAll(xrayJsonObject.getAsJsonArray("outbounds"));
+                if (!catchAllSubscription.ignoreRoutingDns) newOutbounds.addAll(configJsonObject.getAsJsonArray("outbounds"));
                 configJsonObject.remove("outbounds");
                 configJsonObject.add("outbounds", newOutbounds);
 
-                // overwrite routing
-                if (xrayJson.getAsJsonObject("routing") != null) {
-                    JsonObject xRouting = xrayJson.getAsJsonObject("routing");
+                // routing
+                if (xrayJsonObject.getAsJsonObject("routing") != null) {
+                    JsonObject xRouting = xrayJsonObject.getAsJsonObject("routing");
                     if (!xRouting.has("rules")) {
                         xRouting.add("rules", new JsonArray());
                     }
 
-                    // user defined rules come before xray-json rules
                     JsonArray newRules = new JsonArray();
-                    newRules.addAll(configJsonObject.getAsJsonObject("routing").getAsJsonArray("rules"));
+                    if (!catchAllSubscription.ignoreRoutingDns) newRules.addAll(configJsonObject.getAsJsonObject("routing").getAsJsonArray("rules"));
                     newRules.addAll(xRouting.getAsJsonArray("rules"));
                     xRouting.remove("rules");
                     xRouting.add("rules", newRules);
 
-                    // overwrite routing with xray-json routing
                     configJsonObject.remove("routing");
                     configJsonObject.add("routing", xRouting);
+                }
+
+                // dns
+                if (xrayJsonObject.has("dns") && xrayJsonObject.get("dns").isJsonObject() && catchAllSubscription.ignoreRoutingDns) {
+                    configJsonObject.remove("dns");
+                    configJsonObject.add("dns", xrayJsonObject.getAsJsonObject("dns"));
                 }
             }
 

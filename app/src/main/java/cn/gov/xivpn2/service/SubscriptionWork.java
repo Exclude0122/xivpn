@@ -116,7 +116,7 @@ public class SubscriptionWork extends Worker {
                 if ("v2rayng".equals(subscription.type)) {
                     parseV2rayng(body, subscription.label);
                 } else if ("xray-json".equals(subscription.type)) {
-                    parseXrayJson(body, subscription.label, subscription.ignoreRoutingDns);
+                    parseXrayJson(body, subscription.label);
                 } else {
                     throw new IllegalArgumentException("unknown subscription type: " + subscription.type);
                 }
@@ -195,7 +195,7 @@ public class SubscriptionWork extends Worker {
     /**
      * Import proxies from xray json subscription
      */
-    public void parseXrayJson(String text, String subscription, boolean ignoreRoutingDns) {
+    public void parseXrayJson(String text, String subscription) {
         Gson gson = new Gson();
 
         JsonArray jsonArray = gson.fromJson(text, JsonArray.class);
@@ -209,11 +209,6 @@ public class SubscriptionWork extends Worker {
             }
             if (remarks == null || remarks.isBlank()) remarks = "Configuration " + i;
             jsonObject.remove("remarks");
-
-            if (ignoreRoutingDns) {
-                jsonObject.remove("dns");
-                jsonObject.remove("routing");
-            }
 
             Proxy proxy = new Proxy();
             proxy.protocol = "xray-json";
