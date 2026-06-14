@@ -130,7 +130,7 @@ jobs:
           archive: false
 
       - name: Copy APKs
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || inputs.pre_release
         run: |
           cp ./app/build/outputs/apk/universal/release/app-universal-release.apk ./xivpn-universal.apk
           cp ./app/build/outputs/apk/x86_64/release/app-x86_64-release.apk ./xivpn-x86_64.apk
