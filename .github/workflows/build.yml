@@ -137,6 +137,26 @@ jobs:
           cp ./app/build/outputs/apk/arm64_v8a/release/app-arm64_v8a-release.apk ./xivpn-arm64_v8a.apk
           cp ./app/build/outputs/apk/armabi_v7a/release/app-armabi_v7a-release.apk ./xivpn-armeabi-v7a.apk
 
+      - name: GitHub Script
+        if: inputs.pre_release
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            const now = new Date();
+            const tag = now.getFullYear().toString()
+              + String(now.getMonth() + 1).padStart(2, '0')
+              + String(now.getDate()).padStart(2, '0')
+              + String(now.getHours()).padStart(2, '0')
+              + String(now.getMinutes()).padStart(2, '0')
+              + String(now.getSeconds()).padStart(2, '0');
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/${tag}`,
+              sha: context.sha
+            })
+
+
       - name: Prerelease
         if: inputs.pre_release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
