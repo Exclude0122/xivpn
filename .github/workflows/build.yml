@@ -137,8 +137,9 @@ jobs:
           cp ./app/build/outputs/apk/arm64_v8a/release/app-arm64_v8a-release.apk ./xivpn-arm64_v8a.apk
           cp ./app/build/outputs/apk/armabi_v7a/release/app-armabi_v7a-release.apk ./xivpn-armeabi-v7a.apk
 
-      - name: GitHub Script
+      - name: Generate prerelease tag
         if: inputs.pre_release
+        id: prerelease_tag
         uses: actions/github-script@v9.0.0
         with:
           script: |
@@ -155,12 +156,15 @@ jobs:
               ref: `refs/tags/${tag}`,
               sha: context.sha
             })
+            return tag
 
 
       - name: Prerelease
         if: inputs.pre_release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
         with:
+          tag_name: ${{ steps.prerelease_tag.outputs.result }}
+          prerelease: true
           files: |
             xivpn-universal.apk
             xivpn-x86_64.apk
