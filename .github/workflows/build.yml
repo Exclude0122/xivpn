@@ -1,7 +1,12 @@
 name: Build
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      pre_release:
+        description: "Publish pre-release"
+        required: false
+        type: boolean
 
 jobs:
   build:
@@ -11,18 +16,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: true
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: 17
 
       - name: Setup NDK
-        uses: nttld/setup-ndk@v1
+        uses: nttld/setup-ndk@ed92fe6cadad69be94a966a7ee3271275e62f779
         id: setup-ndk
         with:
           add-to-path: false
@@ -43,7 +48,7 @@ jobs:
           NDK: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Decode Keystore
         env:
@@ -60,70 +65,71 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
-      - name: Calculate sha256
+      - name: Rename and calculate sha256
         run: |
-          sha256sum ./app/build/outputs/apk/arm64_v8a/release/app-arm64_v8a-release.apk > sha256.txt
-          sha256sum ./app/build/outputs/apk/universal/release/app-universal-release.apk >> sha256.txt
-          sha256sum ./app/build/outputs/apk/x86_64/release/app-x86_64-release.apk >> sha256.txt
-          sha256sum ./app/build/outputs/apk/armabi_v7a/release/app-armabi_v7a-release.apk >> sha256.txt
+          cp ./app/build/outputs/apk/arm64_v8a/release/{app-arm64_v8a-release.apk,xivpn-arm64_v8a.apk}
+          cp ./app/build/outputs/apk/universal/release/{app-universal-release.apk,xivpn-universal.apk}
+          cp ./app/build/outputs/apk/x86_64/release/{app-x86_64-release.apk,xivpn-x86_64.apk}
+          cp ./app/build/outputs/apk/armabi_v7a/release/{app-armabi_v7a-release.apk,xivpn-armeabi-v7a.apk}
+          
+          sha256sum ./app/build/outputs/apk/arm64_v8a/release/xivpn-arm64_v8a.apk > sha256.txt
+          sha256sum ./app/build/outputs/apk/universal/release/xivpn-universal.apk >> sha256.txt
+          sha256sum ./app/build/outputs/apk/x86_64/release/xivpn-x86_64.apk >> sha256.txt
+          sha256sum ./app/build/outputs/apk/armabi_v7a/release/xivpn-armeabi-v7a.apk >> sha256.txt
+          
           sha256sum ./libxivpn/libxivpn_x86_64.so >> sha256.txt
           sha256sum ./libxivpn/libxivpn_arm64.so >> sha256.txt
+          sha256sum ./libxivpn/libxivpn_armv7a.so >> sha256.txt
 
       - name: Upload Universal APK to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: xivpn-universal.apk
-          path: ./app/build/outputs/apk/universal/release/app-universal-release.apk
+          path: ./app/build/outputs/apk/universal/release/xivpn-universal.apk
+          archive: false
 
-      - name: Upload x86_64 APK to Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload arm64 APK to Artifacts
+        uses: actions/upload-artifact@v7
         with:
-          name: xivpn-x86_64.apk
-          path: ./app/build/outputs/apk/x86_64/release/app-x86_64-release.apk
+          path: ./app/build/outputs/apk/arm64_v8a/release/xivpn-arm64_v8a.apk
+          archive: false
 
       - name: Upload armeabi-v7a APK to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: xivpn-armeabi-v7a.apk
-          path: ./app/build/outputs/apk/armabi_v7a/release/app-armabi_v7a-release.apk
+          path: ./app/build/outputs/apk/armabi_v7a/release/xivpn-armeabi-v7a.apk
+          archive: false
 
-      - name: Upload arm64_v8a APK to Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload x86_64 APK to Artifacts
+        uses: actions/upload-artifact@v7
         with:
-          name: xivpn-arm64_v8a.apk
-          path: ./app/build/outputs/apk/arm64_v8a/release/app-arm64_v8a-release.apk
-
-      - name: Upload x86_64 libxivpn to Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: libxivpn_x86_64.so
-          path: ./libxivpn/libxivpn_x86_64.so
+          path: ./app/build/outputs/apk/x86_64/release/xivpn-x86_64.apk
+          archive: false
 
       - name: Upload arm64 libxivpn to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: libxivpn_arm64.so
           path: ./libxivpn/libxivpn_arm64.so
+          archive: false
 
-      - name: Upload armv7a libxivpn to Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload x86_64 libxivpn to Artifacts
+        uses: actions/upload-artifact@v7
         with:
-          name: libxivpn_armv7a.so
-          path: ./libxivpn/libxivpn_armv7a.so
+          path: ./libxivpn/libxivpn_x86_64.so
+          archive: false
 
       - name: Upload mapping to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: mapping.txt
           path: ./app/build/outputs/mapping/arm64_v8aRelease/mapping.txt
+          archive: false
 
       - name: Upload SHA256 to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: sha256.txt
           path: sha256.txt
+          archive: false
 
-      - name: Rename APKs
+      - name: Copy APKs
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           cp ./app/build/outputs/apk/universal/release/app-universal-release.apk ./xivpn-universal.apk
@@ -131,9 +137,20 @@ jobs:
           cp ./app/build/outputs/apk/arm64_v8a/release/app-arm64_v8a-release.apk ./xivpn-arm64_v8a.apk
           cp ./app/build/outputs/apk/armabi_v7a/release/app-armabi_v7a-release.apk ./xivpn-armeabi-v7a.apk
 
+      - name: Prerelease
+        if: inputs.pre_release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
+        with:
+          files: |
+            xivpn-universal.apk
+            xivpn-x86_64.apk
+            xivpn-arm64_v8a.apk
+            xivpn-armeabi-v7a.apk
+            sha256.txt
+
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
         with:
           files: |
             xivpn-universal.apk
