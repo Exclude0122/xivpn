@@ -65,22 +65,13 @@
             android:name=".ui.RuleActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.RulesActivity"
-            android:exported="false" />
-        <activity
             android:name=".ui.LicensesActivity"
             android:exported="false" />
         <activity
             android:name=".ui.ProxyGroupActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.PreferenceActivity"
-            android:exported="false" />
-        <activity
             android:name=".ui.CrashActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.SubscriptionsActivity"
             android:exported="false" />
         <activity
             android:name=".ui.HttpActivity"
@@ -101,9 +92,6 @@
         <activity
             android:name=".ui.VlessActivity"
             android:configChanges="orientation|screenLayout|screenSize"
-            android:exported="false" />
-        <activity
-            android:name=".ui.ProxiesActivity"
             android:exported="false" />
         <activity
             android:name=".ui.TrojanActivity"

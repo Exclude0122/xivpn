@@ -14,15 +14,10 @@
         android:layout_height="match_parent"
         tools:context=".ui.MainActivity">
 
-        <FrameLayout
-            android:id="@+id/frame_layout"
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/nav_host_fragment"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recycler_view"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-        </FrameLayout>
+            android:layout_height="match_parent" />
 
 
         <com.google.android.material.navigation.NavigationView

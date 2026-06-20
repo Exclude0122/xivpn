@@ -11,18 +11,18 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -44,34 +44,31 @@ import cn.gov.xivpn2.service.SubscriptionWork;
 import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.service.sharelink.MarshalProxyException;
 
-public class ProxiesActivity extends AppCompatActivity {
+public class ProxiesFragment extends Fragment {
 
 
     private ProxiesAdapter adapter;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
 
-        BlackBackground.apply(this);
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_proxies, container, false);
+    }
 
-        EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_proxies);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle(R.string.proxies);
-        }
-
-        RecyclerView recyclerView = findViewById(R.id.recycler_view);
+        RecyclerView recyclerView = view.findViewById(R.id.recycler_view);
 
         this.adapter = new ProxiesAdapter();
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
         // on list item clicked
@@ -81,11 +78,11 @@ public class ProxiesActivity extends AppCompatActivity {
             public void onClick(View v, Proxy proxy, int i) {
                 if (proxy.protocol.equals("dns")) return; // dns can not be the default outbound
 
-                SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
+                SharedPreferences sp = requireContext().getSharedPreferences("XIVPN", Context.MODE_PRIVATE);
                 Rules.setCatchAll(sp, proxy.label, proxy.subscription);
                 adapter.setChecked(proxy.label, proxy.subscription);
 
-                XiVPNService.markConfigStale(ProxiesActivity.this);
+                XiVPNService.markConfigStale(requireContext());
             }
 
             @Override
@@ -95,19 +92,19 @@ public class ProxiesActivity extends AppCompatActivity {
 
             @Override
             public void onDelete(View v, Proxy proxy, int i) {
-                new AlertDialog.Builder(ProxiesActivity.this)
+                new AlertDialog.Builder(requireContext())
                         .setTitle(R.string.warning)
                         .setMessage(R.string.delete_confirm)
                         .setPositiveButton(R.string.ok, (dialog, which) -> {
                             AppDatabase.getInstance().proxyDao().delete(proxy.label, proxy.subscription);
 
                             try {
-                                Rules.resetDeletedProxies(getSharedPreferences("XIVPN", MODE_PRIVATE), getApplicationContext().getFilesDir());
+                                Rules.resetDeletedProxies(requireContext().getSharedPreferences("XIVPN", Context.MODE_PRIVATE), requireContext().getFilesDir());
                             } catch (IOException e) {
-                                Log.e("ProxiesActivity", "reset deleted proxies", e);
+                                Log.e("ProxiesFragment", "reset deleted proxies", e);
                             }
 
-                            XiVPNService.markConfigStale(ProxiesActivity.this);
+                            XiVPNService.markConfigStale(requireContext());
 
                             refresh();
                         })
@@ -123,7 +120,7 @@ public class ProxiesActivity extends AppCompatActivity {
                 try {
                     link = SubscriptionWork.marshalProxy(proxy);
                 } catch (MarshalProxyException e) {
-                    Toast.makeText(ProxiesActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
                     return;
                 }
 
@@ -142,19 +139,19 @@ public class ProxiesActivity extends AppCompatActivity {
                     }
 
                 } catch (WriterException e) {
-                    Log.e("ProxiesActivity", "could not generate qr code", e);
+                    Log.e("ProxiesFragment", "could not generate qr code", e);
                     return;
                 }
 
-                ImageView imageView = new ImageView(ProxiesActivity.this);
+                ImageView imageView = new ImageView(requireContext());
                 imageView.setImageBitmap(bmp);
 
-                new AlertDialog.Builder(ProxiesActivity.this)
+                new AlertDialog.Builder(requireContext())
                         .setTitle(R.string.share)
                         .setView(imageView)
                         .setPositiveButton(R.string.copy_share_link, (dialog, which) -> {
 
-                            ClipboardManager clipboardManager = (ClipboardManager) ProxiesActivity.this.getSystemService(Context.CLIPBOARD_SERVICE);
+                            ClipboardManager clipboardManager = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
                             clipboardManager.setPrimaryClip(ClipData.newPlainText("", link));
 
                         })
@@ -199,7 +196,7 @@ public class ProxiesActivity extends AppCompatActivity {
                 }
 
                 if (cls != null) {
-                    Intent intent = new Intent(ProxiesActivity.this, cls);
+                    Intent intent = new Intent(requireContext(), cls);
                     intent.putExtra("LABEL", proxy.label);
                     intent.putExtra("SUBSCRIPTION", proxy.subscription);
                     intent.putExtra("CONFIG", proxy.config);
@@ -211,8 +208,11 @@ public class ProxiesActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(R.string.proxies);
+        }
         refresh();
     }
 
@@ -220,7 +220,7 @@ public class ProxiesActivity extends AppCompatActivity {
 
         adapter.replaceProxies(AppDatabase.getInstance().proxyDao().findAll());
 
-        SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
+        SharedPreferences sp = requireContext().getSharedPreferences("XIVPN", Context.MODE_PRIVATE);
         adapter.setChecked(
                 sp.getString("SELECTED_LABEL", "No Proxy (Bypass Mode)"),
                 sp.getString("SELECTED_SUBSCRIPTION", "none")
@@ -230,18 +230,22 @@ public class ProxiesActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        inflater.inflate(R.menu.proxies_activity, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            this.finish();
-            return true;
-        } else if (item.getItemId() == R.id.from_clipboard) {
+        int id = item.getItemId();
+        if (id == R.id.from_clipboard) {
 
             // import from clipboard
 
-            View view = LayoutInflater.from(this).inflate(R.layout.edit_text, null);
+            View view = LayoutInflater.from(requireContext()).inflate(R.layout.edit_text, null);
             TextInputEditText editText2 = view.findViewById(R.id.edit_text);
 
-            new MaterialAlertDialogBuilder(this)
+            new MaterialAlertDialogBuilder(requireContext())
                     .setTitle(R.string.import_form_clipboard)
                     .setView(view)
                     .setPositiveButton(R.string.ok, (dialog, which) -> {
@@ -253,13 +257,13 @@ public class ProxiesActivity extends AppCompatActivity {
 
                         try {
                             SubscriptionWork.parseLine(s, "none");
-                            Toast.makeText(this, R.string.proxy_added, Toast.LENGTH_SHORT).show();
-                            XiVPNService.markConfigStale(this);
+                            Toast.makeText(requireContext(), R.string.proxy_added, Toast.LENGTH_SHORT).show();
+                            XiVPNService.markConfigStale(requireContext());
                             refresh();
                         } catch (Exception e) {
-                            Log.e("ProxiesActivity", "parse line", e);
+                            Log.e("ProxiesFragment", "parse line", e);
 
-                            new AlertDialog.Builder(this)
+                            new AlertDialog.Builder(requireContext())
                                     .setTitle(R.string.invalid_link)
                                     .setMessage(e.getMessage())
                                     .setPositiveButton(R.string.ok, null)
@@ -271,48 +275,48 @@ public class ProxiesActivity extends AppCompatActivity {
             view.requestFocus();
 
             return true;
-        } else if (item.getItemId() == R.id.shadowsocks || item.getItemId() == R.id.vmess || item.getItemId() == R.id.socks5 || item.getItemId() == R.id.vless || item.getItemId() == R.id.trojan || item.getItemId() == R.id.wireguard || item.getItemId() == R.id.proxy_chain || item.getItemId() == R.id.proxy_group || item.getItemId() == R.id.http || item.getItemId() == R.id.hysteria) {
+        } else if (id == R.id.shadowsocks || id == R.id.vmess || id == R.id.socks5 || id == R.id.vless || id == R.id.trojan || id == R.id.wireguard || id == R.id.proxy_chain || id == R.id.proxy_group || id == R.id.http || id == R.id.hysteria) {
 
             // add
 
-            View view = LayoutInflater.from(this).inflate(R.layout.label_edit_text, null);
+            View view = LayoutInflater.from(requireContext()).inflate(R.layout.label_edit_text, null);
             TextInputEditText editText = view.findViewById(R.id.edit_text);
 
-            new MaterialAlertDialogBuilder(this)
+            new MaterialAlertDialogBuilder(requireContext())
                     .setTitle(R.string.label)
                     .setView(view)
                     .setPositiveButton(R.string.ok, (dialog, which) -> {
 
                         String label = String.valueOf(editText.getText());
                         if (label.isEmpty() || AppDatabase.getInstance().proxyDao().exists(label, "none") > 0) {
-                            Toast.makeText(this, getResources().getText(R.string.conflict_label), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(requireContext(), getResources().getText(R.string.conflict_label), Toast.LENGTH_SHORT).show();
                             return;
                         }
 
                         Class<? extends AppCompatActivity> cls = null;
-                        if (item.getItemId() == R.id.shadowsocks) {
+                        if (id == R.id.shadowsocks) {
                             cls = ShadowsocksActivity.class;
-                        } else if (item.getItemId() == R.id.vmess) {
+                        } else if (id == R.id.vmess) {
                             cls = VmessActivity.class;
-                        } else if (item.getItemId() == R.id.vless) {
+                        } else if (id == R.id.vless) {
                             cls = VlessActivity.class;
-                        } else if (item.getItemId() == R.id.trojan) {
+                        } else if (id == R.id.trojan) {
                             cls = TrojanActivity.class;
-                        } else if (item.getItemId() == R.id.wireguard) {
+                        } else if (id == R.id.wireguard) {
                             cls = WireguardActivity.class;
-                        } else if (item.getItemId() == R.id.proxy_chain) {
+                        } else if (id == R.id.proxy_chain) {
                             cls = ProxyChainActivity.class;
-                        } else if (item.getItemId() == R.id.proxy_group) {
+                        } else if (id == R.id.proxy_group) {
                             cls = ProxyGroupActivity.class;
-                        } else if (item.getItemId() == R.id.http) {
+                        } else if (id == R.id.http) {
                             cls = HttpActivity.class;
-                        } else if (item.getItemId() == R.id.socks5) {
+                        } else if (id == R.id.socks5) {
                             cls = Socks5Activity.class;
-                        } else if (item.getItemId() == R.id.hysteria) {
+                        } else if (id == R.id.hysteria) {
                             cls = HysteriaActivity.class;
                         }
 
-                        Intent intent = new Intent(this, cls);
+                        Intent intent = new Intent(requireContext(), cls);
                         intent.putExtra("LABEL", label);
                         intent.putExtra("SUBSCRIPTION", "none");
                         startActivity(intent);
@@ -320,27 +324,27 @@ public class ProxiesActivity extends AppCompatActivity {
                     }).show();
 
             return true;
-        } else if (item.getItemId() == R.id.help) {
-            new AlertDialog.Builder(this)
+        } else if (id == R.id.help) {
+            new AlertDialog.Builder(requireContext())
                     .setTitle(R.string.help)
                     .setMessage(R.string.proxies_help)
                     .setPositiveButton(R.string.ok, null)
                     .show();
             return true;
 
-        } else if (item.getItemId() == R.id.qrcode) {
-            startActivity(new Intent(this, QRScanActivity.class));
+        } else if (id == R.id.qrcode) {
+            startActivity(new Intent(requireContext(), QRScanActivity.class));
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.proxies_activity, menu);
-        return super.onCreateOptionsMenu(menu);
+    @Nullable
+    private androidx.appcompat.app.ActionBar getSupportActionBar() {
+        if (getActivity() instanceof AppCompatActivity) {
+            return ((AppCompatActivity) getActivity()).getSupportActionBar();
+        }
+        return null;
     }
-
-
 }

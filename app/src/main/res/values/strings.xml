@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">XiVPN</string>
+    <string name="home">Home</string>
     <string name="subscriptions">Subscriptions</string>
     <string name="subscription">Subscription</string>
     <string name="proxies">Proxies</string>
