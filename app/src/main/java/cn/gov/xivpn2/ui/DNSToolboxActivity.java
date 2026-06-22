@@ -33,7 +33,7 @@ import java.util.Objects;
 
 import cn.gov.xivpn2.R;
 
-public class DNSToolbox extends AppCompatActivity {
+public class DNSToolboxActivity extends AppCompatActivity {
 
     private final Map<Integer, String> RCODES = Map.of(
             0, "OK",

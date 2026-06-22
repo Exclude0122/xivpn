@@ -41,13 +41,19 @@
             android:name=".ui.DNSActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.DNSToolbox"
+            android:name=".ui.DNSToolboxActivity"
             android:exported="false" />
         <activity
             android:name=".ui.CrashLogActivity"
             android:exported="false" />
         <activity
             android:name=".ui.SplitTunnelActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.SubscriptionsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.RulesActivity"
             android:exported="false" />
         <activity
             android:name=".ui.AppSelectActivity"
@@ -69,6 +75,9 @@
             android:exported="false" />
         <activity
             android:name=".ui.ProxyGroupActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.PreferenceActivity"
             android:exported="false" />
         <activity
             android:name=".ui.CrashActivity"

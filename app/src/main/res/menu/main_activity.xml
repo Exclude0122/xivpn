@@ -5,14 +5,7 @@
     <item
         android:id="@+id/home"
         android:icon="@drawable/baseline_home_24"
-        android:title="@string/home"
-        app:showAsAction="ifRoom" />
-
-    <item
-        android:id="@+id/subscriptions"
-        android:icon="@drawable/baseline_cloud_24"
-        android:title="@string/subscriptions"
-        app:showAsAction="ifRoom" />
+        android:title="@string/home" />
 
     <item
         android:id="@+id/proxies"
@@ -20,27 +13,9 @@
         android:title="@string/proxies" />
 
     <item
-        android:id="@+id/rules"
-        android:icon="@drawable/baseline_alt_route_24"
-        android:title="@string/rules" />
-
-    <item
-        android:id="@+id/dns"
-        android:icon="@drawable/travel_explore"
-        android:title="@string/dns"
-        app:showAsAction="ifRoom" />
-
-
-    <item
         android:id="@+id/settings"
         android:icon="@drawable/baseline_settings_24"
-        android:title="@string/settings"
-        app:showAsAction="ifRoom" />
+        android:title="@string/settings" />
 
-    <item
-        android:id="@+id/dns_toolbox"
-        android:title="@string/dns_toolbox"
-        app:showAsAction="ifRoom"
-        android:icon="@drawable/build"/>
 
 </menu>

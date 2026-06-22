@@ -1,10 +1,12 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
     namespace 'cn.gov.xivpn2'
-    compileSdk 36
+    compileSdk 37
 
     defaultConfig {
         applicationId "io.github.exclude0122.xivpn"
@@ -41,6 +43,7 @@ android {
 
     buildFeatures {
         buildConfig true
+        compose true
     }
 
     flavorDimensions += "version"
@@ -98,11 +101,15 @@ android {
     androidResources {
         generateLocaleConfig true
     }
+    kotlinOptions {
+        jvmTarget = '11'
+    }
 
 
 }
 
 dependencies {
+    implementation libs.androidx.core.ktx
     implementation libs.room.runtime
     annotationProcessor libs.room.compiler
     implementation libs.google.guava
@@ -123,6 +130,14 @@ dependencies {
     implementation libs.androidx.camera.camera2
     implementation libs.zxingCore
     implementation libs.jsr305
+    implementation platform('androidx.compose:compose-bom:2026.06.00')
+    androidTestImplementation platform('androidx.compose:compose-bom:2026.06.00')
+    implementation libs.androidx.material3
+    implementation libs.androidx.ui.tooling.preview
+    debugImplementation libs.androidx.ui.tooling
+    implementation libs.androidx.ui
+    implementation libs.androidx.compose.foundation
+
 
 
     testImplementation libs.junit

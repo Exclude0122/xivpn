@@ -3,16 +3,15 @@ package cn.gov.xivpn2.ui;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.MenuItem;
 import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -26,21 +25,25 @@ import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
 
-public class RulesFragment extends Fragment {
+public class RulesActivity extends AppCompatActivity {
 
     private final ArrayList<RoutingRule> rules = new ArrayList<>();
-    private final String TAG = "RulesFragment";
+    private final String TAG = "RulesActivity";
     private RulesAdapter adapter;
 
-    @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_rules, container, false);
-    }
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+        BlackBackground.apply(this);
+
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_rules);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
 
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle(R.string.rules);
@@ -50,14 +53,14 @@ public class RulesFragment extends Fragment {
         // recycler view
         adapter = new RulesAdapter();
         adapter.setRoutingRules(rules);
-        RecyclerView recyclerView = view.findViewById(R.id.recycler_view);
-        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        RecyclerView recyclerView = findViewById(R.id.recycler_view);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
         adapter.setListener(new RulesAdapter.OnClickListener() {
             @Override
             public void onClick(int i) {
-                Intent intent = new Intent(requireContext(), RuleActivity.class);
+                Intent intent = new Intent(RulesActivity.this, RuleActivity.class);
                 intent.putExtra("INDEX", i);
                 startActivity(intent);
             }
@@ -92,9 +95,9 @@ public class RulesFragment extends Fragment {
         });
 
         // fab
-        FloatingActionButton fab = view.findViewById(R.id.add);
+        FloatingActionButton fab = findViewById(R.id.add);
         fab.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), RuleActivity.class);
+            Intent intent = new Intent(RulesActivity.this, RuleActivity.class);
             intent.putExtra("INDEX", -1);
             startActivity(intent);
         });
@@ -102,11 +105,8 @@ public class RulesFragment extends Fragment {
     }
 
     @Override
-    public void onResume() {
+    protected void onResume() {
         super.onResume();
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle(R.string.rules);
-        }
         loadRules();
     }
 
@@ -119,12 +119,12 @@ public class RulesFragment extends Fragment {
             rules.clear();
             adapter.notifyItemRangeRemoved(0, size);
 
-            rules.addAll(Rules.readRules(requireContext().getFilesDir()));
+            rules.addAll(Rules.readRules(getFilesDir()));
             adapter.notifyItemRangeInserted(0, rules.size());
 
         } catch (IOException e) {
             Log.e(TAG, "load rules", e);
-            Toast.makeText(requireContext(), e.getClass().getSimpleName() + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, e.getClass().getSimpleName() + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -133,22 +133,22 @@ public class RulesFragment extends Fragment {
      */
     private void saveRules() {
         try {
-            Rules.writeRules(requireContext().getFilesDir(), rules);
+            Rules.writeRules(getFilesDir(), rules);
         } catch (IOException e) {
             Log.e(TAG, "save rules", e);
-            Toast.makeText(requireContext(), e.getClass().getSimpleName() + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, e.getClass().getSimpleName() + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
 
         }
 
-        XiVPNService.markConfigStale(requireContext());
+        XiVPNService.markConfigStale(this);
     }
 
 
-    @Nullable
-    private ActionBar getSupportActionBar() {
-        if (getActivity() instanceof AppCompatActivity) {
-            return ((AppCompatActivity) getActivity()).getSupportActionBar();
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
         }
-        return null;
+        return super.onOptionsItemSelected(item);
     }
 }

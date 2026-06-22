@@ -20,14 +20,13 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.service.XiVPNService;
 
 public class MainActivity extends AppCompatActivity {
-    private DrawerLayout drawerLayout;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,19 +35,8 @@ public class MainActivity extends AppCompatActivity {
 
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
 
         ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true);
-            actionBar.setHomeAsUpIndicator(R.drawable.baseline_menu_24);
-        }
-
-        drawerLayout = findViewById(R.id.main);
 
         // request notification permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -74,8 +62,8 @@ public class MainActivity extends AppCompatActivity {
 
         // drawer
 
-        NavigationView navigationView = findViewById(R.id.navView);
-        navigationView.setNavigationItemSelectedListener(item -> {
+        BottomNavigationView navigationView = findViewById(R.id.navView);
+        navigationView.setOnItemSelectedListener(item -> {
             Fragment fragment = null;
             int titleRes = 0;
             if (item.getItemId() == R.id.home) {
@@ -84,20 +72,25 @@ public class MainActivity extends AppCompatActivity {
             } else if (item.getItemId() == R.id.proxies) {
                 fragment = new ProxiesFragment();
                 titleRes = R.string.proxies;
-            } else if (item.getItemId() == R.id.subscriptions) {
-                fragment = new SubscriptionsFragment();
-                titleRes = R.string.subscriptions;
             } else if (item.getItemId() == R.id.settings) {
-                fragment = new SettingsFragment();
+                fragment = new AllSettingsFragment();
                 titleRes = R.string.settings;
-            } else if (item.getItemId() == R.id.rules) {
-                fragment = new RulesFragment();
-                titleRes = R.string.rules;
-            } else if (item.getItemId() == R.id.dns_toolbox) {
-                startActivity(new Intent(this, DNSToolbox.class));
-            } else if (item.getItemId() == R.id.dns) {
-                startActivity(new Intent(this, DNSActivity.class));
             }
+//            } else if (item.getItemId() == R.id.subscriptions) {
+//                fragment = new SubscriptionsFragment();
+//                titleRes = R.string.subscriptions;
+//            }
+//            } else if (item.getItemId() == R.id.settings) {
+//                fragment = new SettingsFragment();
+//                titleRes = R.string.settings;
+//            } else if (item.getItemId() == R.id.rules) {
+//                fragment = new RulesFragment();
+//                titleRes = R.string.rules;
+//            } else if (item.getItemId() == R.id.dns_toolbox) {
+//                startActivity(new Intent(this, DNSToolbox.class));
+//            } else if (item.getItemId() == R.id.dns) {
+//                startActivity(new Intent(this, DNSActivity.class));
+//            }
 
             if (fragment != null) {
                 getSupportFragmentManager()
@@ -107,24 +100,15 @@ public class MainActivity extends AppCompatActivity {
                 if (actionBar != null && titleRes != 0) {
                     actionBar.setTitle(titleRes);
                 }
+                return true;
             }
 
-            drawerLayout.close();
             return false;
         });
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-
-        // drawer
-        if (item.getItemId() == android.R.id.home) {
-            if (drawerLayout.isOpen()) {
-                drawerLayout.close();
-            } else {
-                drawerLayout.open();
-            }
-        }
 
         return super.onOptionsItemSelected(item);
     }

@@ -1,8 +1,9 @@
 [versions]
-agp = "9.1.0"
+agp = "9.2.1"
 cameraCore = "1.6.0"
 commonsCollections4 = "4.5.0"
 commonsIo = "2.21.0"
+composeBom = "2026.06.00"
 jsr305 = "3.0.2"
 zxingCore = "3.5.4"
 gson = "2.13.2"
@@ -19,11 +20,19 @@ preference = "1.2.1"
 recyclerview = "1.4.0"
 roomRuntime = "2.8.4"
 workRuntime = "2.11.2"
+kotlin = "2.4.0"
+coreKtx = "1.19.0"
 
 [libraries]
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCore" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraCore" }
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraCore" }
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }
+androidx-material3 = { module = "androidx.compose.material3:material3" }
+androidx-ui = { module = "androidx.compose.ui:ui" }
+androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 camera-core = { module = "androidx.camera:camera-core", version.ref = "cameraCore" }
 commons-collections4 = { module = "org.apache.commons:commons-collections4", version.ref = "commonsCollections4" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commonsIo" }
@@ -44,7 +53,9 @@ recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "r
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomRuntime" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
 work-runtime = { module = "androidx.work:work-runtime", version.ref = "workRuntime" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

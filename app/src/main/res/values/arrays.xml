@@ -46,7 +46,7 @@
         <item>Ethereum</item>
         <item>Solana</item>
         <item>Monero XMR</item>
-        <item>Github Sponsor (Debit card)</item>
+        <item>Github Sponsor</item>
     </string-array>
     <string-array name="subscription_types">
         <item>v2rayng compatible</item>
