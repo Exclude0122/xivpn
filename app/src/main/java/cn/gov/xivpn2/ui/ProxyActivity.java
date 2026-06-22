@@ -520,7 +520,11 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                     Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
                     initials.put("NETWORK_XHTTP_EXTRA", "Edit JSON");
-                    initials.put("NETWORK_XHTTP_EXTRA_JSON", gson.toJson(outbound.streamSettings.xHttpSettings.extra));
+                    if (outbound.streamSettings.xHttpSettings.extra != null) {
+                        initials.put("NETWORK_XHTTP_EXTRA_JSON", gson.toJson(outbound.streamSettings.xHttpSettings.extra));
+                    } else {
+                        initials.put("NETWORK_XHTTP_EXTRA_JSON", "");
+                    }
 
 
                 } catch (JsonSyntaxException ignored) {
