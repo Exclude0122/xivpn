@@ -1,4 +1,4 @@
-package cn.gov.xivpn2.ui;
+package cn.gov.xivpn2.ui.home;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -43,6 +43,17 @@ import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.service.SubscriptionWork;
 import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.service.sharelink.MarshalProxyException;
+import cn.gov.xivpn2.ui.proxy.HttpActivity;
+import cn.gov.xivpn2.ui.proxy.HysteriaActivity;
+import cn.gov.xivpn2.ui.proxy.ProxyChainActivity;
+import cn.gov.xivpn2.ui.proxy.ProxyGroupActivity;
+import cn.gov.xivpn2.ui.QRScanActivity;
+import cn.gov.xivpn2.ui.proxy.ShadowsocksActivity;
+import cn.gov.xivpn2.ui.proxy.Socks5Activity;
+import cn.gov.xivpn2.ui.proxy.TrojanActivity;
+import cn.gov.xivpn2.ui.proxy.VlessActivity;
+import cn.gov.xivpn2.ui.proxy.VmessActivity;
+import cn.gov.xivpn2.ui.proxy.WireguardActivity;
 
 public class ProxiesFragment extends Fragment {
 

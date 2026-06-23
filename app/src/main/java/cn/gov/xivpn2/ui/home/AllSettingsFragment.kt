@@ -1,4 +1,4 @@
-package cn.gov.xivpn2.ui
+package cn.gov.xivpn2.ui.home
 
 import android.content.ActivityNotFoundException
 import android.content.ClipData
@@ -39,6 +39,12 @@ import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import cn.gov.xivpn2.BuildConfig
 import cn.gov.xivpn2.R
+import cn.gov.xivpn2.ui.DNSActivity
+import cn.gov.xivpn2.ui.DNSToolboxActivity
+import cn.gov.xivpn2.ui.LicensesActivity
+import cn.gov.xivpn2.ui.PreferenceActivity
+import cn.gov.xivpn2.ui.RulesActivity
+import cn.gov.xivpn2.ui.SubscriptionsActivity
 
 
 @Composable

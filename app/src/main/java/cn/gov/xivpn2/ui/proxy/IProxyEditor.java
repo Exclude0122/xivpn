@@ -1,4 +1,4 @@
-package cn.gov.xivpn2.ui;
+package cn.gov.xivpn2.ui.proxy;
 
 import java.util.List;
 import java.util.function.BiConsumer;

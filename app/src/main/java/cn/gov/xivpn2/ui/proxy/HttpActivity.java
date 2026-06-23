@@ -1,4 +1,4 @@
-package cn.gov.xivpn2.ui;
+package cn.gov.xivpn2.ui.proxy;
 
 import com.google.common.reflect.TypeToken;
 
@@ -7,10 +7,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import cn.gov.xivpn2.Utils;
+import cn.gov.xivpn2.xrayconfig.HttpSettings;
 import cn.gov.xivpn2.xrayconfig.Outbound;
-import cn.gov.xivpn2.xrayconfig.Socks5Settings;
 
-public class Socks5Activity extends ProxyActivity<Socks5Settings> {
+public class HttpActivity extends ProxyActivity<HttpSettings> {
 
     @Override
     protected boolean validateField(String key, String value) {
@@ -25,64 +25,64 @@ public class Socks5Activity extends ProxyActivity<Socks5Settings> {
 
     @Override
     protected Type getType() {
-        return new TypeToken<Outbound<Socks5Settings>>() {
+        return new TypeToken<Outbound<HttpSettings>>() {
         }.getType();
     }
 
     @Override
-    protected Socks5Settings buildProtocolSettings(IProxyEditor adapter) {
-        Socks5Settings socks5Settings = new Socks5Settings();
+    protected HttpSettings buildProtocolSettings(IProxyEditor adapter) {
+        HttpSettings httpSettings = new HttpSettings();
 
-        socks5Settings.address = adapter.getValue("ADDRESS");
-        socks5Settings.port = Integer.parseInt(adapter.getValue("PORT"));
-        if ("password".equals(adapter.getValue("SOCKS5_AUTH"))) {
-            socks5Settings.user = adapter.getValue("USER");
-            socks5Settings.pass = adapter.getValue("PASS");
+        httpSettings.address = adapter.getValue("ADDRESS");
+        httpSettings.port = Integer.parseInt(adapter.getValue("PORT"));
+        if ("basic".equals(adapter.getValue("HTTP_AUTH"))) {
+            httpSettings.user = adapter.getValue("USER");
+            httpSettings.pass = adapter.getValue("PASS");
         } else {
-            socks5Settings.pass = null;
-            socks5Settings.user = null;
+            httpSettings.pass = null;
+            httpSettings.user = null;
         }
 
-        return socks5Settings;
+        return httpSettings;
     }
 
     @Override
-    protected LinkedHashMap<String, String> decodeOutboundConfig(Outbound<Socks5Settings> outbound) {
+    protected LinkedHashMap<String, String> decodeOutboundConfig(Outbound<HttpSettings> outbound) {
         LinkedHashMap<String, String> hashMap = super.decodeOutboundConfig(outbound);
         hashMap.put("ADDRESS", outbound.settings.address);
         hashMap.put("PORT", String.valueOf(outbound.settings.port));
         if (outbound.settings.user != null && outbound.settings.pass != null) {
-            hashMap.put("SOCKS5_AUTH", "password");
+            hashMap.put("HTTP_AUTH", "basic");
             hashMap.put("USER", outbound.settings.user);
             hashMap.put("PASS", outbound.settings.pass);
         } else {
-            hashMap.put("SOCKS5_AUTH", "none");
+            hashMap.put("HTTP_AUTH", "none");
         }
         return hashMap;
     }
 
     @Override
     protected String getProtocolName() {
-        return "socks";
+        return "http";
     }
 
     @Override
     protected void initializeInputs(IProxyEditor adapter) {
         adapter.addInput("ADDRESS", "Address");
         adapter.addInput("PORT", "Port");
-        adapter.addInput("SOCKS5_AUTH", "Auth", List.of("none", "password"));
+        adapter.addInput("HTTP_AUTH", "Auth", List.of("none", "basic"));
     }
 
     @Override
     protected void onInputChanged(IProxyEditor adapter, String key, String value) {
         super.onInputChanged(adapter, key, value);
 
-        if ("SOCKS5_AUTH".equals(key)) {
+        if ("HTTP_AUTH".equals(key)) {
             adapter.removeInput("USER");
             adapter.removeInput("PASS");
-            if ("password".equals(adapter.getValue("SOCKS5_AUTH"))) {
-                adapter.addInputAfter("SOCKS5_AUTH", "PASS", "Pass");
-                adapter.addInputAfter("SOCKS5_AUTH", "USER", "User");
+            if ("basic".equals(adapter.getValue("HTTP_AUTH"))) {
+                adapter.addInputAfter("HTTP_AUTH", "PASS", "Pass");
+                adapter.addInputAfter("HTTP_AUTH", "USER", "User");
             }
         }
 

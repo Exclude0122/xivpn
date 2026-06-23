@@ -1,4 +1,4 @@
-package cn.gov.xivpn2.ui;
+package cn.gov.xivpn2.ui.proxy;
 
 import com.google.common.reflect.TypeToken;
 

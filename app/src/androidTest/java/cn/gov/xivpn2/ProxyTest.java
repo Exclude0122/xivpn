@@ -21,7 +21,7 @@ import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.service.SubscriptionWork;
 import cn.gov.xivpn2.service.XiVPNService;
-import cn.gov.xivpn2.ui.MainActivity;
+import cn.gov.xivpn2.ui.home.MainActivity;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;

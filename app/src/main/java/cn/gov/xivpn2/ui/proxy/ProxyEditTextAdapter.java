@@ -1,4 +1,4 @@
-package cn.gov.xivpn2.ui;
+package cn.gov.xivpn2.ui.proxy;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 
 import cn.gov.xivpn2.R;
+import cn.gov.xivpn2.ui.NonFilterableArrayAdapter;
 
 public class ProxyEditTextAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements IProxyEditor {
 

@@ -13,7 +13,7 @@ import android.util.Log;
 import androidx.core.service.quicksettings.PendingIntentActivityWrapper;
 import androidx.core.service.quicksettings.TileServiceCompat;
 
-import cn.gov.xivpn2.ui.MainActivity;
+import cn.gov.xivpn2.ui.home.MainActivity;
 
 public class XiVPNTileService extends TileService implements XiVPNService.VPNStateListener {
 

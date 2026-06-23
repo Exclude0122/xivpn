@@ -1,4 +1,4 @@
-package cn.gov.xivpn2.ui;
+package cn.gov.xivpn2.ui.proxy;
 
 import android.annotation.SuppressLint;
 import android.view.LayoutInflater;

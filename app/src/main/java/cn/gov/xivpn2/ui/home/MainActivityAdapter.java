@@ -1,4 +1,4 @@
-package cn.gov.xivpn2.ui;
+package cn.gov.xivpn2.ui.home;
 
 import android.util.Pair;
 import android.view.LayoutInflater;

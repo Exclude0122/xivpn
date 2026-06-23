@@ -62,7 +62,7 @@
             android:name=".ui.ProxySelectActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.ProxyChainActivity"
+            android:name=".ui.proxy.ProxyChainActivity"
             android:exported="false" />
         <activity
             android:name=".ui.GeoAssetsActivity"
@@ -74,7 +74,7 @@
             android:name=".ui.LicensesActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.ProxyGroupActivity"
+            android:name=".ui.proxy.ProxyGroupActivity"
             android:exported="false" />
         <activity
             android:name=".ui.PreferenceActivity"
@@ -83,39 +83,39 @@
             android:name=".ui.CrashActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.HttpActivity"
+            android:name=".ui.proxy.HttpActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:name=".ui.Socks5Activity"
+            android:name=".ui.proxy.Socks5Activity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:name=".ui.ShadowsocksActivity"
+            android:name=".ui.proxy.ShadowsocksActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:name=".ui.VmessActivity"
+            android:name=".ui.proxy.VmessActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:name=".ui.VlessActivity"
+            android:name=".ui.proxy.VlessActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:name=".ui.TrojanActivity"
+            android:name=".ui.proxy.TrojanActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:name=".ui.WireguardActivity"
+            android:name=".ui.proxy.WireguardActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:name=".ui.HysteriaActivity"
+            android:name=".ui.proxy.HysteriaActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
         <activity
-            android:name=".ui.XHttpStreamActivity"
+            android:name=".ui.proxy.XHttpStreamActivity"
             android:configChanges="orientation|screenLayout|screenSize"
             android:exported="false" />
 
@@ -161,7 +161,7 @@
         </service>
 
         <activity
-            android:name=".ui.MainActivity"
+            android:name=".ui.home.MainActivity"
             android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>
