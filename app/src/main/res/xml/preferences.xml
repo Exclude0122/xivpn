@@ -110,46 +110,5 @@
             app:summary="@string/black_background_summary" />
     </PreferenceCategory>
 
-    <PreferenceCategory
-        app:iconSpaceReserved="false"
-        app:title="@string/about">
-
-
-        <Preference
-            android:title="@string/app_version"
-            app:iconSpaceReserved="false"
-            app:key="app_version"
-            app:summary="" />
-
-        <Preference
-            app:iconSpaceReserved="false"
-            app:key="privacy_policy"
-            app:title="@string/privacy_policy" />
-
-        <Preference
-            app:iconSpaceReserved="false"
-            app:key="feedback"
-            app:summary="@string/feedback_summary"
-            app:title="@string/feedback" />
-
-        <Preference
-            app:iconSpaceReserved="false"
-            app:key="source_code"
-            app:summary="@string/source_code_summary"
-            app:title="@string/source_code" />
-
-        <Preference
-            app:iconSpaceReserved="false"
-            app:key="open_source_licenses"
-            app:title="@string/open_source_licenses" />
-
-        <Preference
-            app:iconSpaceReserved="false"
-            android:title="@string/donation"
-            app:key="donation"
-            app:summary="@string/donation_summary" />
-
-
-    </PreferenceCategory>
 
 </PreferenceScreen>
