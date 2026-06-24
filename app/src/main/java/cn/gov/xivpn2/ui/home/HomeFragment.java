@@ -115,7 +115,7 @@ public class HomeFragment extends Fragment {
                     Intent intent = XiVPNService.prepare(requireContext());
                     if (intent != null) {
                         button.setChecked(false);
-                        startActivity(intent);
+                        startActivityForResult(intent, 200);
                         return;
                     }
 

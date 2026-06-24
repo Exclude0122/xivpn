@@ -8,4 +8,5 @@ public class Inbound {
     public int port;
     public Map<String, Object> settings;
     public Sniffing sniffing;
+    public String tag;
 }

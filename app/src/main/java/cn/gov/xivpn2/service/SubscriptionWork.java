@@ -59,7 +59,7 @@ public class SubscriptionWork extends Worker {
 
         // start foreground service
 
-        Notification foregroundNotification = new Notification.Builder(getApplicationContext(), "XiVPNService")
+        Notification foregroundNotification = new Notification.Builder(getApplicationContext(), "XiVPNSubscriptions")
                 .setContentText(getApplicationContext().getString(R.string.subscription_updating))
                 .setOngoing(true)
                 .setSmallIcon(R.drawable.baseline_refresh_24)

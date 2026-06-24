@@ -69,21 +69,6 @@ public class MainActivity extends AppCompatActivity {
                 fragment = new AllSettingsFragment();
                 titleRes = R.string.settings;
             }
-//            } else if (item.getItemId() == R.id.subscriptions) {
-//                fragment = new SubscriptionsFragment();
-//                titleRes = R.string.subscriptions;
-//            }
-//            } else if (item.getItemId() == R.id.settings) {
-//                fragment = new SettingsFragment();
-//                titleRes = R.string.settings;
-//            } else if (item.getItemId() == R.id.rules) {
-//                fragment = new RulesFragment();
-//                titleRes = R.string.rules;
-//            } else if (item.getItemId() == R.id.dns_toolbox) {
-//                startActivity(new Intent(this, DNSToolbox.class));
-//            } else if (item.getItemId() == R.id.dns) {
-//                startActivity(new Intent(this, DNSActivity.class));
-//            }
 
             if (fragment != null) {
                 getSupportFragmentManager()
