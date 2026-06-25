@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="log_levels">
+        <item>Ошибка</item>
+        <item>Предупреждение</item>
+        <item>Информация</item>
+        <item>Отладка</item>
+    </string-array>
+    <string-array name="split_tunnel_modes">
+        <item>Белый список</item>
+        <item>Чёрный список</item>
+    </string-array>
+    <string-array name="leak_protection_modes">
+        <item>Отключено: приложения могут отправлять трафик через VPN-интерфейс</item>
+        <item>Блокировка: соединения с VPN-интерфейсом отклоняются</item>
+        <item>Прямое: соединения с VPN-интерфейсом обходят XiVPN</item>
+    </string-array>
+    <string-array name="leak_protection_modes_value">
+        <item>Отключено</item>
+        <item>Блокировка</item>
+        <item>Прямое</item>
+    </string-array>
+    <string-array name="qtype">
+        <item>A</item>
+        <item>AAAA</item>
+    </string-array>
+    <string-array name="geoip">
+        <item>v2fly/geoip</item>
+        <item>v2fly/geoip Китай</item>
+        <item>Exclude0122/geoip</item>
+        <item>Exclude0122/geoip Китай</item>
+        <item>Exclude0122/geoip Россия</item>
+        <item>Exclude0122/geoip Иран</item>
+        <item>Exclude0122/geoip КНДР</item>
+    </string-array>
+    <string-array name="geosite">
+        <item>v2fly/domain-list-community</item>
+        <item>Loyalsoldier/v2ray-rules-dat</item>
+        <item>chocolate4u/Iran-v2ray-rules</item>
+        <item>chocolate4u/Iran-v2ray-rules geosite-lite</item>
+        <item>runetfreedom/russia-v2ray-rules-dat</item>
+    </string-array>
+    <string-array name="donation">
+        <item>Tron / USDT TRC20</item>
+        <item>Ethereum</item>
+        <item>Solana</item>
+        <item>Monero XMR</item>
+        <item>Github Sponsor (Карта)</item>
+    </string-array>
+</resources>
