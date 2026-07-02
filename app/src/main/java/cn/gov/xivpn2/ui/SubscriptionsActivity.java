@@ -19,9 +19,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.work.Data;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkInfo;
@@ -85,7 +87,9 @@ public class SubscriptionsActivity extends AppCompatActivity {
             TextInputEditText urlEditText = view.findViewById(R.id.url);
             AutoCompleteTextView type = view.findViewById(R.id.type);
             MaterialCheckBox ignoreRoutingDns = view.findViewById(R.id.ignore_routing_dns);
+            MaterialCheckBox autoUpdate = view.findViewById(R.id.auto_update);
 
+            autoUpdate.setChecked(true);
             type.setAdapter(new NonFilterableArrayAdapter(this, R.layout.list_item, List.of(getResources().getStringArray(R.array.subscription_types))));
             type.setText(getResources().getStringArray(R.array.subscription_types)[0]);
             ignoreRoutingDns.setVisibility(View.GONE);
@@ -111,7 +115,7 @@ public class SubscriptionsActivity extends AppCompatActivity {
                         Subscription subscription = new Subscription();
                         subscription.label = labelEditText.getText().toString();
                         subscription.url = urlEditText.getText().toString();
-                        subscription.autoUpdate = 180;
+                        subscription.autoUpdate = autoUpdate.isChecked() ? 1 : 0;
                         subscription.type = type.getText().toString().equals(getResources().getStringArray(R.array.subscription_types)[0]) ? "v2rayng" : "xray-json";
                         subscription.ignoreRoutingDns = ignoreRoutingDns.isChecked();
                         AppDatabase.getInstance().subscriptionDao().insert(subscription);
@@ -138,11 +142,17 @@ public class SubscriptionsActivity extends AppCompatActivity {
 
         adapter.setOnClickListener(subscription -> {
             View view = LayoutInflater.from(this).inflate(R.layout.edit_subscription, null);
+
             TextInputEditText urlEditText = view.findViewById(R.id.url);
-            MaterialCheckBox ignoreRoutingDns = view.findViewById(R.id.ignore_routing_dns);
             urlEditText.setText(subscription.url);
+
+            MaterialCheckBox ignoreRoutingDns = view.findViewById(R.id.ignore_routing_dns);
             ignoreRoutingDns.setChecked(subscription.ignoreRoutingDns);
             ignoreRoutingDns.setVisibility("xray-json".equals(subscription.type) ? View.VISIBLE : View.GONE);
+
+
+            MaterialCheckBox autoUpdate = view.findViewById(R.id.auto_update);
+            autoUpdate.setChecked(subscription.autoUpdate > 0);
 
             new AlertDialog.Builder(this)
                     .setTitle(subscription.label)
@@ -150,6 +160,7 @@ public class SubscriptionsActivity extends AppCompatActivity {
                     .setPositiveButton(R.string.save, (dialog, which) -> {
                         AppDatabase.getInstance().subscriptionDao().updateUrl(subscription.label, urlEditText.getText().toString());
                         AppDatabase.getInstance().subscriptionDao().updateIgnoreRoutingDns(subscription.label, ignoreRoutingDns.isChecked());
+                        AppDatabase.getInstance().subscriptionDao().setAutoUpdate(subscription.label, autoUpdate.isChecked() ? 1: 0);
                         refresh();
                     })
                     .setNegativeButton(R.string.delete, (dialog, which) -> {
@@ -194,21 +205,38 @@ public class SubscriptionsActivity extends AppCompatActivity {
             ProgressBar progressBar = findViewById(R.id.progress);
 
             WorkManager workManager = WorkManager.getInstance(this);
+            LiveData<List<WorkInfo>> tagLiveData = workManager.getWorkInfosByTagLiveData("MANUAL_SUBSCRIPTION_REFRESH");
 
-            OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(SubscriptionWork.class)
-                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                    .addTag("MANUAL_SUBSCRIPTION_REFRESH")
-                    .build();
-            workManager.enqueue(workRequest);
-            workManager.getWorkInfoByIdLiveData(workRequest.getId()).observe(this, workInfo -> {
-                if (workInfo == null) return;
-                if (workInfo.getState().isFinished()) {
-                    progressBar.setVisibility(View.GONE);
-                } else if (workInfo.getState() == WorkInfo.State.RUNNING) {
-                    progressBar.setVisibility(View.VISIBLE);
-                    progressBar.setIndeterminate(true);
+            Observer<List<WorkInfo>> observer = workInfos -> {
+
+                for (WorkInfo workInfo : workInfos) {
+                    if (!workInfo.getState().isFinished()) {
+                        Log.d("SubscriptionActivity", "another worker is running");
+                        tagLiveData.removeObservers(this);
+                        return;
+                    }
                 }
-            });
+                tagLiveData.removeObservers(this);
+
+                OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(SubscriptionWork.class)
+                        .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                        .setInputData(new Data.Builder().putBoolean("AUTO_UPDATE", false).build())
+                        .addTag("MANUAL_SUBSCRIPTION_REFRESH")
+                        .build();
+
+                workManager.enqueue(workRequest);
+                workManager.getWorkInfoByIdLiveData(workRequest.getId()).observe(this, workInfo -> {
+                    if (workInfo == null) return;
+                    if (workInfo.getState().isFinished()) {
+                        progressBar.setVisibility(View.GONE);
+                    } else if (workInfo.getState() == WorkInfo.State.RUNNING) {
+                        progressBar.setVisibility(View.VISIBLE);
+                        progressBar.setIndeterminate(true);
+                    }
+                });
+            };
+
+            tagLiveData.observe(this, observer);
 
 
         }

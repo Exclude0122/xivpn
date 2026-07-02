@@ -26,6 +26,11 @@ public interface SubscriptionDao {
     @Query("UPDATE subscription SET ignoreRoutingDns = :ignoreRoutingDns WHERE label = :label")
     void updateIgnoreRoutingDns(String label, boolean ignoreRoutingDns);
 
+
+    @Query("UPDATE subscription SET autoUpdate = :autoUpdate WHERE label = :label")
+    void setAutoUpdate(String label, int autoUpdate);
+
+
     @Query("DELETE FROM subscription")
     void deleteAll();
 }

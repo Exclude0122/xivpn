@@ -57,6 +57,11 @@ public class SubscriptionWork extends Worker {
     public Result doWork() {
         Log.i(TAG, "doWork");
 
+        // input
+
+        boolean autoUpdate = getInputData().getBoolean("AUTO_UPDATE", true);
+        String updateOne = getInputData().getString("UPDATE_ONE");
+
         // start foreground service
 
         Notification foregroundNotification = new Notification.Builder(getApplicationContext(), "XiVPNSubscriptions")
@@ -89,6 +94,17 @@ public class SubscriptionWork extends Worker {
         OkHttpClient client = builder.build();
         for (Subscription subscription : AppDatabase.getInstance().subscriptionDao().findAll()) {
 
+            // skip if auto update is disabled and this is a scheduled run
+            if (subscription.autoUpdate == 0 && autoUpdate) {
+                Log.d(TAG, "skip auto update: " + subscription.label);
+                continue;
+            }
+
+            // skip if  is not the one we want
+            if (!autoUpdate && updateOne != null && !updateOne.isEmpty() && !updateOne.equals(subscription.label)) {
+                Log.d(TAG, "skip update one: " + subscription.label);
+                continue;
+            }
 
             // update subscription
 
