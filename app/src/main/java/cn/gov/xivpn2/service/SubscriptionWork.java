@@ -30,6 +30,7 @@ import java.util.UUID;
 
 import javax.net.ssl.X509TrustManager;
 
+import cn.gov.xivpn2.BuildConfig;
 import cn.gov.xivpn2.NotificationID;
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.Utils;
@@ -117,6 +118,7 @@ public class SubscriptionWork extends Worker {
 
                 Request request = new Request.Builder()
                         .url(subscription.url)
+                        .header("User-Agent", "XiVPN/" + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")")
                         .build();
 
                 response = client.newCall(request).execute();
