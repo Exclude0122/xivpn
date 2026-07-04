@@ -359,7 +359,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "XiVPNService");
         builder.setContentTitle(connectedProxy);
-        builder.setContentText("↓ " + formatedUp + " \n↑ " + formatedDown);
+        builder.setContentText("↑ " + formatedUp + " ↓ " + formatedDown);
         builder.setSmallIcon(R.drawable.baseline_vpn_key_24);
         builder.setPriority(NotificationCompat.PRIORITY_MAX);
         builder.setOngoing(true);

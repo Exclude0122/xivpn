@@ -183,4 +183,6 @@
     <string name="tools">Tools</string>
     <string name="restart">Restart</string>
     <string name="auto_update">Auto Update</string>
+    <string name="default_">Default</string>
+    <string name="all">All</string>
 </resources>

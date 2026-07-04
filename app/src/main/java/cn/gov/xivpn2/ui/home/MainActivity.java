@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
                 fragment = new HomeFragment();
                 titleRes = R.string.app_name;
             } else if (item.getItemId() == R.id.proxies) {
-                fragment = new ProxiesFragment();
+                fragment = new ProxiesFragment2();
                 titleRes = R.string.proxies;
             } else if (item.getItemId() == R.id.settings) {
                 fragment = new AllSettingsFragment();
