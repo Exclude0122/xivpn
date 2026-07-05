@@ -12,8 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import cn.gov.xivpn2.xrayconfig.FinalMask;
-import cn.gov.xivpn2.xrayconfig.FinalMaskDNS;
-import cn.gov.xivpn2.xrayconfig.FinalMaskMkcpAES;
+import cn.gov.xivpn2.xrayconfig.FinalMaskKCPLegacy;
 import cn.gov.xivpn2.xrayconfig.FinalMaskUDP;
 import cn.gov.xivpn2.xrayconfig.GRPCSettings;
 import cn.gov.xivpn2.xrayconfig.HttpUpgradeSettings;
@@ -24,17 +23,8 @@ import cn.gov.xivpn2.xrayconfig.TLSSettings;
 import cn.gov.xivpn2.xrayconfig.WsSettings;
 import cn.gov.xivpn2.xrayconfig.XHttpSettings;
 
-/**
- * Abstract base class for VMess and VLESS share link parsers.
- * <p>
- * Handles parsing and marshaling of transport settings (ws, grpc, httpupgrade, xhttp)
- * and security settings (tls, reality) which are shared between the two protocols.
- */
 public abstract class BaseVMessVLessParser implements ShareLinkParser {
 
-    // ========================
-    // Utility methods
-    // ========================
 
     protected static String quote(String s) {
         try {
@@ -91,9 +81,6 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
         return host;
     }
 
-    /**
-     * Throw if any of the given keys are present and non-empty in the query map.
-     */
     protected static void rejectUnsupportedParams(Map<String, String> query, String... keys) {
         for (String key : keys) {
             String value = query.get(key);
@@ -103,17 +90,7 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
         }
     }
 
-    // ========================
-    // Transport settings parsing
-    // ========================
 
-    /**
-     * Parse transport-related query params into a StreamSettings object.
-     *
-     * @param query      parsed query parameters
-     * @param remoteHost the remote host from the URI (used as default for host params)
-     * @return a StreamSettings with network and transport-specific settings populated
-     */
     protected StreamSettings parseStreamSettings(Map<String, String> query, String remoteHost) {
         StreamSettings streamSettings = new StreamSettings();
 
@@ -138,7 +115,6 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
 
         switch (type) {
             case "tcp":
-                // RAW transport, no extra settings needed
                 break;
 
             case "ws":
@@ -195,32 +171,34 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
                 FinalMask fm = new FinalMask();
 
                 // v2rayng logic
-                // https://github.com/2dust/v2rayNG/blob/d0265265f3cd913992ed9fe4b2731d23d70d76a9/V2rayNG/app/src/main/java/com/v2ray/ang/handler/V2rayConfigManager.kt#L1186
+                // https://github.com/2dust/v2rayNG/blob/f226ace30dd86aafff0a922854da02621d66f28f/V2rayNG/app/src/main/java/com/v2ray/ang/core/CoreOutboundBuilder.kt#L366
 
                 String headerTypeQuery = query.getOrDefault("headerType", "none");
                 if (!"none".equals(headerTypeQuery)) {
                     FinalMaskUDP e = new FinalMaskUDP();
+                    e.type = "mkcp-legacy";
+                    FinalMaskKCPLegacy mckpLegacy = new FinalMaskKCPLegacy();
+                    e.settings = mckpLegacy;
                     if ("wechat-video".equals(headerTypeQuery)) {
-                        e.type = "header-wechat";
+                        mckpLegacy.header = "wechat";
                     } else if ("dns".equals(headerTypeQuery)) {
-                        e.type = "header-dns";
-                        FinalMaskDNS settings = new FinalMaskDNS();
-                        settings.domain = query.getOrDefault("host", "example.com");
-                        e.settings = settings;
+                        mckpLegacy.header = "dns";
+                        mckpLegacy.value = query.getOrDefault("host", "example.com");
                     } else {
-                        e.type = "header-" + headerTypeQuery;
+                        e.type = headerTypeQuery;
                     }
                     fm.udp.add(e);
                 }
                 if (Objects.requireNonNull(query.getOrDefault("seed", "")).isEmpty()) {
                     FinalMaskUDP e = new FinalMaskUDP();
-                    e.type = "mkcp-original";
+                    e.type = "mkcp-legacy";
                     fm.udp.add(e);
                 } else {
                     FinalMaskUDP e = new FinalMaskUDP();
-                    e.type = "mkcp-aes128gcm";
-                    FinalMaskMkcpAES settings = new FinalMaskMkcpAES();
-                    settings.password = query.getOrDefault("seed", "");
+                    e.type = "mkcp-legacy";
+                    FinalMaskKCPLegacy settings = new FinalMaskKCPLegacy();
+                    settings.header = "";
+                    settings.value = query.getOrDefault("seed", "");
                     e.settings = settings;
                     fm.udp.add(e);
                 }

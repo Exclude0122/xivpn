@@ -9,6 +9,9 @@ import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -69,7 +72,10 @@ import androidx.core.graphics.set
 import androidx.core.graphics.createBitmap
 import cn.gov.xivpn2.database.Rules
 import cn.gov.xivpn2.service.XiVPNService
+import cn.gov.xivpn2.ui.QRScanActivity
+import com.google.android.material.textfield.TextInputEditText
 import okio.IOException
+import java.util.Objects
 
 
 class ProxiesFragment2 : Fragment() {
@@ -81,6 +87,7 @@ class ProxiesFragment2 : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
     }
 
     override fun onCreateView(
@@ -178,7 +185,7 @@ class ProxiesFragment2 : Fragment() {
                                         .fillMaxSize()
                                 ) {
                                     Column(modifier = Modifier.padding(6.dp)) {
-                                        if (p.protocol == "freedom" && selectedSub == "none") {
+                                        if (p.protocol == "freedom" && p.subscription == "none") {
                                             Text("Direct", maxLines = 1, style = MaterialTheme.typography.bodyLarge)
                                         } else {
                                             Text(p.label, maxLines = 1, style = MaterialTheme.typography.bodyLarge)
@@ -322,6 +329,118 @@ class ProxiesFragment2 : Fragment() {
                 clipboardManager.setPrimaryClip(ClipData.newPlainText("", link))
             }
             .show()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.proxies_activity, menu);
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        val id = item.itemId
+        if (id == R.id.from_clipboard) {
+
+            // import from clipboard
+
+            val view = LayoutInflater.from(requireContext()).inflate(R.layout.edit_text, null);
+            val editText2: TextInputEditText = view.findViewById(R.id.edit_text);
+
+            AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.import_form_clipboard)
+                    .setView(view)
+                    .setPositiveButton(R.string.ok) { dialog, which ->
+
+                        val s = Objects.requireNonNull(editText2.getText()).toString()
+                        if (s.isEmpty()) {
+                            return@setPositiveButton;
+                        }
+
+                        try {
+                            SubscriptionWork.parseLine(s, "none");
+                            Toast.makeText(
+                                requireContext(),
+                                R.string.proxy_added,
+                                Toast.LENGTH_SHORT
+                            ).show();
+                            XiVPNService.markConfigStale(requireContext());
+                            refresh();
+                        } catch (e: Exception) {
+                            Log.e("ProxiesFragment", "parse line", e);
+
+                            AlertDialog.Builder (requireContext())
+                                .setTitle(R.string.invalid_link)
+                                .setMessage(e.message)
+                                .setPositiveButton(R.string.ok, null)
+                                .show();
+                        }
+
+                    }.show();
+
+            view.requestFocus();
+
+            return true;
+        } else if (id == R.id.shadowsocks || id == R.id.vmess || id == R.id.socks5 || id == R.id.vless || id == R.id.trojan || id == R.id.wireguard || id == R.id.proxy_chain || id == R.id.proxy_group || id == R.id.http || id == R.id.hysteria) {
+
+            // add
+
+            val view = LayoutInflater.from(requireContext()).inflate(R.layout.label_edit_text, null);
+            val editText: TextInputEditText = view.findViewById(R.id.edit_text);
+
+            AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.label)
+                    .setView(view)
+                    .setPositiveButton(R.string.ok, { dialog, which ->
+
+                        val label = editText.text.toString();
+                        if (label.isEmpty() || AppDatabase.getInstance().proxyDao().exists(label, "none") > 0) {
+                            Toast.makeText(requireContext(), getResources().getText(R.string.conflict_label), Toast.LENGTH_SHORT).show();
+                            return@setPositiveButton;
+                        }
+
+                        var cls: Class<*>? = null;
+                        if (id == R.id.shadowsocks) {
+                            cls = ShadowsocksActivity::class.java;
+                        } else if (id == R.id.vmess) {
+                            cls = VmessActivity::class.java;
+                        } else if (id == R.id.vless) {
+                            cls = VlessActivity::class.java;
+                        } else if (id == R.id.trojan) {
+                            cls = TrojanActivity::class.java;
+                        } else if (id == R.id.wireguard) {
+                            cls = WireguardActivity::class.java;
+                        } else if (id == R.id.proxy_chain) {
+                            cls = ProxyChainActivity::class.java;
+                        } else if (id == R.id.proxy_group) {
+                            cls = ProxyGroupActivity::class.java;
+                        } else if (id == R.id.http) {
+                            cls = HttpActivity::class.java;
+                        } else if (id == R.id.socks5) {
+                            cls = Socks5Activity::class.java;
+                        } else if (id == R.id.hysteria) {
+                            cls = HysteriaActivity::class.java;
+                        }
+
+                        val intent = Intent(requireContext(), cls)
+                        intent.putExtra("LABEL", label);
+                        intent.putExtra("SUBSCRIPTION", "none");
+                        startActivity(intent);
+
+                    }).show();
+
+            return true;
+        } else if (id == R.id.help) {
+            AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.help)
+                    .setMessage(R.string.proxies_help)
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+            return true;
+
+        } else if (id == R.id.qrcode) {
+            startActivity(Intent(requireContext(), QRScanActivity::class.java));
+            return true;
+        }
+        return false
     }
 
 }
