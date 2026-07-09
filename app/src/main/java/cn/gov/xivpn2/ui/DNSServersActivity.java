@@ -83,13 +83,9 @@ public class DNSServersActivity extends AppCompatActivity {
 
             @Override
             public void onDelete(int i) {
-                if (dnsServers.size() == 1) {
-                    Toast.makeText(DNSServersActivity.this, R.string.at_least_one_dns_server, Toast.LENGTH_SHORT).show();
-                    return;
-                }
                 dnsServers.remove(i);
                 adapter.notifyItemRemoved(i);
-                adapter.notifyItemRangeChanged(i, dnsServers.size() - i);
+                if (!dnsServers.isEmpty()) adapter.notifyItemRangeChanged(i, dnsServers.size() - i);
 
                 save();
             }
