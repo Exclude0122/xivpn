@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.drawable.Icon;
 import android.net.ConnectivityManager;
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
@@ -29,7 +28,6 @@ import android.util.Pair;
 import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.preference.PreferenceManager;
 
 import com.google.common.reflect.TypeToken;
@@ -63,7 +61,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -92,33 +89,41 @@ import cn.gov.xivpn2.xrayconfig.StreamSettings;
 import cn.gov.xivpn2.xrayconfig.SystemPolicy;
 
 public class XiVPNService extends VpnService implements SocketProtect {
-    private final IBinder binder = new XiVPNBinder();
     private final String TAG = "XiVPNService";
+
+
+    // service binder related
+    private final IBinder binder = new XiVPNBinder();
     private final Set<VPNStateListener> listeners = new HashSet<>();
-    private final CircularFifoQueue<String> stderrBuffer = new CircularFifoQueue<>(30);
+
+    // vpn state
+    private Thread stateThread = null;
+    private volatile VPNState vpnState = VPNState.DISCONNECTED;
     private final Object vpnStateLock = new Object();
+
+    // call vpnStateLock.notify() after modifying any of the 3 values below
+    private Command pendingCommand = Command.NONE;
+    private boolean mustDisconnectVpn = false;
+    private boolean isXrayConfigStale = false;
+
+    // libxivpn process
+    private ParcelFileDescriptor fileDescriptor;
+    private final CircularFifoQueue<String> stderrBuffer = new CircularFifoQueue<>(30);
     private Process libxivpnProcess = null;
     private Thread loggerThread = null;
     private Thread ipcThread = null;
+
+    // ipc
     private OutputStream ipcWriter = null;
     private final Object ipcWriteLock = new Object();
-    private ParcelFileDescriptor fileDescriptor;
-    private volatile VPNState vpnState = VPNState.DISCONNECTED;
-    private Command commandBuffer = Command.NONE;
-    /**
-     * mustLibxiStop is true if libxivpn exited unexpectedly
-     */
-    private boolean mustLibxiStop = false;
-    private boolean isXrayConfigStale = false;
+
+    // notification
     private Toast toast;
-
-
     private int notificationID;
     private long uplinkCounter = 0;
     private long downLinkCounter = 0;
     private long lastUpdate = 0;
     private String connectedProxy = "";
-
 
     public static void markConfigStale(Context context) {
         Intent intent = new Intent(context, XiVPNService.class);
@@ -168,7 +173,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
     private void updateCommand(Command command) {
         synchronized (vpnStateLock) {
-            commandBuffer = command;
+            pendingCommand = command;
             vpnStateLock.notify();
         }
     }
@@ -177,35 +182,36 @@ public class XiVPNService extends VpnService implements SocketProtect {
     public void onCreate() {
         Log.i(TAG, "on create");
 
-        new Thread(() -> {
+        stateThread = new Thread(() -> {
 
             // work to be executed outside the synchronized block
-            Runnable work = () -> {
-            };
+            Runnable work = () -> { };
+
             while (true) {
                 work.run();
-                work = () -> {
-                };
+                work = () -> { };
 
                 synchronized (vpnStateLock) {
-                    while (commandBuffer == Command.NONE && !mustLibxiStop && !isXrayConfigStale) {
+                    // wait for new commands
+                    while (pendingCommand == Command.NONE && !mustDisconnectVpn && !isXrayConfigStale) {
                         try {
-                            // wait for new command
                             vpnStateLock.wait();
                         } catch (InterruptedException e) {
-                            Log.wtf(TAG, "wait for new command", e);
+                            Log.d(TAG, "vpnStateLock wait interrupted");
+                            return; // exit thread
                         }
                     }
 
                     // xray config will always become up to date
                     isXrayConfigStale = false;
 
-                    if (commandBuffer == Command.CONNECT) {
-                        commandBuffer = Command.NONE;
+                    if (pendingCommand == Command.CONNECT) {
+                        pendingCommand = Command.NONE;
 
                         if (vpnState != VPNState.DISCONNECTED) continue;
 
                         setStateRaw(VPNState.ESTABLISHING_VPN);
+
                         work = () -> {
                             if (!startVPN()) {
                                 Log.e(TAG, "start vpn failed");
@@ -223,21 +229,23 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
                             setState(VPNState.CONNECTED);
                         };
-                    } else if (commandBuffer == Command.DISCONNECT || mustLibxiStop) {
-                        commandBuffer = Command.NONE;
-                        mustLibxiStop = false;
+
+                    } else if (pendingCommand == Command.DISCONNECT || mustDisconnectVpn) {
+                        pendingCommand = Command.NONE;
+                        mustDisconnectVpn = false;
 
                         if (vpnState != VPNState.CONNECTED) continue;
 
                         setStateRaw(VPNState.STOPPING_LIBXI);
                         work = () -> {
-                            stopLibxi();
+                            stopLibxivpn();
 
                             setState(VPNState.STOPPING_VPN);
                             stopVPN();
 
                             setState(VPNState.DISCONNECTED);
                         };
+
                     } else {
                         // xray config is stale
 
@@ -245,7 +253,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
                         setStateRaw(VPNState.STOPPING_LIBXI);
                         work = () -> {
-                            stopLibxi();
+                            stopLibxivpn();
 
                             setState(VPNState.STARTING_LIBXI);
                             if (!startLibxi()) {
@@ -268,7 +276,8 @@ public class XiVPNService extends VpnService implements SocketProtect {
                     }
                 }
             }
-        }).start();
+        });
+        stateThread.start();
 
         super.onCreate();
     }
@@ -565,7 +574,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 if (vpnState != VPNState.STOPPING_LIBXI) {
                     sendMessage("error: libxivpn exit unexpectedly");
 
-                    mustLibxiStop = true;
+                    mustDisconnectVpn = true;
                     vpnStateLock.notify();
                 }
             }
@@ -694,7 +703,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
     /**
      * Stop libxivpn process.
      */
-    private void stopLibxi() {
+    private void stopLibxivpn() {
         try {
 
             synchronized (ipcWriteLock) {
@@ -768,7 +777,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         Log.i(TAG, "on revoke");
 
         synchronized (vpnStateLock) {
-            mustLibxiStop = true;
+            mustDisconnectVpn = true;
             vpnStateLock.notify();
         }
     }
@@ -1094,7 +1103,18 @@ public class XiVPNService extends VpnService implements SocketProtect {
     @Override
     public void onDestroy() {
         Log.i(TAG, "on destroy");
-        super.onDestroy();
+
+        try {
+            if (stateThread != null) {
+                Log.d(TAG, "interrupt state thread");
+                stateThread.interrupt();
+                stateThread.join();
+                stateThread = null;
+                Log.d(TAG, "state thread stopped");
+            }
+        } catch (InterruptedException e) {
+            Log.e(TAG, "state thread join interrupted");
+        }
     }
 
     public enum VPNState {
