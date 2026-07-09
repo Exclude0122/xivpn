@@ -5,8 +5,10 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
@@ -20,6 +22,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
+import android.os.PowerManager;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
@@ -61,6 +64,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -124,6 +129,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
     private long downLinkCounter = 0;
     private long lastUpdate = 0;
     private String connectedProxy = "";
+    private Thread notificationThread = null;
 
     public static void markConfigStale(Context context) {
         Intent intent = new Intent(context, XiVPNService.class);
@@ -178,9 +184,72 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
     }
 
+    private void stopNotificationThread() {
+        if (notificationThread != null) {
+            try {
+                notificationThread.interrupt();
+                notificationThread.join();
+                notificationThread = null;
+            } catch (InterruptedException e) {
+                Log.e(TAG, "stop notification thread interrupted", e);
+            }
+        }
+    }
+
+    private void startNotificationThread() {
+        if (!getSystemService(PowerManager.class).isInteractive()) return;
+
+        if (notificationThread != null) {
+            stopNotificationThread();
+        }
+
+        notificationThread = new Thread(() -> {
+            Log.d(TAG, "notification thread started");
+            while (!Thread.interrupted()) {
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    break;
+                }
+
+
+                synchronized (vpnStateLock) {
+                    if (vpnState == VPNState.DISCONNECTED) break;
+                }
+
+                updateNotification();
+            }
+            Log.d(TAG, "notification thread stopped");
+        });
+        notificationThread.start();
+    }
+
     @Override
     public void onCreate() {
         Log.i(TAG, "on create");
+
+
+        // listen for screen on/off
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_SCREEN_ON);
+        intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
+
+        registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (Intent.ACTION_SCREEN_ON.equals(intent.getAction())) {
+                    synchronized (vpnStateLock) {
+                        if (vpnState == VPNState.DISCONNECTED) return;
+                    }
+                    startNotificationThread();
+                } else if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
+                    stopNotificationThread();
+                }
+            }
+        }, intentFilter);
+
+        // state thread
 
         stateThread = new Thread(() -> {
 
@@ -333,12 +402,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
                     ipcWriter.flush();
                 } catch (IOException e) {
                     Log.e(TAG, "update notification ipc write", e);
-                    return;
                 }
             }
         }
-
-        new Handler(getMainLooper()).postDelayed(this::updateNotification, 3000);
     }
 
     @SuppressLint("DefaultLocale")
@@ -396,7 +462,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         startForeground(notificationID, builder.build());
 
         // start notification timer
-        new Handler(getMainLooper()).postDelayed(this::updateNotification, 3000);
+        startNotificationThread();
         updateNotificationCallback(0, 0);
         lastUpdate = System.currentTimeMillis();
         uplinkCounter = 0;
@@ -768,6 +834,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         }
         fileDescriptor = null;
 
+        stopNotificationThread();
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
     }
