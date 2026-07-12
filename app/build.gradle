@@ -12,8 +12,8 @@ android {
         applicationId "io.github.exclude0122.xivpn"
         minSdk 28
         targetSdk 36
-        versionCode 46
-        versionName "1.10.0"
+        versionCode 47
+        versionName "1.11.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -69,7 +69,7 @@ android {
             ndk {
                 abiFilters "arm64-v8a"
             }
-            versionCode = defaultConfig.versionCode * 10 + 3
+            versionCode = defaultConfig.versionCode * 10 + 4
         }
 
         armabi_v7a {
@@ -77,7 +77,7 @@ android {
             ndk {
                 abiFilters "armeabi-v7a"
             }
-            versionCode = defaultConfig.versionCode * 10 + 4
+            versionCode = defaultConfig.versionCode * 10 + 3
         }
 
 
