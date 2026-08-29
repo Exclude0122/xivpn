@@ -1,319 +1,309 @@
-package cn.gov.xivpn2.ui.home;
+package cn.gov.xivpn2.ui.home
 
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.content.SharedPreferences;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.util.Log;
-import android.util.Pair;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.CompoundButton;
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.os.Bundle
+import android.os.IBinder
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.unit.dp
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import cn.gov.xivpn2.R
+import cn.gov.xivpn2.database.Rules
+import cn.gov.xivpn2.service.XiVPNService
+import cn.gov.xivpn2.ui.GeoAssetsActivity
+import cn.gov.xivpn2.ui.ui.theme.XiVPNTheme
+import cn.gov.xivpn2.xrayconfig.LabelSubscription
+import okio.IOException
+import java.io.File
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+class HomeFragment : Fragment() {
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+    private val TAG = "HomeFragment"
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+    private val viewModel: HomeViewModel by lazy {
+        ViewModelProvider(this)[HomeViewModel::class.java]
+    }
 
-import cn.gov.xivpn2.R;
-import cn.gov.xivpn2.database.AppDatabase;
-import cn.gov.xivpn2.database.Proxy;
-import cn.gov.xivpn2.database.Rules;
-import cn.gov.xivpn2.service.XiVPNService;
-import cn.gov.xivpn2.ui.GeoAssetsActivity;
-import cn.gov.xivpn2.xrayconfig.Outbound;
-import cn.gov.xivpn2.xrayconfig.LabelSubscription;
-import cn.gov.xivpn2.xrayconfig.ProxyChainSettings;
-import cn.gov.xivpn2.xrayconfig.ProxyGroupSettings;
-import cn.gov.xivpn2.xrayconfig.RoutingRule;
+    private var binder: XiVPNService.XiVPNBinder? = null
 
-public class HomeFragment extends Fragment {
-    private final String TAG = "HomeFragment";
-    private XiVPNService.XiVPNBinder binder;
-    private XiVPNService.VPNStateListener vpnStatusListener;
-    private MainActivityAdapter adapter;
-    private final ServiceConnection connection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            binder = (XiVPNService.XiVPNBinder) service;
-
-            adapter.updateVpnState(binder.getState());
-
-            binder.addListener(vpnStatusListener);
+    private val vpnStatusListener = object : XiVPNService.VPNStateListener {
+        override fun onStateChanged(state: XiVPNService.VPNState) {
+            Log.i(TAG, "onStatusChanged $state")
+            viewModel.updateVpnState(state)
         }
 
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            binder = null;
+        override fun onMessage(msg: String) {
+            viewModel.updateMessage(msg)
         }
-    };
+    }
 
-    @Override
-    public void onStart() {
-        super.onStart();
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            binder = service as XiVPNService.XiVPNBinder
+            viewModel.updateVpnState(binder!!.state)
+            binder!!.addListener(vpnStatusListener)
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            binder = null
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
         // bind and start vpn service
-        requireContext().bindService(new Intent(requireContext(), XiVPNService.class), connection, Context.BIND_AUTO_CREATE);
+        requireContext().bindService(Intent(requireContext(), XiVPNService::class.java), connection, Context.BIND_AUTO_CREATE)
     }
 
-    @Override
-    public void onStop() {
-        super.onStop();
-        if (binder != null) binder.removeListener(vpnStatusListener);
-        requireContext().unbindService(connection);
+    override fun onStop() {
+        super.onStop()
+        binder?.removeListener(vpnStatusListener)
+        requireContext().unbindService(connection)
     }
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_home, container, false);
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.fragment_home, container, false)
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val composeView = view.findViewById<ComposeView>(R.id.compose_view)
+        composeView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this))
+        composeView.setContent {
+            XiVPNTheme {
+                HomeScreen()
+            }
+        }
+    }
 
-        // recycler view
+    @Composable
+    private fun HomeScreen() {
+        val vpnState = viewModel.vpnState
+        val message = viewModel.message
+        val groups = viewModel.groups
+        val activeTab = viewModel.activeTab
 
-        RecyclerView recyclerView = view.findViewById(R.id.recycler_view);
-        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        val connected = vpnState != XiVPNService.VPNState.DISCONNECTED
 
+        val enabled = vpnState == XiVPNService.VPNState.CONNECTED || vpnState == XiVPNService.VPNState.DISCONNECTED
+        val checked = when (vpnState) {
+            XiVPNService.VPNState.CONNECTED -> true
+            XiVPNService.VPNState.ESTABLISHING_VPN, XiVPNService.VPNState.STARTING_LIBXI -> true
+            else -> false
+        }
 
-        // adapter
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+        ) {
 
-        adapter = new MainActivityAdapter(new MainActivityAdapter.Listener() {
-            @Override
-            public void onSwitchCheckedChange(CompoundButton button, boolean isChecked) {
+            if (connected && groups.isNotEmpty()) {
 
-                // on switch checked change
+                // switch
 
-                adapter.setMessage("");
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp, start = 12.dp, end = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                        BigSwitch(checked = checked, enabled = enabled, onCheckedChange = { onSwitchCheckedChange(it) })
 
-                if (isChecked) {
-                    // start vpn
-
-                    // request vpn permission
-                    Intent intent = XiVPNService.prepare(requireContext());
-                    if (intent != null) {
-                        button.setChecked(false);
-                        startActivityForResult(intent, 200);
-                        return;
+                    if (message.isNotEmpty()) {
+                        Text(message, style = MaterialTheme.typography.bodySmall)
                     }
+                }
 
-                    // check whether geoip / geosite database is downloaded
-                    try {
-                        boolean geoip = false;
-                        boolean geosite = false;
-                        List<RoutingRule> routingRules = Rules.readRules(requireContext().getFilesDir());
-                        for (RoutingRule routingRule : routingRules) {
-                            for (String s : routingRule.ip) {
-                                if (s.startsWith("geoip:")) {
-                                    geoip = true;
-                                }
-                                if (s.startsWith("geosite:")) {
-                                    geosite = true;
-                                }
+                // tabs
+
+                val tabs = groups.keys.toList()
+
+                PrimaryScrollableTabRow(
+                    tabs.indexOfFirst { it == activeTab }.coerceAtLeast(0),
+                    edgePadding = 0.dp,
+                ) {
+                    for (tab in tabs) {
+                        Tab(
+                            selected = tab == activeTab,
+                            onClick = { viewModel.updateActiveTab(tab) },
+                            text = { Text(tab.label) }
+                        )
+                    }
+                }
+
+                // servers
+
+                val selected = activeTab?.let { groups[it] }
+
+                LazyVerticalGrid(
+                    modifier = Modifier.padding(6.dp),
+                    columns = GridCells.Adaptive(minSize = 160.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items(count = selected?.first?.size ?: 0) { i ->
+                        val proxy = selected!!.first[i]
+                        val highlighted = selected.second == proxy
+
+                        Card(
+                            colors = CardDefaults.cardColors().copy(
+                                containerColor = if (highlighted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                viewModel.onServerSelected(activeTab!!, proxy)
                             }
-                            for (String s : routingRule.domain) {
-                                if (s.startsWith("geoip:")) {
-                                    geoip = true;
-                                }
-                                if (s.startsWith("geosite:")) {
-                                    geosite = true;
-                                }
+                        ) {
+                            Column(modifier = Modifier.padding(6.dp)) {
+                                Text(proxy.label, maxLines = 1, style = MaterialTheme.typography.bodyLarge)
+                                Text(proxy.subscription ?: "", style = MaterialTheme.typography.bodySmall)
                             }
                         }
-                        if ((geoip && !new File(requireContext().getFilesDir(), "geoip.dat").isFile()) || (geosite && !new File(requireContext().getFilesDir(), "geosite.dat").isFile())) {
-                            // ask the user to download geoip / geosite database
-                            new AlertDialog.Builder(requireContext())
-                                    .setTitle(R.string.warning)
-                                    .setMessage(R.string.geoip_not_downloaded)
-                                    .setPositiveButton(R.string.download, (dialog, which) -> {
-                                        startActivity(new Intent(requireContext(), GeoAssetsActivity.class));
-                                    })
-                                    .show();
-                            button.setChecked(false);
-                            return;
-                        }
-                    } catch (IOException e) {
-                        Log.e(TAG, "read rules", e);
                     }
+                }
 
-                    // start service
-                    Intent intent2 = new Intent(requireContext(), XiVPNService.class);
-                    intent2.setAction("cn.gov.xivpn2.START");
-                    intent2.putExtra("always-on", false);
-                    requireContext().startForegroundService(intent2);
+            } else {
 
-                } else {
-                    // stop
-                    Intent intent2 = new Intent(requireContext(), XiVPNService.class);
-                    intent2.setAction("cn.gov.xivpn2.STOP");
-                    intent2.putExtra("always-on", false);
-                    requireContext().startService(intent2);
+                // switch only, centered
+
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    BigSwitch(checked = checked, enabled = enabled, onCheckedChange = { onSwitchCheckedChange(it) })
+
+                        if (message.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(message, color = MaterialTheme.colorScheme.onBackground)
+                        }
+                    }
                 }
             }
-
-            @Override
-            public void onServerSelected(LabelSubscription group, LabelSubscription selected) {
-
-                // on proxy group selection change
-
-                Proxy proxyGroup = AppDatabase.getInstance().proxyDao().find(group.label, group.subscription);
-
-                Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxyGroup.config, new TypeToken<Outbound<ProxyGroupSettings>>() {
-                }.getType());
-
-                proxyGroupSettings.settings.selected = selected;
-
-                String json = gson.toJson(proxyGroupSettings);
-
-                AppDatabase.getInstance().proxyDao().updateConfig(group.label, group.subscription, json);
-
-                XiVPNService.markConfigStale(requireContext());
-
-            }
-        });
-
-
-        recyclerView.setAdapter(adapter);
-
-        // vpn service listener
-        vpnStatusListener = new XiVPNService.VPNStateListener() {
-            @Override
-            public void onStateChanged(XiVPNService.VPNState state) {
-                Log.i(TAG, "onStatusChanged " + state.name());
-                adapter.updateVpnState(state);
-            }
-
-            @Override
-            public void onMessage(String msg) {
-                adapter.setMessage(msg);
-            }
-        };
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setTitle(R.string.app_name);
-        }
-
-        // update proxy groups
-
-        List<Proxy> proxies = findUsedProxyGroups();
-        Map<LabelSubscription, Pair<List<LabelSubscription>, LabelSubscription>> map = new HashMap<>();
-        for (Proxy proxy : proxies) {
-            LabelSubscription key = new LabelSubscription(proxy.label, proxy.subscription);
-
-            Gson gson = new Gson();
-            Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(proxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() {
-            }.getType());
-
-            if (proxyGroupSettings.settings.selected == null) {
-                // default to the first one
-                // same behavior as XiVPNService
-                proxyGroupSettings.settings.selected = proxyGroupSettings.settings.proxies.get(0);
-            }
-
-            map.put(key, Pair.create(proxyGroupSettings.settings.proxies, proxyGroupSettings.settings.selected));
-        }
-
-        adapter.setGroups(map);
-    }
-
-    private ArrayList<Proxy> findUsedProxyGroups() {
-        ArrayList<Proxy> proxies = new ArrayList<>();
-        HashSet<LabelSubscription> visited = new HashSet<>();
-
-        // catch all
-        SharedPreferences sp = requireContext().getSharedPreferences("XIVPN", Context.MODE_PRIVATE);
-        String selectedLabel = sp.getString("SELECTED_LABEL", "No Proxy (Bypass Mode)");
-        String selectedSubscription = sp.getString("SELECTED_SUBSCRIPTION", "none");
-        recurseUsedProxyGroups(new LabelSubscription(selectedLabel, selectedSubscription), proxies, visited);
-
-        // routing
-        try {
-            List<RoutingRule> rules = Rules.readRules(requireContext().getFilesDir());
-
-            for (RoutingRule rule : rules) {
-                recurseUsedProxyGroups(new LabelSubscription(rule.outboundLabel, rule.outboundSubscription), proxies, visited);
-            }
-        } catch (IOException e) {
-            Log.wtf(TAG, "build xray config", e);
-        }
-
-        return proxies;
-    }
-
-    /**
-     * Recursively find proxy groups used by newProxy.
-     * @param proxies proxy groups
-     */
-    private void recurseUsedProxyGroups(LabelSubscription labelSub, ArrayList<Proxy> proxies, HashSet<LabelSubscription> visited) {
-        if (visited.contains(labelSub)) {
-            return;
-        }
-        visited.add(labelSub);
-
-        Proxy newProxy = AppDatabase.getInstance().proxyDao().find(labelSub.label, labelSub.subscription);
-
-        if (newProxy == null) {
-            return;
-        }
-
-        if (newProxy.protocol.equals("proxy-group")) {
-            // add the new proxy group to proxies
-            proxies.add(newProxy);
-
-            // recursively find its dependencies
-            Gson gson = new Gson();
-            Outbound<ProxyGroupSettings> proxyGroupSettings = gson.fromJson(newProxy.config, new TypeToken<Outbound<ProxyGroupSettings>>() {
-            }.getType());
-
-            for (LabelSubscription newLabelSub: proxyGroupSettings.settings.proxies) {
-                recurseUsedProxyGroups(newLabelSub, proxies, visited);
-            }
-        } else if (newProxy.protocol.equals("proxy-chain")) {
-            // recursively find its dependencies
-            Gson gson = new Gson();
-            Outbound<ProxyChainSettings> proxyChainSettings = gson.fromJson(newProxy.config, new TypeToken<Outbound<ProxyChainSettings>>() {
-            }.getType());
-
-            for (LabelSubscription newLabelSub: proxyChainSettings.settings.proxies) {
-                recurseUsedProxyGroups(newLabelSub, proxies, visited);
-            }
         }
     }
 
-    @Nullable
-    private ActionBar getSupportActionBar() {
-        if (getActivity() instanceof AppCompatActivity) {
-            return ((AppCompatActivity) getActivity()).getSupportActionBar();
+    @Composable
+    private fun BigSwitch(checked: Boolean, enabled: Boolean, onCheckedChange: (Boolean) -> Unit) {
+        Box(
+            modifier = Modifier.size(width = 104.dp, height = 64.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Switch(
+                checked = checked,
+                enabled = enabled,
+                onCheckedChange = onCheckedChange,
+                modifier = Modifier.scale(2f)
+            )
         }
-        return null;
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        (activity as? AppCompatActivity)?.supportActionBar?.setTitle(R.string.app_name)
+
+        viewModel.refreshGroups()
+    }
+
+    private fun onSwitchCheckedChange(isChecked: Boolean) {
+
+        // on switch checked change
+
+        viewModel.updateMessage("")
+
+        if (isChecked) {
+            // start vpn
+
+            // request vpn permission
+            val intent = XiVPNService.prepare(requireContext())
+            if (intent != null) {
+                startActivityForResult(intent, 200)
+                return
+            }
+
+            // check whether geoip / geosite database is downloaded
+            try {
+                var geoip = false
+                var geosite = false
+                for (routingRule in Rules.readRules(requireContext().filesDir)) {
+                    for (s in routingRule.ip) {
+                        if (s.startsWith("geoip:")) {
+                            geoip = true
+                        }
+                        if (s.startsWith("geosite:")) {
+                            geosite = true
+                        }
+                    }
+                    for (s in routingRule.domain) {
+                        if (s.startsWith("geoip:")) {
+                            geoip = true
+                        }
+                        if (s.startsWith("geosite:")) {
+                            geosite = true
+                        }
+                    }
+                }
+                if ((geoip && !File(requireContext().filesDir, "geoip.dat").isFile) || (geosite && !File(requireContext().filesDir, "geosite.dat").isFile)) {
+                    // ask the user to download geoip / geosite database
+                    AlertDialog.Builder(requireContext())
+                        .setTitle(R.string.warning)
+                        .setMessage(R.string.geoip_not_downloaded)
+                        .setPositiveButton(R.string.download) { _, _ ->
+                            startActivity(Intent(requireContext(), GeoAssetsActivity::class.java))
+                        }
+                        .show()
+                    return
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "read rules", e)
+            }
+
+            // start service
+            val intent2 = Intent(requireContext(), XiVPNService::class.java)
+            intent2.action = "cn.gov.xivpn2.START"
+            intent2.putExtra("always-on", false)
+            requireContext().startForegroundService(intent2)
+
+        } else {
+            // stop
+            val intent2 = Intent(requireContext(), XiVPNService::class.java)
+            intent2.action = "cn.gov.xivpn2.STOP"
+            intent2.putExtra("always-on", false)
+            requireContext().startService(intent2)
+        }
     }
 }

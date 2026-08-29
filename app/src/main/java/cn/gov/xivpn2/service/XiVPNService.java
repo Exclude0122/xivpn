@@ -638,7 +638,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
             synchronized (vpnStateLock) {
 
                 if (vpnState != VPNState.STOPPING_LIBXI) {
-                    sendMessage("error: libxivpn exit unexpectedly");
+                    sendMessage("error: libxivpn exit unexpectedly. check notifications for detail");
 
                     mustDisconnectVpn = true;
                     vpnStateLock.notify();
