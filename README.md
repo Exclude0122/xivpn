@@ -38,6 +38,7 @@ Or download from [Github releases](https://github.com/Exclude0122/xivpn/releases
 <img src="https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" width="150px">
 <img src="https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" width="150px">
 <img src="https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/8.png" width="150px">
+<img src="https://github.com/Exclude0122/xivpn/blob/master/fastlane/metadata/android/en-US/images/phoneScreenshots/9.png" width="150px">
 </p>
 
 
