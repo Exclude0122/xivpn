@@ -64,8 +64,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -130,6 +128,19 @@ public class XiVPNService extends VpnService implements SocketProtect {
     private long lastUpdate = 0;
     private String connectedProxy = "";
     private Thread notificationThread = null;
+    private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (Intent.ACTION_SCREEN_ON.equals(intent.getAction())) {
+                synchronized (vpnStateLock) {
+                    if (vpnState == VPNState.DISCONNECTED) return;
+                }
+                startNotificationThread();
+            } else if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
+                stopNotificationThread();
+            }
+        }
+    };
 
     public static void markConfigStale(Context context) {
         Intent intent = new Intent(context, XiVPNService.class);
@@ -235,19 +246,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
         intentFilter.addAction(Intent.ACTION_SCREEN_ON);
         intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
 
-        registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (Intent.ACTION_SCREEN_ON.equals(intent.getAction())) {
-                    synchronized (vpnStateLock) {
-                        if (vpnState == VPNState.DISCONNECTED) return;
-                    }
-                    startNotificationThread();
-                } else if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
-                    stopNotificationThread();
-                }
-            }
-        }, intentFilter);
+        registerReceiver(screenReceiver, intentFilter);
 
         // state thread
 
@@ -1182,6 +1181,8 @@ public class XiVPNService extends VpnService implements SocketProtect {
         } catch (InterruptedException e) {
             Log.e(TAG, "state thread join interrupted");
         }
+
+        unregisterReceiver(screenReceiver);
     }
 
     public enum VPNState {
