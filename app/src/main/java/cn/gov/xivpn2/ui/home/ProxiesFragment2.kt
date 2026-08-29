@@ -73,6 +73,7 @@ import androidx.core.graphics.createBitmap
 import cn.gov.xivpn2.database.Rules
 import cn.gov.xivpn2.service.XiVPNService
 import cn.gov.xivpn2.ui.QRScanActivity
+import cn.gov.xivpn2.ui.ui.theme.XiVPNTheme
 import com.google.android.material.textfield.TextInputEditText
 import okio.IOException
 import java.util.Objects
@@ -105,7 +106,7 @@ class ProxiesFragment2 : Fragment() {
         val composeView = view.findViewById<ComposeView>(R.id.compose_view)
         composeView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this))
         composeView.setContent {
-            MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
+            XiVPNTheme {
 
                 var selectedIndex by remember { mutableIntStateOf(0) }
 

@@ -185,4 +185,7 @@
     <string name="auto_update">Auto Update</string>
     <string name="default_">Default</string>
     <string name="all">All</string>
+    <string name="title_activity_latency">LatencyActivity</string>
+    <string name="latency_test">Latency Test</string>
+    <string name="start">Start</string>
 </resources>

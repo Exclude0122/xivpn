@@ -41,10 +41,12 @@ import cn.gov.xivpn2.BuildConfig
 import cn.gov.xivpn2.R
 import cn.gov.xivpn2.ui.DNSActivity
 import cn.gov.xivpn2.ui.DNSToolboxActivity
+import cn.gov.xivpn2.ui.LatencyActivity
 import cn.gov.xivpn2.ui.LicensesActivity
 import cn.gov.xivpn2.ui.PreferenceActivity
 import cn.gov.xivpn2.ui.RulesActivity
 import cn.gov.xivpn2.ui.SubscriptionsActivity
+import cn.gov.xivpn2.ui.ui.theme.XiVPNTheme
 
 
 @Composable
@@ -142,7 +144,7 @@ class AllSettingsFragment : Fragment() {
         composeView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this))
 
         composeView.setContent {
-            MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
+            XiVPNTheme {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -171,6 +173,10 @@ class AllSettingsFragment : Fragment() {
 
                             MyListItem(R.drawable.build, getString(R.string.dns_toolbox)) {
                                 startActivity(Intent(requireContext(), DNSToolboxActivity::class.java))
+                            }
+
+                            MyListItem(R.drawable.network_ping, getString(R.string.latency_test)) {
+                                startActivity(Intent(requireContext(), LatencyActivity::class.java))
                             }
                         }
                     }

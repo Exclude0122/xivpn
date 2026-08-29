@@ -109,8 +109,13 @@ android {
 }
 
 dependencies {
+    implementation libs.androidx.activity.compose
+    implementation libs.androidx.compose.ui.graphics
     implementation libs.androidx.core.ktx
+    implementation libs.androidx.lifecycle.runtime.ktx
+    implementation libs.androidx.lifecycle.viewmodel.ktx
     implementation libs.room.runtime
+    androidTestImplementation libs.androidx.compose.ui.test.junit4
     annotationProcessor libs.room.compiler
     implementation libs.google.guava
     implementation libs.gson
@@ -134,6 +139,7 @@ dependencies {
     androidTestImplementation platform('androidx.compose:compose-bom:2026.06.00')
     implementation libs.androidx.material3
     implementation libs.androidx.ui.tooling.preview
+    debugImplementation libs.androidx.compose.ui.test.manifest
     debugImplementation libs.androidx.ui.tooling
     implementation libs.androidx.ui
     implementation libs.androidx.compose.foundation
