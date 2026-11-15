@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
@@ -39,7 +40,6 @@ import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.ui.BlackBackground;
 import cn.gov.xivpn2.xrayconfig.GRPCSettings;
 import cn.gov.xivpn2.xrayconfig.HttpUpgradeSettings;
-import cn.gov.xivpn2.xrayconfig.HysteriaHop;
 import cn.gov.xivpn2.xrayconfig.HysteriaTransportSettings;
 import cn.gov.xivpn2.xrayconfig.KcpSettings;
 import cn.gov.xivpn2.xrayconfig.MuxSettings;
@@ -59,6 +59,9 @@ import cn.gov.xivpn2.xrayconfig.XMuxSettings;
 public abstract class ProxyActivity<T> extends AppCompatActivity {
 
     private final static String TAG = "ProxyActivity";
+
+    // hysteria hopping opens a new socket and picks a new server port on every hop
+    private final static String HYSTERIA_HOP_MODE = "intervalLocal,intervalRemote";
 
     protected ProxyEditTextAdapter adapter;
 
@@ -233,7 +236,6 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 return Utils.isValidPort(value);
             case "MUX_XUDP_CONCURRENCY":
             case "MUX_CONCURRENCY":
-            case "NETWORK_HYSTERIA_HOP_INTERVAL":
             case "NETWORK_KCP_UPLINK":
             case "NETWORK_KCP_DOWNLINK":
             case "NETWORK_KCP_TTI":
@@ -248,6 +250,21 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 }
 
                 return true;
+
+            case "NETWORK_HYSTERIA_HOP_INTERVAL":
+                // "30" or "5-30", at least 5 seconds
+                String[] interval = value.replace(" ", "").split("-", -1);
+                if (interval.length > 2) return false;
+                try {
+                    int from = Integer.parseInt(interval[0]);
+                    int to = interval.length == 2 ? Integer.parseInt(interval[1]) : from;
+                    return from >= 5 && to >= from;
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+
+            case "NETWORK_HYSTERIA_HOP_PORTS":
+                return value.replace(" ", "").matches("\\d+(-\\d+)?(,\\d+(-\\d+)?)*");
 
             case "FINALMASK":
             case "NETWORK_XHTTP_EXTRA_JSON":
@@ -417,15 +434,8 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
             case "hysteria":
                 outbound.streamSettings.hysteriaSettings = new HysteriaTransportSettings();
                 outbound.streamSettings.hysteriaSettings.auth = adapter.getValue("NETWORK_HYSTERIA_AUTH");
-                outbound.streamSettings.hysteriaSettings.down = adapter.getValue("NETWORK_HYSTERIA_DOWN");
-                outbound.streamSettings.hysteriaSettings.up = adapter.getValue("NETWORK_HYSTERIA_UP");
-                if ("True".equals(adapter.getValue("NETWORK_HYSTERIA_HOP"))) {
-                    outbound.streamSettings.hysteriaSettings.udphop = new HysteriaHop();
-                    outbound.streamSettings.hysteriaSettings.udphop.port = adapter.getValue("NETWORK_HYSTERIA_HOP_PORTS");
-                    outbound.streamSettings.hysteriaSettings.udphop.interval = Integer.parseInt(adapter.getValue("NETWORK_HYSTERIA_HOP_INTERVAL"));
-
-                }
-
+                outbound.streamSettings.finalmask = buildHysteriaFinalmask(outbound.streamSettings.finalmask, adapter);
+                break;
         }
 
         String security = this.adapter.getValue("SECURITY");
@@ -534,16 +544,10 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 }
                 break;
             case "hysteria":
-                initials.put("NETWORK_HYSTERIA_AUTH", outbound.streamSettings.hysteriaSettings.auth);
-                initials.put("NETWORK_HYSTERIA_DOWN", outbound.streamSettings.hysteriaSettings.down);
-                initials.put("NETWORK_HYSTERIA_UP", outbound.streamSettings.hysteriaSettings.up);
-                if (outbound.streamSettings.hysteriaSettings.udphop != null) {
-                    initials.put("NETWORK_HYSTERIA_HOP", "True");
-                    initials.put("NETWORK_HYSTERIA_HOP_PORTS", Objects.requireNonNullElse(outbound.streamSettings.hysteriaSettings.udphop.port, "443"));
-                    initials.put("NETWORK_HYSTERIA_HOP_INTERVAL", String.valueOf(outbound.streamSettings.hysteriaSettings.udphop.interval));
-                } else {
-                    initials.put("NETWORK_HYSTERIA_HOP", "False");
-                }
+                HysteriaTransportSettings hysteriaSettings = Objects.requireNonNullElseGet(outbound.streamSettings.hysteriaSettings, HysteriaTransportSettings::new);
+                initials.put("NETWORK_HYSTERIA_AUTH", Objects.requireNonNullElse(hysteriaSettings.auth, ""));
+                JsonObject finalmask = decodeHysteriaFinalmask(outbound.streamSettings.finalmask, hysteriaSettings, initials);
+                initials.put("FINALMASK", finalmask == null ? "" : new GsonBuilder().setPrettyPrinting().create().toJson(finalmask));
                 break;
             case "grpc":
                 initials.put("NETWORK_GRPC_AUTHORITY", outbound.streamSettings.grpcSettings.authority);
@@ -592,6 +596,126 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
 
 
         return initials;
+    }
+
+    /**
+     * Since xray v26.11.9, hysteria bandwidth is set in finalmask.quicParams and udp hop is a finalmask udp mask.
+     * Write the editor fields into finalmask, keeping everything else the user put there.
+     */
+    private JsonObject buildHysteriaFinalmask(@Nullable JsonObject finalmask, IProxyEditor adapter) {
+        if (finalmask == null) finalmask = new JsonObject();
+
+        JsonObject quicParams = finalmask.has("quicParams") && finalmask.get("quicParams").isJsonObject() ? finalmask.getAsJsonObject("quicParams") : new JsonObject();
+        quicParams.remove("brutalUp");
+        quicParams.remove("brutalDown");
+        String up = adapter.getValue("NETWORK_HYSTERIA_UP");
+        String down = adapter.getValue("NETWORK_HYSTERIA_DOWN");
+        if (up != null && !up.isBlank()) quicParams.addProperty("brutalUp", up.strip());
+        if (down != null && !down.isBlank()) quicParams.addProperty("brutalDown", down.strip());
+        if (quicParams.isEmpty()) {
+            finalmask.remove("quicParams");
+        } else {
+            finalmask.add("quicParams", quicParams);
+        }
+
+        if ("True".equals(adapter.getValue("NETWORK_HYSTERIA_HOP"))) {
+            JsonObject settings = new JsonObject();
+            settings.addProperty("mode", HYSTERIA_HOP_MODE);
+            settings.addProperty("remotePorts", adapter.getValue("NETWORK_HYSTERIA_HOP_PORTS").replace(" ", ""));
+            String interval = adapter.getValue("NETWORK_HYSTERIA_HOP_INTERVAL").replace(" ", "");
+            if (interval.contains("-")) {
+                settings.addProperty("interval", interval);
+            } else {
+                settings.addProperty("interval", Integer.parseInt(interval));
+            }
+
+            JsonObject mask = new JsonObject();
+            mask.addProperty("type", "udphop");
+            mask.add("settings", settings);
+
+            // udphop dials the connection itself, so it must be the first udp mask
+            JsonArray udp = new JsonArray();
+            udp.add(mask);
+            if (finalmask.has("udp") && finalmask.get("udp").isJsonArray()) {
+                for (JsonElement e : finalmask.getAsJsonArray("udp")) {
+                    if (!isUdpHopMask(e)) udp.add(e);
+                }
+            }
+            finalmask.add("udp", udp);
+        }
+
+        return finalmask.isEmpty() ? null : finalmask;
+    }
+
+    /**
+     * Fill hysteria editor fields from finalmask, falling back to the fields hysteriaSettings used before xray v26.11.9.
+     * Returns a copy of finalmask without the values that are now shown in the editor fields.
+     */
+    @Nullable
+    private JsonObject decodeHysteriaFinalmask(@Nullable JsonObject finalmask, HysteriaTransportSettings hysteriaSettings, LinkedHashMap<String, String> initials) {
+        finalmask = finalmask == null ? new JsonObject() : finalmask.deepCopy();
+
+        String up = hysteriaSettings.up;
+        String down = hysteriaSettings.down;
+        if (finalmask.has("quicParams") && finalmask.get("quicParams").isJsonObject()) {
+            JsonObject quicParams = finalmask.getAsJsonObject("quicParams");
+            if (quicParams.has("brutalUp") && quicParams.get("brutalUp").isJsonPrimitive()) {
+                up = quicParams.remove("brutalUp").getAsString();
+            }
+            if (quicParams.has("brutalDown") && quicParams.get("brutalDown").isJsonPrimitive()) {
+                down = quicParams.remove("brutalDown").getAsString();
+            }
+            if (quicParams.isEmpty()) finalmask.remove("quicParams");
+        }
+        initials.put("NETWORK_HYSTERIA_UP", Objects.requireNonNullElse(up, ""));
+        initials.put("NETWORK_HYSTERIA_DOWN", Objects.requireNonNullElse(down, ""));
+
+        String hopPorts = null;
+        String hopInterval = null;
+        if (hysteriaSettings.udphop != null) {
+            hopPorts = Objects.requireNonNullElse(hysteriaSettings.udphop.port, "443");
+            hopInterval = hysteriaSettings.udphop.interval > 0 ? String.valueOf(hysteriaSettings.udphop.interval) : "30";
+        }
+        // only take a udphop mask that the editor can represent, leave others in the finalmask json
+        if (finalmask.has("udp") && finalmask.get("udp").isJsonArray()) {
+            JsonArray udp = finalmask.getAsJsonArray("udp");
+            for (int i = 0; i < udp.size(); i++) {
+                if (!isUdpHopMask(udp.get(i))) continue;
+                JsonElement settingsElement = udp.get(i).getAsJsonObject().get("settings");
+                if (settingsElement == null || !settingsElement.isJsonObject()) continue;
+                JsonObject settings = settingsElement.getAsJsonObject();
+
+                boolean simple = settings.has("mode") && settings.get("mode").isJsonPrimitive()
+                        && HYSTERIA_HOP_MODE.equalsIgnoreCase(settings.get("mode").getAsString().replace(" ", ""))
+                        && settings.has("remotePorts") && settings.get("remotePorts").isJsonPrimitive()
+                        && (!settings.has("interval") || settings.get("interval").isJsonPrimitive());
+                for (String k : settings.keySet()) {
+                    if (!k.equals("mode") && !k.equals("remotePorts") && !k.equals("interval")) simple = false;
+                }
+                if (!simple) continue;
+
+                hopPorts = settings.get("remotePorts").getAsString();
+                hopInterval = settings.has("interval") ? settings.get("interval").getAsString() : "30";
+                udp.remove(i);
+                if (udp.isEmpty()) finalmask.remove("udp");
+                break;
+            }
+        }
+        if (hopPorts != null) {
+            initials.put("NETWORK_HYSTERIA_HOP", "True");
+            initials.put("NETWORK_HYSTERIA_HOP_PORTS", hopPorts);
+            initials.put("NETWORK_HYSTERIA_HOP_INTERVAL", hopInterval);
+        } else {
+            initials.put("NETWORK_HYSTERIA_HOP", "False");
+        }
+
+        return finalmask.isEmpty() ? null : finalmask;
+    }
+
+    private static boolean isUdpHopMask(JsonElement mask) {
+        return mask.isJsonObject() && mask.getAsJsonObject().has("type")
+                && mask.getAsJsonObject().get("type").isJsonPrimitive()
+                && "udphop".equalsIgnoreCase(mask.getAsJsonObject().get("type").getAsString());
     }
 
     /**
@@ -927,7 +1051,7 @@ public abstract class ProxyActivity<T> extends AppCompatActivity {
                 adapter.removeInputByPrefix("NETWORK_HYSTERIA_HOP_");
                 if (value.equals("True")) {
                     adapter.addInputAfter("NETWORK_HYSTERIA_HOP", "NETWORK_HYSTERIA_HOP_PORTS", "Hysteria UDP Hop Ports", "2000-2100");
-                    adapter.addInputAfter("NETWORK_HYSTERIA_HOP", "NETWORK_HYSTERIA_HOP_INTERVAL", "Hysteria UDP Hop Interval", "30", "Seconds");
+                    adapter.addInputAfter("NETWORK_HYSTERIA_HOP", "NETWORK_HYSTERIA_HOP_INTERVAL", "Hysteria UDP Hop Interval", "30", "Seconds, a number or a range like 5-30");
                 }
                 break;
         }
