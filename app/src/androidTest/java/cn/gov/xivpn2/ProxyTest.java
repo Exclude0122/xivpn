@@ -41,7 +41,7 @@ public class ProxyTest {
     private final static String TAG = "ProxyTest";
 
     private static final long CONNECTED_TIMEOUT_MS = 30_000;
-    private static final long POLL_INTERVAL_MS = 500;
+    private static final long POLL_INTERVAL_MS = 100;
 
     /**
      * Import and test all proxies from Secret.SUBSCRIPTION_URL
@@ -98,7 +98,7 @@ public class ProxyTest {
 
                 Log.i(TAG, "testing " + proxy.label + " @ " + proxy.subscription);
 
-                Thread.sleep(500);
+                awaitState(appContext, XiVPNService.VPNState.CONNECTED, CONNECTED_TIMEOUT_MS);
 
                 // test connection
                 Response response = httpClient.newCall(new Request.Builder().url("https://myip.wtf/text").build()).execute();
@@ -171,6 +171,7 @@ public class ProxyTest {
                     XiVPNService.VPNState state = binder.getState();
                     Log.i(TAG, "vpn state " + state.name());
                     if (state == expected) {
+                        Log.d(TAG, "vpn state poll return");
                         return;
                     }
                 }
