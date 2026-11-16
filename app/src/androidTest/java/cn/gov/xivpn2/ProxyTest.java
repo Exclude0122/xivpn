@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.IBinder;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -17,7 +18,9 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -37,7 +40,6 @@ public class ProxyTest {
 
     private final static String TAG = "ProxyTest";
 
-    private static final long CONSENT_TIMEOUT_MS = 60_000;
     private static final long CONNECTED_TIMEOUT_MS = 30_000;
     private static final long POLL_INTERVAL_MS = 500;
 
@@ -56,38 +58,32 @@ public class ProxyTest {
         try {
             // start vpn
 
-            boolean finished = false;
-            Intent consent = XiVPNService.prepare(appContext);
-            if (consent != null) {// launch the consent dialog; it needs an activity task
-                consent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                appContext.startActivity(consent);
-                long deadline = System.currentTimeMillis() + CONSENT_TIMEOUT_MS;
-                while (System.currentTimeMillis() < deadline) {
-                    if (XiVPNService.prepare(appContext) == null) {
-                        Log.i(TAG, "vpn consent granted");
-                        finished = true;
-                        break;
-                    }
-                    Thread.sleep(POLL_INTERVAL_MS);
+            // The consent dialog can't be shown from here: the instrumentation process has no
+            // foreground activity, so Android blocks the background activity start.
+            // Grant consent through appops with the shell identity instead.
+            if (XiVPNService.prepare(appContext) != null) {
+                String output = runShellCommand("appops set " + appContext.getPackageName() + " ACTIVATE_VPN allow");
+                Log.i(TAG, "appops: " + output);
+                if (XiVPNService.prepare(appContext) != null) {
+                    fail("VPN consent could not be granted. " +
+                            "Run: adb shell appops set " + appContext.getPackageName() + " ACTIVATE_VPN allow");
                 }
-                if (!finished) {
-                    fail("VPN consent was not granted within " + (CONSENT_TIMEOUT_MS / 1000) + "s. " +
-                            "Accept the system VPN consent dialog on the device, " +
-                            "or pre-grant it with: adb shell appops set " + appContext.getPackageName() + " ACTIVATE_VPN allow");
-                }
+                Log.i(TAG, "vpn consent granted");
             }
-
-            Intent intent = new Intent(appContext, XiVPNService.class);
-            intent.setAction("cn.gov.xivpn2.START");
-            intent.putExtra("always-on", false);
-            appContext.startForegroundService(intent);
-            awaitState(appContext, XiVPNService.VPNState.CONNECTED, CONNECTED_TIMEOUT_MS);
 
             // add subscription
             String subscription = Secret.SUBSCRIPTION_URL;
             Response response1 = httpClient.newCall(new Request.Builder().url(subscription).build()).execute();
             SubscriptionWork.parseV2rayng(response1.body().string(), "unittest");
             response1.close();
+
+            // start vpn
+            Intent intent = new Intent(appContext, XiVPNService.class);
+            intent.setAction("cn.gov.xivpn2.START");
+            intent.putExtra("always-on", false);
+            appContext.startForegroundService(intent);
+            awaitState(appContext, XiVPNService.VPNState.CONNECTED, CONNECTED_TIMEOUT_MS);
+
 
             // list all proxies
             for (Proxy proxy : AppDatabase.getInstance().proxyDao().findAll()) {
@@ -122,6 +118,23 @@ public class ProxyTest {
             } catch (Throwable t) {
                 Log.e(TAG, "stop vpn", t);
             }
+        }
+    }
+
+    /**
+     * Run a shell command as the shell user and return its output.
+     */
+    private static String runShellCommand(String command) throws IOException {
+        ParcelFileDescriptor pfd = InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
+        // read until EOF so the command has finished before returning
+        try (InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(pfd)) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buf = new byte[1024];
+            int n;
+            while ((n = in.read(buf)) != -1) {
+                out.write(buf, 0, n);
+            }
+            return out.toString("UTF-8");
         }
     }
 

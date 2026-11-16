@@ -185,7 +185,8 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
                         mckpLegacy.header = "dns";
                         mckpLegacy.value = query.getOrDefault("host", "example.com");
                     } else {
-                        e.type = headerTypeQuery;
+                        // srtp, utp, dtls, wireguard
+                        mckpLegacy.header = headerTypeQuery;
                     }
                     fm.udp.add(e);
                 }
@@ -230,10 +231,12 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
                 ss.tlsSettings.serverName = query.getOrDefault("sni", remoteHost);
                 ss.tlsSettings.fingerprint = query.getOrDefault("fp", "chrome");
 
+                // websocket and httpupgrade can't run over h2
+                String defaultAlpn = "ws".equals(ss.network) || "httpupgrade".equals(ss.network) ? "http/1.1" : "h2,http/1.1";
                 if (query.containsKey("alpn")) {
-                    ss.tlsSettings.alpn = Objects.requireNonNullElse(query.get("alpn"), "h2,http/1.1").split(",");
+                    ss.tlsSettings.alpn = Objects.requireNonNullElse(query.get("alpn"), defaultAlpn).split(",");
                 } else {
-                    ss.tlsSettings.alpn = new String[]{"h2", "http/1.1"};
+                    ss.tlsSettings.alpn = defaultAlpn.split(",");
                 }
 
                 // pinnedPeerCertSha256 (pcs)

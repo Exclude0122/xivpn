@@ -96,7 +96,12 @@ public class LegacyVmessShareLinkParser implements ShareLinkParser{
         if ("tls".equals(vmessShare.tls)) {
             outbound.streamSettings.security = "tls";
             outbound.streamSettings.tlsSettings = new TLSSettings();
-            outbound.streamSettings.tlsSettings.alpn = new String[]{"h2", "http/1.1"};
+            // websocket can't run over h2
+            if ("ws".equals(outbound.streamSettings.network)) {
+                outbound.streamSettings.tlsSettings.alpn = new String[]{"http/1.1"};
+            } else {
+                outbound.streamSettings.tlsSettings.alpn = new String[]{"h2", "http/1.1"};
+            }
             if (vmessShare.alpn != null && !vmessShare.alpn.isBlank()) {
                 outbound.streamSettings.tlsSettings.alpn = vmessShare.alpn.split(",");
             }
